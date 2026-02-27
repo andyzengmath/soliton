@@ -6,7 +6,7 @@
 
 **One system, three modes: help humans review faster, auto-approve low-risk PRs, or run fully autonomous review for your entire codebase**
 
-**San Francisco, CA -- September 2025**
+**Philadelphia, PA -- February 2026**
 
 Today, Soliton launches as the first PR review system built for teams where both humans and AI agents write and review code. Available as a GitHub App and open-source CLI, Soliton introduces a three-mode autonomy model -- Assist, Autopilot, and Autonomous -- that lets teams dial the level of human involvement up or down as their trust in automated review grows.
 
