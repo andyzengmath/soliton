@@ -77,7 +77,60 @@ If no `target` argument was provided (or `--branch` flag was used):
 
 Proceed to **Step 2**.
 
-<!-- TODO: US-003 PR Number Mode -->
+### Mode B: PR Number (argument is a number or GitHub PR URL)
+
+If `target` is a number (e.g., `123`) or a GitHub PR URL (e.g., `https://github.com/org/repo/pull/123`):
+
+1. **Extract PR number:**
+   - If `target` is a plain integer, use it directly as `prNumber`.
+   - If `target` matches `https://github.com/.+/pull/(\d+)`, extract the number from the URL.
+
+2. **Verify gh CLI authentication:**
+   ```bash
+   gh auth status
+   ```
+   If this fails, output: `Error: gh CLI not authenticated. Run 'gh auth login' first.` and **STOP**.
+
+3. **Fetch PR metadata:**
+   ```bash
+   gh pr view ${prNumber} --json title,body,baseRefName,headRefName,files,comments,reviews
+   ```
+   If this fails (PR not found), output: `Error: PR #${prNumber} not found.` and **STOP**.
+
+   Parse the JSON response to extract:
+   - `title` — PR title
+   - `body` — PR description (store as `prDescription`)
+   - `baseRefName` — base branch (store as `baseBranch`)
+   - `headRefName` — head branch (store as `headBranch`)
+   - `files` — array of changed files (parse into `FileChange` entries)
+   - `comments` — existing PR comments (store as `existingComments`)
+   - `reviews` — existing reviews (append to `existingComments`)
+
+4. **Fetch unified diff:**
+   ```bash
+   gh pr diff ${prNumber}
+   ```
+   Store as `diff`.
+
+5. **Check for empty diff:**
+   If `diff` is empty, output: `No changes detected on PR #${prNumber}.` and **STOP**.
+
+6. **Construct ReviewRequest:**
+   ```
+   ReviewRequest {
+     source: 'pr'
+     prNumber: <extracted PR number>
+     baseBranch: <from PR metadata>
+     headBranch: <from PR metadata>
+     diff: <unified diff from gh pr diff>
+     files: <FileChange array from PR metadata>
+     prDescription: <PR title + body>
+     existingComments: <comments and reviews from PR metadata>
+     config: <see Step 2 for config resolution>
+   }
+   ```
+
+Proceed to **Step 2**.
 
 <!-- TODO: US-004 Configuration and Flags -->
 
