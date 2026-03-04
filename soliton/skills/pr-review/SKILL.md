@@ -487,6 +487,62 @@ AI-Authored Likelihood: <aiAuthoredLikelihood>
 (<suppressed> additional findings below confidence threshold)
 ```
 
-<!-- TODO: US-016 JSON Output -->
+### Format B: JSON (when `config.outputFormat` is `'json'` and `config.feedbackMode` is `false`)
+
+Output ONLY a valid JSON object with no surrounding text, no markdown, no emoji, and no progress indicators:
+
+```json
+{
+  "summary": {
+    "filesChanged": <number>,
+    "linesAdded": <number>,
+    "linesDeleted": <number>,
+    "findingCounts": {
+      "critical": <number>,
+      "improvement": <number>,
+      "nitpick": <number>
+    },
+    "aiAuthoredLikelihood": "<LOW|MEDIUM|HIGH|N/A>",
+    "oneLiner": "<summary text>"
+  },
+  "findings": [
+    {
+      "agent": "<agent name or [agent1, agent2] if merged>",
+      "category": "<security|correctness|hallucination|testing|consistency|cross-file-impact|historical-context>",
+      "severity": "<critical|improvement|nitpick>",
+      "confidence": <0-100>,
+      "file": "<file path>",
+      "lineStart": <number>,
+      "lineEnd": <number>,
+      "title": "<one-line title>",
+      "description": "<detailed description>",
+      "suggestion": "<fix code or null>",
+      "evidence": "<evidence or null>",
+      "references": ["<url1>", "<url2>"]
+    }
+  ],
+  "riskAssessment": {
+    "score": <0-100>,
+    "level": "<LOW|MEDIUM|HIGH|CRITICAL>",
+    "factors": [
+      {"name": "<factor_name>", "score": <0-100>, "details": "<explanation>"}
+    ],
+    "recommendedAgents": ["<agent1>", "<agent2>"],
+    "focusAreas": [
+      {"agent": "<name>", "files": ["<file>"], "hint": "<hint>"}
+    ]
+  },
+  "suppressed": <number>,
+  "recommendation": "<approve|request-changes|needs-discussion>",
+  "metadata": {
+    "totalAgents": <number>,
+    "completedAgents": <number>,
+    "failedAgents": ["<agent names>"],
+    "reviewDurationMs": <number>
+  }
+}
+```
+
+**Important:** Output ONLY this JSON. No text before or after. The output must be parseable by `JSON.parse()` / `json.loads()`.
 
 <!-- TODO: US-017 Agent Feedback Output -->
