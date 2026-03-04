@@ -32,6 +32,33 @@ Different platform manifests (`.claude-plugin/` vs `.cursor-plugin/`) may use di
 
 In hooks, MCP servers, and scripts, use `${CLAUDE_PLUGIN_ROOT}` for absolute path references. This variable resolves to the plugin root directory at runtime.
 
+## Versioning
+
+Claude Code uses the `version` field to decide whether to update a cached plugin. **If you change plugin code but don't bump the version, existing users won't see your changes.**
+
+### Rules
+
+1. **Bump the version on every PR that changes plugin behavior** (agents, skills, rules, hooks, manifests). Documentation-only changes (README, LICENSE, CHANGELOG) do not require a bump.
+2. **Use semver** (`MAJOR.MINOR.PATCH`):
+   - **PATCH** — bug fixes, rule tweaks, agent prompt improvements
+   - **MINOR** — new agents, new skills, new flags, new rules
+   - **MAJOR** — breaking changes to output format, removed agents, changed default behavior
+3. **Keep all version fields in sync.** The version appears in:
+   - `.claude-plugin/plugin.json` → `version`
+   - `.claude-plugin/marketplace.json` → `metadata.version` AND `plugins[0].version`
+   - `.cursor-plugin/plugin.json` → `version`
+
+   All four values must match. If a PR changes any of them, flag a finding if the others are not updated to the same value.
+4. **`plugin.json` takes priority** over `marketplace.json` when both specify a version. But keeping them in sync avoids confusion.
+
+### Review guidance
+
+When reviewing a PR that modifies files under `agents/`, `skills/`, `rules/`, or `hooks/`:
+- Check whether any version field was bumped. If not, flag as an **improvement** finding: "Plugin behavior changed but version was not bumped — cached installs won't pick up the update."
+- Check that all 4 version locations are consistent. If they differ, flag as an **improvement** finding.
+
 ## Plugin Caching
 
 Installed marketplace plugins are cached to `~/.claude/plugins/cache/`. Plugins **cannot reference files outside their directory** — paths like `../shared-utils` will fail after installation because external files are not copied to the cache.
+
+Because of caching, version bumps are the only reliable way for users to receive updates. If the version doesn't change, `claude plugin update` is a no-op.
