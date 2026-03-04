@@ -1,0 +1,29 @@
+---
+description: Risk scoring factor definitions and weights for PR review dispatch
+alwaysApply: false
+globs: "**/*"
+---
+
+# Risk Scoring Factors
+
+**Invariant:** Factor weights must sum to 100%. Current total: 25 + 20 + 20 + 15 + 10 + 10 = 100%.
+
+## Factors
+
+| Factor | Weight | Scoring |
+|--------|--------|---------|
+| Blast radius | 25% | min(100, importerCount * 10) |
+| Change complexity | 20% | controlFlowLines / totalAddedLines * 100 |
+| Sensitive paths | 20% | 100 if any match, 0 otherwise |
+| File size/scope | 15% | <50 lines=10, 50-200=30, 200-500=60, 500-1000=80, >1000=100 |
+| AI-authored signals | 10% | Weighted sum of detected signals |
+| Test coverage gap | 10% | (gapFiles / totalProdFiles) * 100 |
+
+## Risk Levels
+
+| Level | Score | Agents Dispatched |
+|-------|-------|-------------------|
+| LOW | 0-30 | correctness, consistency |
+| MEDIUM | 31-60 | + security, test-quality |
+| HIGH | 61-80 | + hallucination, cross-file-impact |
+| CRITICAL | 81-100 | + historical-context |
