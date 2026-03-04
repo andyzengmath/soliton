@@ -1,0 +1,12 @@
+# Quantum Loop
+.ql-wt/
+.quantum-logs/
+quantum.json.tmp
+quantum.json
+
+# Docs and research (working drafts, not part of plugin)
+docs/
+research/
+research-pr-review-agents.md
+risk_gap.md
+tasks/
