@@ -19,8 +19,11 @@ A Claude Code plugin that runs 2-7 specialized review agents in parallel, adapti
 ## Quick Start
 
 ```bash
-# Install (one command)
-claude install andyzengmath/soliton
+# Step 1: Add the marketplace (once)
+/plugin marketplace add andyzengmath/soliton
+
+# Step 2: Install the plugin
+/plugin install soliton@soliton
 
 # Review your current branch
 /pr-review
@@ -33,17 +36,37 @@ That's it. Soliton auto-detects your base branch, computes a risk score, dispatc
 
 ## Install
 
-**Claude Code:**
+**Claude Code (recommended):**
 ```bash
-claude install andyzengmath/soliton
+# Add the marketplace
+/plugin marketplace add andyzengmath/soliton
+
+# Install the plugin
+/plugin install soliton@soliton
 ```
 
-**Manual:**
+**Local development:**
 ```bash
-git clone https://github.com/andyzengmath/soliton.git ~/.claude/plugins/soliton
+# Clone and load directly (not cached — useful for development)
+git clone https://github.com/andyzengmath/soliton.git
+claude --plugin-dir ./soliton
 ```
 
 **Cursor:** Available on the [Cursor Marketplace](https://cursor.com/marketplace) — search "soliton" or install from repo.
+
+## Update
+
+```bash
+# Refresh marketplace listings, then update the plugin
+/plugin marketplace update soliton
+/plugin update soliton@soliton
+```
+
+If the update doesn't pick up the latest version (GitHub CDN caching), clear the local cache and reinstall:
+```bash
+rm -rf ~/.claude/plugins/cache/soliton
+/plugin install soliton@soliton
+```
 
 ## Usage
 
