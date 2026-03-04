@@ -1,0 +1,26 @@
+{
+  "name": "soliton",
+  "owner": {
+    "name": "andyzengmath"
+  },
+  "metadata": {
+    "description": "Intelligent multi-agent PR review with adaptive risk-based dispatch",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "soliton",
+      "source": "./",
+      "description": "Risk-adaptive parallel PR review with 9 specialized agents",
+      "version": "1.0.0",
+      "keywords": [
+        "pr-review",
+        "code-review",
+        "multi-agent",
+        "risk-scoring",
+        "security"
+      ],
+      "category": "productivity"
+    }
+  ]
+}
