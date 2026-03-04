@@ -1,0 +1,23 @@
+{
+  "name": "soliton",
+  "version": "0.1.0",
+  "description": "Intelligent multi-agent PR review with adaptive risk-based dispatch. Sends 2-7 specialized agents based on risk score.",
+  "author": {
+    "name": "andyzengmath"
+  },
+  "keywords": [
+    "pr-review",
+    "code-review",
+    "multi-agent",
+    "risk-scoring",
+    "security",
+    "hallucination-detection",
+    "ai-review",
+    "owasp"
+  ],
+  "repository": "https://github.com/andyzengmath/soliton",
+  "license": "MIT",
+  "skills": "skills/",
+  "agents": "agents/",
+  "rules": "rules/"
+}

@@ -1,0 +1,53 @@
+diff --git a/src/utils/validator.ts b/src/utils/validator.ts
+new file mode 100644
+index 0000000..abcdef0
+--- /dev/null
++++ b/src/utils/validator.ts
+@@ -0,0 +1,45 @@
++interface ValidationResult {
++  valid: boolean;
++  errors: string[];
++}
++
++export function validateEmail(email: string): ValidationResult {
++  const errors: string[] = [];
++
++  if (!email || email.trim().length === 0) {
++    errors.push('Email is required');
++    return { valid: false, errors };
++  }
++
++  if (email.length > 254) {
++    errors.push('Email exceeds maximum length of 254 characters');
++  }
++
++  const parts = email.split('@');
++  if (parts.length !== 2) {
++    errors.push('Email must contain exactly one @ symbol');
++    return { valid: false, errors };
++  }
++
++  const [local, domain] = parts;
++
++  if (local.length === 0 || local.length > 64) {
++    errors.push('Local part must be 1-64 characters');
++  }
++
++  if (domain.length === 0) {
++    errors.push('Domain part is required');
++  }
++
++  if (!domain.includes('.')) {
++    errors.push('Domain must contain at least one dot');
++  }
++
++  if (domain.startsWith('.') || domain.endsWith('.')) {
++    errors.push('Domain cannot start or end with a dot');
++  }
++
++  if (/[^a-zA-Z0-9.@_+-]/.test(email)) {
++    errors.push('Email contains invalid characters');
++  }
++
++  return { valid: errors.length === 0, errors };
++}

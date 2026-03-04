@@ -1,0 +1,23 @@
+diff --git a/src/api/userService.ts b/src/api/userService.ts
+index 1234567..abcdef0 100644
+--- a/src/api/userService.ts
++++ b/src/api/userService.ts
+@@ -5,8 +5,12 @@ interface User {
+   email: string;
+ }
+
+-export function getUser(id: string): Promise<User | null> {
+-  return db.users.findById(id);
++interface GetUserOptions {
++  includeProfile: boolean;
++}
++
++export async function getUser(id: string, options: GetUserOptions): Promise<User | null> {
++  const user = await db.users.findById(id);
++  if (user && options.includeProfile) {
++    user.profile = await db.profiles.findByUserId(id);
++  }
++  return user;
+ }
+
+ export function listUsers(): Promise<User[]> {

@@ -1,0 +1,23 @@
+---
+description: Auto-generated and binary file patterns excluded from PR review
+alwaysApply: false
+globs: "**/*"
+---
+
+# Auto-Generated Files (skip review)
+
+- `*.lock`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
+- `Cargo.lock`, `Gemfile.lock`, `poetry.lock`, `go.sum`, `composer.lock`
+- `*.min.js`, `*.min.css`, `*.bundle.js`, `*.chunk.js`, `*.map`
+- `*.generated.*`, `*.auto.*`, `*_generated.*`
+- `*.pb.go`, `*.pb.ts`, `*_pb2.py`
+- `dist/`, `build/`, `out/`, `.next/`, `coverage/`
+- `node_modules/`, `vendor/`, `__pycache__/`, `*.pyc`
+
+# Binary Files (always skip)
+
+- Images: `*.png`, `*.jpg`, `*.jpeg`, `*.gif`, `*.ico`, `*.webp`, `*.bmp`, `*.tiff`
+- Fonts: `*.woff`, `*.woff2`, `*.ttf`, `*.eot`, `*.otf`
+- Archives: `*.pdf`, `*.zip`, `*.tar`, `*.gz`, `*.bz2`, `*.7z`, `*.rar`
+- Binaries: `*.wasm`, `*.so`, `*.dll`, `*.dylib`, `*.exe`, `*.bin`, `*.dat`
+- Media: `*.mp3`, `*.mp4`, `*.wav`, `*.avi`

@@ -1,0 +1,7 @@
+{
+  "riskRange": [30, 70],
+  "expectedFindings": 1,
+  "expectedCategories": ["testing"],
+  "expectedSeverity": "improvement",
+  "description": "New complex validation function (45 lines, multiple edge cases) with no corresponding test file changes. Should flag missing test coverage."
+}

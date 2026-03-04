@@ -1,0 +1,7 @@
+{
+  "riskRange": [60, 100],
+  "expectedFindings": 1,
+  "expectedCategories": ["security"],
+  "expectedSeverity": "critical",
+  "description": "Python endpoint with unsanitized user input concatenated into SQL query. Should detect SQL injection (OWASP A03)."
+}

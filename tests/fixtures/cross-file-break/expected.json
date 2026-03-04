@@ -1,0 +1,7 @@
+{
+  "riskRange": [50, 90],
+  "expectedFindings": 1,
+  "expectedCategories": ["cross-file-impact"],
+  "expectedSeverity": "critical",
+  "description": "getUser() signature changed from (id: string) to (id: string, options: GetUserOptions) — required parameter added without updating callers. Should detect broken callers."
+}

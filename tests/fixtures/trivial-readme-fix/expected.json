@@ -1,0 +1,6 @@
+{
+  "riskRange": [0, 10],
+  "expectedFindings": 0,
+  "expectedCategories": [],
+  "description": "Trivial README typo fix. Should trigger fast-path with no findings."
+}

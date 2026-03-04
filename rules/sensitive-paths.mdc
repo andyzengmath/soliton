@@ -1,0 +1,18 @@
+---
+description: Sensitive file path patterns that increase risk score during PR review
+alwaysApply: false
+globs: "**/*"
+---
+
+# Sensitive Path Patterns
+
+- `auth/`
+- `security/`
+- `payment/`
+- `*.env`
+- `*migration*`
+- `*secret*`
+- `*credential*`
+- `*token*`
+- `*.pem`
+- `*.key`

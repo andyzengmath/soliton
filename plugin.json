@@ -1,0 +1,59 @@
+{
+  "name": "soliton",
+  "version": "0.1.0",
+  "description": "Intelligent multi-agent PR review with adaptive risk-based dispatch",
+  "skills": [
+    {
+      "name": "pr-review",
+      "path": "skills/pr-review/SKILL.md",
+      "description": "Run an intelligent, risk-adaptive PR review with parallel multi-agent analysis"
+    }
+  ],
+  "agents": [
+    {
+      "name": "risk-scorer",
+      "path": "agents/risk-scorer.md",
+      "description": "Fast risk assessment of PR changes. Computes a 0-100 risk score from 6 weighted factors and recommends which review agents to dispatch."
+    },
+    {
+      "name": "correctness",
+      "path": "agents/correctness.md",
+      "description": "Detects logic errors, off-by-one bugs, null handling issues, and race conditions"
+    },
+    {
+      "name": "security",
+      "path": "agents/security.md",
+      "description": "Detects security vulnerabilities following OWASP Top 10 with data flow analysis"
+    },
+    {
+      "name": "hallucination",
+      "path": "agents/hallucination.md",
+      "description": "Detects AI-generated code issues — non-existent APIs, wrong signatures, deprecated dependencies"
+    },
+    {
+      "name": "test-quality",
+      "path": "agents/test-quality.md",
+      "description": "Evaluates test coverage and test quality for changed code"
+    },
+    {
+      "name": "consistency",
+      "path": "agents/consistency.md",
+      "description": "Checks changed code against project conventions and coding style"
+    },
+    {
+      "name": "cross-file-impact",
+      "path": "agents/cross-file-impact.md",
+      "description": "Detects when changes break callers, interfaces, or type contracts in other files"
+    },
+    {
+      "name": "historical-context",
+      "path": "agents/historical-context.md",
+      "description": "Uses git history to identify high-risk patterns in changed files"
+    },
+    {
+      "name": "synthesizer",
+      "path": "agents/synthesizer.md",
+      "description": "Merges, deduplicates, filters, and synthesizes findings from all review agents into a coherent review"
+    }
+  ]
+}
