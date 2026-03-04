@@ -197,31 +197,132 @@ Proceed to **Step 3**.
 
 ## Step 3: Risk Scoring
 
-<!-- TODO: US-005 will wire in the risk-scorer agent here -->
+Launch the `risk-scorer` agent using the Agent tool:
 
-Pass the `ReviewRequest` to the `risk-scorer` agent. Wait for the `RiskAssessment` response.
+```
+Agent tool:
+  subagent_type: "soliton:risk-scorer"
+  prompt: |
+    Analyze the following ReviewRequest and compute a RiskAssessment.
+
+    Diff: <paste diff content>
+    Files: <paste file list>
+    Sensitive path patterns: <from config.sensitivePaths>
+
+    Follow the instructions in your agent definition.
+    Output your assessment in RISK_ASSESSMENT_START...RISK_ASSESSMENT_END format.
+```
+
+Wait for the response and parse the `RISK_ASSESSMENT_START...RISK_ASSESSMENT_END` block.
+
+Extract: `score`, `level`, `factors`, `recommendedAgents`, `focusAreas`.
 
 Display to user:
 ```
 Risk Score: <score>/100 (<level>)
-Dispatching <N>/7 review agents...
 ```
 
 Proceed to **Step 4**.
 
 ## Step 4: Agent Dispatch
 
-<!-- TODO: US-006 will implement adaptive dispatch logic here -->
+### 4.1: Determine Agent List
 
-Based on the `RiskAssessment.level`, dispatch the appropriate agents in parallel.
+1. If `config.agents` is NOT `'auto'` (user specified `--agents` flag):
+   - Use ONLY the agents listed in `config.agents`
+   - Ignore the risk-scorer's `recommendedAgents`
+2. Else: use `recommendedAgents` from the RiskAssessment
+
+3. Remove any agents listed in `config.skipAgents` (from `--skip` flag)
+
+4. Store final list as `dispatchList`.
+
+Display to user:
+```
+Dispatching <N>/7 review agents...
+├── <agent-1-name>
+├── <agent-2-name>
+...
+└── <agent-N-name>
+```
+
+### 4.2: Parallel Dispatch
+
+For EACH agent in `dispatchList`, launch via the Agent tool **in parallel** (all in the same message):
+
+```
+Agent tool (for each agent):
+  subagent_type: "soliton:<agent-name>"
+  prompt: |
+    Review the following PR changes. Focus on your specialty.
+
+    Diff:
+    <paste full diff content>
+
+    Changed files:
+    <paste file list>
+
+    PR description / commit messages:
+    <paste prDescription>
+
+    Focus area (from risk scorer):
+    Files: <focusArea.files for this agent>
+    Hint: <focusArea.hint for this agent>
+
+    Follow your agent instructions. Output findings in FINDING_START...FINDING_END format.
+    If no issues found, output: FINDINGS_NONE
+```
+
+Set a 60-second timeout for each agent.
+
+### 4.3: Collect Results
+
+After all agents complete or timeout:
+
+1. Count `completedAgents` (returned findings or FINDINGS_NONE) and `failedAgents` (timed out or errored)
+2. If `failedAgents > completedAgents` (more than 50% failed):
+   - Output: `Error: <failedCount> of <totalCount> review agents failed. Review aborted.`
+   - List which agents failed
+   - **STOP**
+3. If any agents failed but <50%:
+   - Note: `Warning: <agent-name> timed out (<completedCount>/<totalCount> agents completed)`
+4. Collect all `FINDING_START...FINDING_END` blocks from completed agents
 
 Proceed to **Step 5**.
 
 ## Step 5: Synthesis
 
-<!-- TODO: US-014 will wire in the synthesizer agent here -->
+Launch the `synthesizer` agent with ALL collected findings:
 
-Pass all agent findings to the `synthesizer` agent.
+```
+Agent tool:
+  subagent_type: "soliton:synthesizer"
+  prompt: |
+    Synthesize the following review findings into a coherent report.
+
+    Risk Assessment:
+    Score: <score>/100 (<level>)
+
+    Config:
+    Confidence threshold: <config.confidenceThreshold>
+    Output format: <config.outputFormat>
+
+    Summary stats:
+    Files changed: <count>
+    Lines added: <count>
+    Lines deleted: <count>
+
+    Agent findings:
+    <paste ALL FINDING_START...FINDING_END blocks from all agents>
+
+    Failed agents: <list of agent names that failed, or "none">
+    Total agents dispatched: <N>
+    Completed agents: <N>
+
+    Follow your agent instructions. Output in SYNTHESIS_START...SYNTHESIS_END format.
+```
+
+Wait for the response and parse the `SYNTHESIS_START...SYNTHESIS_END` block.
 
 Proceed to **Step 6**.
 
