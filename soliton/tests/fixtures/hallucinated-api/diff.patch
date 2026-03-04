@@ -1,0 +1,31 @@
+diff --git a/src/config/loader.js b/src/config/loader.js
+new file mode 100644
+index 0000000..abcdefg
+--- /dev/null
++++ b/src/config/loader.js
+@@ -0,0 +1,22 @@
++const fs = require('fs');
++const path = require('path');
++
++/**
++ * Load configuration from a JSON file.
++ * Supports environment-specific overrides.
++ */
++async function loadConfig(env = 'development') {
++  const configPath = path.join(__dirname, `${env}.config.json`);
++
++  try {
++    const data = await fs.readFileAsync(configPath, 'utf8');
++    const config = JSON.parse(data);
++    return { ...getDefaults(), ...config };
++  } catch (error) {
++    console.warn(`Config file not found: ${configPath}, using defaults`);
++    return getDefaults();
++  }
++}
++
++function getDefaults() {
++  return { port: 3000, host: 'localhost', debug: false };
++}
++
++module.exports = { loadConfig };

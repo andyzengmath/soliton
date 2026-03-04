@@ -1,0 +1,11 @@
+diff --git a/README.md b/README.md
+index 1234567..abcdefg 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,5 @@
+ # My Project
+
+-This is teh best project for managing tasks.
++This is the best project for managing tasks.
+
+ ## Getting Started

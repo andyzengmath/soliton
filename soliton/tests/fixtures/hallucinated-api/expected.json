@@ -1,0 +1,6 @@
+{
+  "riskRange": [30, 80],
+  "expectedFindings": 1,
+  "expectedCategories": ["hallucination"],
+  "description": "JavaScript file calls fs.readFileAsync() which does not exist. Correct API is fs.promises.readFile() or util.promisify(fs.readFile)."
+}
