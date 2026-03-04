@@ -545,4 +545,46 @@ Output ONLY a valid JSON object with no surrounding text, no markdown, no emoji,
 
 **Important:** Output ONLY this JSON. No text before or after. The output must be parseable by `JSON.parse()` / `json.loads()`.
 
-<!-- TODO: US-017 Agent Feedback Output -->
+### Format C: Agent Feedback JSON (when `config.outputFormat` is `'json'` AND `config.feedbackMode` is `true`)
+
+Transform each finding into a machine-consumable `AgentInstruction` that a coding agent can directly execute.
+
+**Action mapping:**
+- Finding has a `suggestion` field → `action: 'fix'` (or `'replace'` if the suggestion replaces entire lines)
+- Finding is about missing tests (category `testing`) → `action: 'add-test'`
+- Finding is about unnecessary/dead code → `action: 'remove'`
+- Conflicting findings → `action: 'investigate'`
+
+**Priority mapping:**
+- `critical` severity + security category → `priority: 1`
+- `critical` severity + other category → `priority: 2`
+- `improvement` severity → `priority: 3` (high impact) or `priority: 4` (low impact)
+- `nitpick` severity → `priority: 5`
+
+**Current code extraction:**
+For each finding, read the actual code from the diff at `file:lineStart-lineEnd` to populate `currentCode`. This gives the coding agent the exact code it needs to modify.
+
+Output ONLY this JSON:
+
+```json
+{
+  "reviewId": "<ISO-timestamp-based unique ID>",
+  "riskScore": <0-100>,
+  "recommendation": "<approve|request-changes|needs-discussion>",
+  "findings": [
+    {
+      "action": "<fix|replace|remove|add-test|investigate>",
+      "file": "<file path>",
+      "lineStart": <number>,
+      "lineEnd": <number>,
+      "currentCode": "<actual code from the diff at these lines>",
+      "suggestedCode": "<concrete fix code, or null if no fix available>",
+      "reason": "<why this change is needed, from finding description>",
+      "priority": <1-5>,
+      "category": "<security|correctness|hallucination|testing|consistency|cross-file-impact>"
+    }
+  ]
+}
+```
+
+**Important:** Output ONLY this JSON. No text before or after. The output must be parseable by `JSON.parse()` / `json.loads()`.
