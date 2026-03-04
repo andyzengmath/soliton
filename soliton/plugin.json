@@ -1,0 +1,59 @@
+{
+  "name": "soliton",
+  "version": "0.1.0",
+  "description": "Intelligent multi-agent PR review with adaptive risk-based dispatch",
+  "skills": [
+    {
+      "name": "pr-review",
+      "path": "skills/pr-review/SKILL.md",
+      "description": "Run an intelligent, risk-adaptive PR review with parallel multi-agent analysis"
+    }
+  ],
+  "agents": [
+    {
+      "name": "risk-scorer",
+      "path": "agents/risk-scorer.md",
+      "description": "Computes a 0-100 risk score for a PR based on weighted factors"
+    },
+    {
+      "name": "correctness",
+      "path": "agents/correctness.md",
+      "description": "Catches logic errors, off-by-one bugs, null handling, and race conditions"
+    },
+    {
+      "name": "security",
+      "path": "agents/security.md",
+      "description": "Detects OWASP Top 10 vulnerabilities via data flow analysis"
+    },
+    {
+      "name": "hallucination",
+      "path": "agents/hallucination.md",
+      "description": "Detects AI-generated code issues like non-existent APIs and wrong signatures"
+    },
+    {
+      "name": "test-quality",
+      "path": "agents/test-quality.md",
+      "description": "Evaluates test coverage and test quality for changed code"
+    },
+    {
+      "name": "consistency",
+      "path": "agents/consistency.md",
+      "description": "Checks changed code against project conventions and coding standards"
+    },
+    {
+      "name": "cross-file-impact",
+      "path": "agents/cross-file-impact.md",
+      "description": "Detects when changes break callers, interfaces, or type contracts"
+    },
+    {
+      "name": "historical-context",
+      "path": "agents/historical-context.md",
+      "description": "Uses git history to identify high-risk patterns in changed files"
+    },
+    {
+      "name": "synthesizer",
+      "path": "agents/synthesizer.md",
+      "description": "Merges, deduplicates, and filters all agent findings into a coherent review"
+    }
+  ]
+}
