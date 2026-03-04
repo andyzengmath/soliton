@@ -193,6 +193,83 @@ Override Layer 2 values with any CLI flags that were explicitly provided:
 
 Store the final merged config as `ReviewConfig` and attach it to the `ReviewRequest`.
 
+Proceed to **Step 2.5**.
+
+## Step 2.5: Edge Case Handling
+
+Before running the review pipeline, check for edge cases in this order:
+
+### a. Empty diff
+If `diff` is empty or contains only whitespace:
+- Output: `No changes detected.`
+- **STOP**
+
+### b. File filtering
+Read `rules/generated-file-patterns.md` for auto-generated and binary file patterns.
+
+Remove from the ReviewRequest any files matching:
+- **Auto-generated**: `*.lock`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `*.min.js`, `*.min.css`, `*.generated.*`, `*.auto.*`, `*_generated.*`, `*.pb.go`, `*.pb.ts`, `*_pb2.py`, `dist/`, `build/`, `out/`, `.next/`, `node_modules/`, `vendor/`
+- **Binary**: `*.png`, `*.jpg`, `*.jpeg`, `*.gif`, `*.ico`, `*.webp`, `*.woff`, `*.woff2`, `*.ttf`, `*.eot`, `*.pdf`, `*.zip`, `*.tar`, `*.gz`, `*.wasm`, `*.so`, `*.dll`, `*.dylib`
+
+If files were removed, note for later output:
+- `Skipped <N> auto-generated files` (if any auto-generated files removed)
+- `Skipped <N> binary files` (if any binary files removed)
+
+### c. All files filtered
+If ALL files were removed by filtering:
+- Output: `All changed files are auto-generated or binary. No review needed.`
+- **STOP**
+
+### d. Trivial diff
+After filtering, count meaningful lines in the remaining diff (exclude lines that are only whitespace changes or comment-only changes).
+
+If < 5 meaningful lines:
+- Run ONLY the risk-scorer agent (skip the full swarm)
+- Output: `Trivial change. Risk: <score>/100. No findings.`
+- **STOP**
+
+### e. Deleted-only PR
+If all remaining files have status `deleted` (no added or modified files):
+- Run risk scoring to compute the risk score
+- Skip `correctness` and `hallucination` agents (nothing to check on deleted code)
+- Run `security` (check for removed security controls) and `cross-file-impact` (check for broken importers)
+- Output summary of deleted files with risk score
+- Continue to Step 3 with the modified agent dispatch
+
+Proceed to **Step 2.75**.
+
+## Step 2.75: Large PR Chunking
+
+Count the total number of diff lines in the ReviewRequest.
+
+**If total lines <= 1000:** Proceed to **Step 3** normally (no chunking needed).
+
+**If total lines > 1000:**
+
+1. Output warning: `Large PR (<N> lines). Split into <M> review chunks. Consider smaller PRs for better review quality.`
+
+2. Group files by their first-level directory in the path:
+   - `src/auth/middleware.ts` → group `src/auth`
+   - `lib/utils.ts` → group `lib`
+   - `README.md` → group `root`
+
+3. Create chunks by accumulating directory groups:
+   - Add files from each group until the chunk reaches ~500 lines
+   - Close the chunk and start a new one
+   - If a single file has >500 lines of diff, it becomes its own chunk
+
+4. Files in the same directory stay in the same chunk when possible.
+
+5. For EACH chunk, run the full pipeline in parallel:
+   - Create a sub-ReviewRequest with only that chunk's files and diff
+   - Run Steps 3-5 independently (risk scoring → agent dispatch → synthesis)
+
+6. After all chunks complete:
+   - Merge all chunk `SynthesizedReview` results
+   - Pass merged findings to the synthesizer for final deduplication (especially cross-chunk findings)
+   - The final output includes all chunks' findings in one unified review
+   - Report chunk count in metadata
+
 Proceed to **Step 3**.
 
 ## Step 3: Risk Scoring
@@ -328,6 +405,88 @@ Proceed to **Step 6**.
 
 ## Step 6: Output
 
-<!-- TODO: US-015/US-016/US-017 will implement output formatters here -->
+Format the `SynthesizedReview` based on `config.outputFormat`.
 
-Format the `SynthesizedReview` according to `config.outputFormat` and display to the user.
+### Format A: Markdown (default, when `config.outputFormat` is `'markdown'`)
+
+**If no findings** (findingCounts are all 0):
+```
+Approve. Risk: <score>/100 | <filesChanged> files | <linesAdded + linesDeleted> lines | <level> blast radius
+```
+**STOP** — do not render any sections below.
+
+**Otherwise**, render the full review:
+
+**Warning line** (only if any agents failed):
+```
+Warning: <agent-name> timed out (<completedAgents>/<totalAgents> agents completed)
+```
+
+**Summary section:**
+```markdown
+## Summary
+<filesChanged> files changed, <linesAdded> lines added, <linesDeleted> lines deleted. <total findings> findings (<critical> critical, <improvement> improvements, <nitpick> nitpicks).
+<oneLiner>
+```
+
+**Critical section** (omit if 0 critical findings):
+```markdown
+## Critical
+```
+For each critical finding:
+```markdown
+:red_circle: [<category>] <title> in <file>:<lineStart> (confidence: <confidence>)
+<description>
+```suggestion
+<suggestion code>
+```
+[References: <references>]
+```
+
+**Improvements section** (omit if 0 improvement findings):
+```markdown
+## Improvements
+```
+For each improvement finding:
+```markdown
+:yellow_circle: [<category>] <title> in <file>:<lineStart> (confidence: <confidence>)
+<description>
+```suggestion
+<suggestion code>
+```
+```
+
+**Nitpicks section** (omit if 0 nitpick findings):
+```markdown
+## Nitpicks
+```
+For each nitpick finding:
+```markdown
+:white_circle: [<category>] <title> in <file>:<lineStart> (confidence: <confidence>)
+<description>
+```
+
+**Conflicts section** (omit if no conflicts):
+```markdown
+## Conflicts
+```
+For each conflict:
+```markdown
+:zap: Agents disagree on <file>:<line> — <agent1> (<perspective1>, confidence: <c1>) vs <agent2> (<perspective2>, confidence: <c2>)
+```
+
+**Risk Metadata section:**
+```markdown
+## Risk Metadata
+Risk Score: <score>/100 (<level>) | Blast Radius: <blast_radius details> | Sensitive Paths: <sensitive paths hit>
+AI-Authored Likelihood: <aiAuthoredLikelihood>
+```
+
+**Suppressed footnote** (only if suppressed > 0):
+```
+(<suppressed> additional findings below confidence threshold)
+```
+
+<!-- TODO: US-016 JSON Output -->
+
+<!-- TODO: US-017 Agent Feedback Output -->
