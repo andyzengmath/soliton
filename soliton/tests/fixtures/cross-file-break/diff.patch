@@ -12,7 +12,7 @@ index 1234567..abcdefg 100644
 +  includeProfile: boolean;
 +}
 +
-+export function getUser(id: string, options: GetUserOptions): Promise<User | null> {
++export async function getUser(id: string, options: GetUserOptions): Promise<User | null> {
 +  const user = await db.users.findById(id);
 +  if (user && options.includeProfile) {
 +    user.profile = await db.profiles.findByUserId(id);

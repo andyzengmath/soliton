@@ -4,7 +4,9 @@ index 1234567..abcdefg 100644
 +++ b/src/db/users.py
 @@ -1,5 +1,20 @@
  import sqlite3
-+from flask import request
++from flask import Flask, request
++
++app = Flask(__name__)
 
 
  def get_db():
