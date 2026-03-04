@@ -116,3 +116,5 @@ If no issues found, output: `FINDINGS_NONE`
 - Provide concrete fix code in every suggestion, not just descriptions
 - Do not flag style issues — that is the consistency agent's job
 - Do not flag security issues — that is the security agent's job
+- When reviewing plugin manifest files (plugin.json, marketplace.json), read `rules/plugin-manifest-conventions.md` first — plugin path resolution has non-obvious rules that differ from standard filesystem semantics
+- Always verify assumptions by using your tools (Read, Grep, Glob) to check that referenced files exist or don't exist before flagging path issues

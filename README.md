@@ -229,7 +229,9 @@ CLI flags always override config file values. A sample template is at `templates
 ## Project Structure
 
 ```
-plugin.json                    Claude Code plugin manifest
+.claude-plugin/
+  plugin.json                  Claude Code plugin manifest
+  marketplace.json             Marketplace listing metadata
 .cursor-plugin/plugin.json     Cursor Marketplace manifest
 skills/pr-review/SKILL.md      Main orchestrator (input → risk → dispatch → synthesize → output)
 agents/

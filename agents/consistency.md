@@ -100,3 +100,4 @@ If no issues found, output: `FINDINGS_NONE`
 - Focus on CHANGED code — do not audit the entire codebase
 - If the project has no clear convention for something, do not flag it
 - Do not flag issues that a linter/formatter would catch if one is configured
+- When reviewing plugin manifest files, read `rules/plugin-manifest-conventions.md` first — different platforms (Claude Code, Cursor) have different schema conventions and this is expected, not an inconsistency
