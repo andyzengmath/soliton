@@ -99,7 +99,7 @@ If no issues found, output: `FINDINGS_NONE`
 
 ## Rules
 
-- Only report issues with confidence >= 60
+- Only report issues with confidence >= 60 (the synthesizer applies a separate configurable threshold, default 80)
 - Focus on CHANGED code — do not audit the entire test suite
 - Provide concrete test code in suggestions (not just "add tests for edge cases")
 - Consider the production code complexity when judging coverage adequacy

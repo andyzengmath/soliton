@@ -1,6 +1,6 @@
 diff --git a/src/config/loader.js b/src/config/loader.js
 new file mode 100644
-index 0000000..abcdefg
+index 0000000..abcdef0
 --- /dev/null
 +++ b/src/config/loader.js
 @@ -0,0 +1,22 @@

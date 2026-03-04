@@ -106,6 +106,6 @@ If no issues found, output: `FINDINGS_NONE`
 - Use Opus-level reasoning to trace complex multi-function data flows
 - Always provide the secure alternative code in suggestions
 - Reference specific OWASP category (A01-A10) and CWE number in references
-- Only report issues with confidence >= 60
+- Only report issues with confidence >= 60 (the synthesizer applies a separate configurable threshold, default 80)
 - Focus on CHANGED code and newly introduced patterns
 - If a security fix is present (sanitization, parameterized query), do NOT flag it

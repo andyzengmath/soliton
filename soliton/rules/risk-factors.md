@@ -1,5 +1,7 @@
 # Risk Scoring Factors
 
+**Invariant:** Factor weights must sum to 100%. Current total: 25 + 20 + 20 + 15 + 10 + 10 = 100%.
+
 ## Factor Definitions
 
 ### 1. Blast Radius (Weight: 25%)
@@ -19,7 +21,7 @@ How many other files depend on the changed files.
 
 Ratio of control-flow changes vs cosmetic changes.
 
-**Scoring methodology:** Analyze the diff for control-flow additions/modifications (if/else, try/catch, loops, switch, return statements, async/await, error handling) vs cosmetic changes (renames, formatting, comments, whitespace). Score = controlFlowChanges / totalChanges * 100.
+**Scoring methodology:** Analyze the diff for control-flow additions/modifications (if/else, try/catch, loops, switch, return statements, async/await, error handling) vs cosmetic changes (renames, formatting, comments, whitespace). Score = controlFlowLines / totalAddedLines * 100.
 
 | Score Range | Example |
 |-------------|---------|

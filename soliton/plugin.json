@@ -13,22 +13,22 @@
     {
       "name": "risk-scorer",
       "path": "agents/risk-scorer.md",
-      "description": "Computes a 0-100 risk score for a PR based on weighted factors"
+      "description": "Fast risk assessment of PR changes. Computes a 0-100 risk score from 6 weighted factors and recommends which review agents to dispatch."
     },
     {
       "name": "correctness",
       "path": "agents/correctness.md",
-      "description": "Catches logic errors, off-by-one bugs, null handling, and race conditions"
+      "description": "Detects logic errors, off-by-one bugs, null handling issues, and race conditions"
     },
     {
       "name": "security",
       "path": "agents/security.md",
-      "description": "Detects OWASP Top 10 vulnerabilities via data flow analysis"
+      "description": "Detects security vulnerabilities following OWASP Top 10 with data flow analysis"
     },
     {
       "name": "hallucination",
       "path": "agents/hallucination.md",
-      "description": "Detects AI-generated code issues like non-existent APIs and wrong signatures"
+      "description": "Detects AI-generated code issues — non-existent APIs, wrong signatures, deprecated dependencies"
     },
     {
       "name": "test-quality",
@@ -38,12 +38,12 @@
     {
       "name": "consistency",
       "path": "agents/consistency.md",
-      "description": "Checks changed code against project conventions and coding standards"
+      "description": "Checks changed code against project conventions and coding style"
     },
     {
       "name": "cross-file-impact",
       "path": "agents/cross-file-impact.md",
-      "description": "Detects when changes break callers, interfaces, or type contracts"
+      "description": "Detects when changes break callers, interfaces, or type contracts in other files"
     },
     {
       "name": "historical-context",
@@ -53,7 +53,7 @@
     {
       "name": "synthesizer",
       "path": "agents/synthesizer.md",
-      "description": "Merges, deduplicates, and filters all agent findings into a coherent review"
+      "description": "Merges, deduplicates, filters, and synthesizes findings from all review agents into a coherent review"
     }
   ]
 }

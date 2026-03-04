@@ -110,7 +110,7 @@ If no issues found, output: `FINDINGS_NONE`
 
 ## Rules
 
-- Only report issues with confidence >= 60
+- Only report issues with confidence >= 60 (the synthesizer applies a separate configurable threshold, default 80, so findings at 60-79 are retained for cases where the user lowers the threshold)
 - Focus on CHANGED code, not pre-existing issues
 - Read surrounding context before flagging — understand developer intent
 - Provide concrete fix code in every suggestion, not just descriptions

@@ -11,6 +11,8 @@ arguments:
 
 You are the orchestrator for Soliton PR Review. Follow these steps exactly.
 
+**Note the current time** as `reviewStartTime` — you will need it for `reviewDurationMs` in the output metadata.
+
 ## Step 1: Input Normalization
 
 Determine the invocation mode from the `target` argument.
@@ -208,11 +210,9 @@ If `diff` is empty or contains only whitespace:
 - **STOP**
 
 ### b. File filtering
-Read `rules/generated-file-patterns.md` for auto-generated and binary file patterns.
+Read `rules/generated-file-patterns.md` for the canonical list of auto-generated and binary file patterns.
 
-Remove from the ReviewRequest any files matching:
-- **Auto-generated**: `*.lock`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `*.min.js`, `*.min.css`, `*.generated.*`, `*.auto.*`, `*_generated.*`, `*.pb.go`, `*.pb.ts`, `*_pb2.py`, `dist/`, `build/`, `out/`, `.next/`, `node_modules/`, `vendor/`
-- **Binary**: `*.png`, `*.jpg`, `*.jpeg`, `*.gif`, `*.ico`, `*.webp`, `*.woff`, `*.woff2`, `*.ttf`, `*.eot`, `*.pdf`, `*.zip`, `*.tar`, `*.gz`, `*.wasm`, `*.so`, `*.dll`, `*.dylib`
+Remove from the ReviewRequest any files matching patterns defined in that document.
 
 If files were removed, note for later output:
 - `Skipped <N> auto-generated files` (if any auto-generated files removed)
@@ -319,7 +319,7 @@ Proceed to **Step 4**.
 
 Display to user:
 ```
-Dispatching <N>/7 review agents...
+Dispatching <N> review agents...
 ├── <agent-1-name>
 ├── <agent-2-name>
 ...
@@ -543,7 +543,7 @@ Output ONLY a valid JSON object with no surrounding text, no markdown, no emoji,
     "totalAgents": <number>,
     "completedAgents": <number>,
     "failedAgents": ["<agent names>"],
-    "reviewDurationMs": <number>
+    "reviewDurationMs": <elapsed milliseconds since reviewStartTime>
   }
 }
 ```

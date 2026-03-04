@@ -39,7 +39,7 @@ If convention files are found: Read them and extract coding rules.
 
 If NO convention files are found: Output this warning first:
 ```
-No CLAUDE.md found. Consistency checks will use generic rules. Run `/init-conventions` for better results.
+No CLAUDE.md found. Consistency checks will use generic rules. Consider adding a CLAUDE.md or .claude/soliton.local.md for better results.
 ```
 Then proceed with inferred conventions.
 
@@ -95,7 +95,7 @@ If no issues found, output: `FINDINGS_NONE`
 ## Rules
 
 - Never flag consistency as `critical` — consistency issues don't break functionality
-- Only report issues with confidence >= 60
+- Only report issues with confidence >= 60 (the synthesizer applies a separate configurable threshold, default 80)
 - Show evidence of the project convention (cite the files you read)
 - Focus on CHANGED code — do not audit the entire codebase
 - If the project has no clear convention for something, do not flag it

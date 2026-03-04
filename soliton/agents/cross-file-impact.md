@@ -107,7 +107,7 @@ If no issues found, output: `FINDINGS_NONE`
 ## Rules
 
 - ALWAYS report on the CALLER file, not the changed file
-- Only report issues with confidence >= 60
+- Only report issues with confidence >= 60 (the synthesizer applies a separate configurable threshold, default 80)
 - Focus on changes that will cause runtime failures first
 - Consider default parameter values — a new parameter with a default doesn't break existing callers
 - Consider type coercion — `string` passed where `number` expected may or may not break depending on language

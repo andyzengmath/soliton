@@ -27,13 +27,17 @@ For each changed file, run these git commands using the Bash tool:
 git log --oneline -20 -- <file>
 ```
 
-**Bug-fix frequency:**
+**Bug-fix frequency** (searches for commits matching ANY of these keywords — OR logic):
 ```bash
-git log --oneline --all --grep="fix" --grep="bug" --grep="revert" --grep="hotfix" -- <file>
+git log --oneline -20 --grep="fix" --grep="bug" --grep="revert" --grep="hotfix" -- <file>
 ```
 
-**Blame for changed lines:**
-For each hunk in the diff, get the blame for the changed line range:
+**Blame for changed lines** (skip for newly added files):
+First check if the file existed before this change:
+```bash
+git log --oneline -1 -- <file>
+```
+If no output (new file), skip blame for this file. Otherwise:
 ```bash
 git blame -L <startLine>,<endLine> <file>
 ```
@@ -95,6 +99,6 @@ If no issues found, output: `FINDINGS_NONE`
 - Severity is almost always `improvement` — historical context is advisory, not blocking
 - Only use `critical` if a previously-reverted change is being reintroduced identically
 - Always include actual git log entries as evidence
-- Only report issues with confidence >= 60
+- Only report issues with confidence >= 60 (the synthesizer applies a separate configurable threshold, default 80)
 - Do not analyze code quality — only historical patterns
 - If a file has no significant history (new file), output `FINDINGS_NONE`

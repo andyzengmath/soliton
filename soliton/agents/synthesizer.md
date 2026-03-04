@@ -73,11 +73,11 @@ Within each severity tier: sort by confidence descending (highest confidence fir
 
 ### 7. Compute AI-Authored Likelihood
 
-Based on hallucination agent findings:
-- 0 hallucination findings: `LOW`
-- 1-2 hallucination findings: `MEDIUM`
-- 3+ hallucination findings: `HIGH`
-- Hallucination agent was not dispatched: `N/A`
+Based on the risk-scorer's `ai_authored_signals` factor score (from the RiskAssessment):
+- Factor score 0-20: `LOW`
+- Factor score 21-60: `MEDIUM`
+- Factor score 61-100: `HIGH`
+- Risk scorer data not available: `N/A`
 
 ### 8. Generate Summary
 

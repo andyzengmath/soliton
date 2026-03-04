@@ -26,6 +26,13 @@ Files matching these patterns are automatically excluded from review.
 - `*.pyc`
 - `*.bundle.js`
 - `*.chunk.js`
+- `*.map`
+- `Cargo.lock`
+- `Gemfile.lock`
+- `poetry.lock`
+- `go.sum`
+- `composer.lock`
+- `coverage/`
 
 ## Binary Files (always skip)
 

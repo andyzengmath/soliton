@@ -49,9 +49,10 @@ For each new call to an EXTERNAL package:
 4. Verify the signature matches
 
 **Python:**
-1. Use Bash to run: `python -c "import <module>; help(<module>.<function>)"` (if safe)
-2. Or use Grep to search in the site-packages directory
-3. Verify the function exists and signature matches
+1. Use Bash to run `pip show <package>` to verify the package is installed
+2. Use Glob to find the package directory in site-packages
+3. Use Grep to search for the function definition in the package source
+4. Read the function signature from the source file to verify it matches
 
 **Other languages:**
 1. Use Grep to search for type definitions or documentation
@@ -127,3 +128,4 @@ If no issues found, output: `FINDINGS_NONE`
 - Medium confidence (60-85) when signature looks wrong but function might exist in an unverifiable version
 - Use Opus-level reasoning for complex API verification chains
 - Do not flag style issues or logic bugs — only API existence and correctness
+- Note: The synthesizer applies a configurable confidence threshold (default 80). Findings at 60-79 are retained for cases where the user lowers the threshold via `--threshold`.

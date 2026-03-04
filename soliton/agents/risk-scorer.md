@@ -22,11 +22,14 @@ Compute each of the 6 risk factors. Read `rules/risk-factors.md` for detailed sc
 
 ### Factor 1: Blast Radius (Weight: 25%)
 
-For each changed file, use Grep to count how many other files in the codebase import or reference it:
-```bash
-grep -rl "<filename-without-extension>" --include="*.{js,ts,py,go,java,rb,rs}" . | wc -l
+For each changed file, use the Grep tool to count how many other files in the codebase import or reference it:
 ```
-Score = min(100, totalImporterCount * 10)
+Grep tool:
+  pattern: "<filename-without-extension>"
+  glob: "*.{js,ts,py,go,java,rb,rs}"
+  output_mode: "files_with_matches"
+```
+Count the number of matching files. Score = min(100, totalImporterCount * 10)
 
 ### Factor 2: Change Complexity (Weight: 20%)
 
