@@ -132,13 +132,27 @@ If `target` is a number (e.g., `123`) or a GitHub PR URL (e.g., `https://github.
 
 Proceed to **Step 2**.
 
-<!-- TODO: US-004 Configuration and Flags -->
+### Supported Flags
+
+Parse the following flags from the arguments string. Flags can appear in any order after the `target` argument.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--threshold <number>` | integer 0-100 | 80 | Minimum confidence score to surface findings |
+| `--agents <list>` | comma-separated | auto | Force specific agents (e.g., `--agents security,hallucination`) |
+| `--skip <list>` | comma-separated | none | Skip specific agents (e.g., `--skip consistency`) |
+| `--sensitive-paths <glob>` | comma-separated | see defaults | Override sensitive file patterns |
+| `--output <format>` | `markdown` or `json` | markdown | Output format |
+| `--feedback` | boolean flag | false | Format findings as AgentInstruction[] (requires `--output json`) |
+| `--branch <name>` | string | auto-detect | Override head branch for local mode |
+
+**Validation:** If `--feedback` is set without `--output json`, output: `Error: --feedback requires --output json` and **STOP**.
 
 ## Step 2: Configuration Resolution
 
-<!-- TODO: US-004 will add full config resolution here -->
+Resolve configuration by merging three layers (later layers override earlier):
 
-Use these defaults for now:
+### Layer 1: Hardcoded Defaults
 ```
 ReviewConfig {
   confidenceThreshold: 80
@@ -149,6 +163,35 @@ ReviewConfig {
   feedbackMode: false
 }
 ```
+
+### Layer 2: Project Config File
+Check if `.claude/soliton.local.md` exists in the project root:
+```bash
+test -f .claude/soliton.local.md && echo "exists"
+```
+
+If it exists, read the file and parse its YAML frontmatter (the content between the opening `---` and closing `---`). Map frontmatter fields to config:
+- `threshold` -> `confidenceThreshold`
+- `agents` -> `agents`
+- `skip_agents` -> `skipAgents`
+- `sensitive_paths` -> `sensitivePaths`
+- `default_output` -> `outputFormat`
+- `feedback_mode` -> `feedbackMode`
+
+Override Layer 1 defaults with any values found in the frontmatter.
+
+### Layer 3: CLI Flags
+Override Layer 2 values with any CLI flags that were explicitly provided:
+- `--threshold` -> `confidenceThreshold`
+- `--agents` -> `agents`
+- `--skip` -> `skipAgents`
+- `--sensitive-paths` -> `sensitivePaths`
+- `--output` -> `outputFormat`
+- `--feedback` -> `feedbackMode`
+
+**Precedence: CLI flags > .claude/soliton.local.md > hardcoded defaults.**
+
+Store the final merged config as `ReviewConfig` and attach it to the `ReviewRequest`.
 
 Proceed to **Step 3**.
 
