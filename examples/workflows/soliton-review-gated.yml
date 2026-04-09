@@ -82,7 +82,11 @@ jobs:
 
       - name: Check for critical findings
         run: |
-          if [ -f /tmp/soliton-result.txt ] && grep -q "critical" /tmp/soliton-result.txt; then
+          if [ ! -f /tmp/soliton-result.txt ]; then
+            echo "::error::Soliton result file not found — review may have timed out or failed. Blocking merge."
+            exit 1
+          fi
+          if grep -qx "critical" /tmp/soliton-result.txt; then
             echo "::error::Soliton found critical issues in this PR. See the review comment for details."
             exit 1
           else
