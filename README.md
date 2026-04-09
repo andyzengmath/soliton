@@ -245,7 +245,6 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -253,9 +252,11 @@ jobs:
           fetch-depth: 0
 
       - name: Clone Soliton
-        run: git clone --depth 1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: --plugin-dir /tmp/soliton
@@ -269,8 +270,13 @@ jobs:
             Read
             Grep
             Glob
-            Bash(git *)
-            Bash(gh pr *)
+            Bash(git diff *)
+            Bash(git log *)
+            Bash(git show *)
+            Bash(git branch *)
+            Bash(gh pr comment *)
+            Bash(gh pr diff *)
+            Bash(gh pr view *)
             Agent
 ```
 
@@ -290,7 +296,7 @@ threshold: 80            # Min confidence to surface findings (0-100)
 agents: auto             # 'auto' for risk-adaptive, or comma-separated list
 sensitive_paths:         # Glob patterns that increase risk score
   - "auth/"
-  - "payments/"
+  - "payment/"
   - "*.env"
   - "*secret*"
 skip_agents: []          # Agents to always skip

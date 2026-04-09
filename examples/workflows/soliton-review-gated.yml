@@ -30,7 +30,6 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -39,10 +38,12 @@ jobs:
           fetch-depth: 0
 
       - name: Clone Soliton plugin
-        run: git clone --depth 1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - name: Run Soliton review
         uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: --plugin-dir /tmp/soliton
@@ -58,23 +59,30 @@ jobs:
                - Overall recommendation (approve / request-changes / needs-discussion)
                - Each finding with its description and suggestion
 
-            2. Determine the exit behavior:
-               - If there are any CRITICAL severity findings, create a file /tmp/soliton-critical
-               - If there are no critical findings, do NOT create that file
+            2. Write the result to a file:
+               - If there are any CRITICAL severity findings, run:
+                 echo "critical" > /tmp/soliton-result.txt
+               - If there are no critical findings, run:
+                 echo "pass" > /tmp/soliton-result.txt
 
-            Post the comment first, then handle the exit file.
+            Post the comment first, then write the result file.
           allowed_tools: |
             Read
             Grep
             Glob
-            Bash(git *)
-            Bash(gh pr *)
-            Bash(touch /tmp/soliton-critical)
+            Bash(git diff *)
+            Bash(git log *)
+            Bash(git show *)
+            Bash(git branch *)
+            Bash(gh pr comment *)
+            Bash(gh pr diff *)
+            Bash(gh pr view *)
+            Bash(echo * > /tmp/soliton-result.txt)
             Agent
 
       - name: Check for critical findings
         run: |
-          if [ -f /tmp/soliton-critical ]; then
+          if [ -f /tmp/soliton-result.txt ] && grep -q "critical" /tmp/soliton-result.txt; then
             echo "::error::Soliton found critical issues in this PR. See the review comment for details."
             exit 1
           else
