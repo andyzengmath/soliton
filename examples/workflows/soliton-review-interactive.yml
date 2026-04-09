@@ -1,0 +1,115 @@
+# Soliton PR Review — Interactive (Auto-Review + @claude Mentions)
+#
+# Combines automatic review on PR open with on-demand @claude review requests.
+# - PR opened/updated: automatic full review
+# - Comment "@claude review": re-run review (e.g., after fixes)
+# - Comment "@claude review --agents security": targeted review
+#
+# Copy this file to .github/workflows/soliton-review.yml in your repository.
+#
+# Prerequisites:
+#   - ANTHROPIC_API_KEY secret configured in repo settings
+#
+# Docs: https://github.com/andyzengmath/soliton/blob/main/docs/ci-cd-integration.md
+
+name: Soliton PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+concurrency:
+  group: soliton-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  # Automatic review on PR open/update
+  auto-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone Soliton plugin
+        run: git clone --depth 1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+
+      - name: Run Soliton review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --plugin-dir /tmp/soliton
+          prompt: |
+            Run /pr-review ${{ github.event.pull_request.number }}
+
+            After the review completes, post the full markdown review output as a
+            PR comment using:
+            gh pr comment ${{ github.event.pull_request.number }} --body "<review>"
+          allowed_tools: |
+            Read
+            Grep
+            Glob
+            Bash(git *)
+            Bash(gh pr *)
+            Agent
+
+  # On-demand review via @claude mentions
+  on-demand-review:
+    if: |
+      github.event_name == 'issue_comment' &&
+      contains(github.event.comment.body, '@claude') &&
+      contains(github.event.comment.body, 'review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone Soliton plugin
+        run: git clone --depth 1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+
+      - name: Run Soliton review (on-demand)
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --plugin-dir /tmp/soliton
+          prompt: |
+            A user requested a review with this comment:
+            "${{ github.event.comment.body }}"
+
+            Run /pr-review ${{ github.event.issue.number }}
+
+            If the user included flags (e.g., --agents, --threshold, --skip),
+            pass them through to /pr-review.
+
+            After the review completes, post the full markdown review output as a
+            PR comment using:
+            gh pr comment ${{ github.event.issue.number }} --body "<review>"
+          allowed_tools: |
+            Read
+            Grep
+            Glob
+            Bash(git *)
+            Bash(gh pr *)
+            Agent

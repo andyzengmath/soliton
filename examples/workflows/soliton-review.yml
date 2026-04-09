@@ -1,0 +1,58 @@
+# Soliton PR Review — Plugin Directory (Recommended)
+#
+# Runs a risk-adaptive multi-agent code review on every pull request.
+# Copy this file to .github/workflows/soliton-review.yml in your repository.
+#
+# Prerequisites:
+#   - ANTHROPIC_API_KEY secret configured in repo settings
+#
+# Docs: https://github.com/andyzengmath/soliton/blob/main/docs/ci-cd-integration.md
+
+name: Soliton PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+# Cancel in-progress reviews when a new commit is pushed to the same PR
+concurrency:
+  group: soliton-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git diff and historical-context agent
+
+      - name: Clone Soliton plugin
+        run: git clone --depth 1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+
+      - name: Run Soliton review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --plugin-dir /tmp/soliton
+          prompt: |
+            Run /pr-review ${{ github.event.pull_request.number }}
+
+            After the review completes, post the full markdown review output as a
+            PR comment using:
+            gh pr comment ${{ github.event.pull_request.number }} --body "<review>"
+          allowed_tools: |
+            Read
+            Grep
+            Glob
+            Bash(git *)
+            Bash(gh pr *)
+            Agent

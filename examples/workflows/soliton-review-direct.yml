@@ -1,0 +1,67 @@
+# Soliton PR Review — Direct Prompt (Fallback)
+#
+# Uses a direct prompt instead of --plugin-dir. Claude reads the skill file
+# and agent definitions at runtime. Works if --plugin-dir is not supported.
+#
+# Copy this file to .github/workflows/soliton-review.yml in your repository.
+#
+# Prerequisites:
+#   - ANTHROPIC_API_KEY secret configured in repo settings
+#
+# Docs: https://github.com/andyzengmath/soliton/blob/main/docs/ci-cd-integration.md
+
+name: Soliton PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: soliton-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone Soliton
+        run: git clone --depth 1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+
+      - name: Run Soliton review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are running a Soliton PR review. Follow these steps:
+
+            1. Read the orchestrator skill at /tmp/soliton/skills/pr-review/SKILL.md
+            2. Follow it exactly to review PR #${{ github.event.pull_request.number }}
+            3. Agent definitions are in /tmp/soliton/agents/
+            4. Rules are in /tmp/soliton/rules/
+
+            Use `gh pr diff ${{ github.event.pull_request.number }}` to get the diff
+            and `gh pr view ${{ github.event.pull_request.number }} --json title,body,baseRefName,headRefName,files`
+            to get PR metadata.
+
+            After the review completes, post the full markdown review output as a
+            PR comment using:
+            gh pr comment ${{ github.event.pull_request.number }} --body "<review>"
+          allowed_tools: |
+            Read
+            Grep
+            Glob
+            Bash(git *)
+            Bash(gh pr *)
+            Agent

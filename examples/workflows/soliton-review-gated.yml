@@ -1,0 +1,82 @@
+# Soliton PR Review — CI Gate (Block Merge on Critical Findings)
+#
+# Runs soliton review and fails the check if critical findings exist.
+# Use with branch protection rules to block merge on critical issues.
+#
+# Setup:
+#   1. Copy to .github/workflows/soliton-review.yml
+#   2. Add ANTHROPIC_API_KEY secret
+#   3. In repo Settings → Branches → Branch protection rules:
+#      - Enable "Require status checks to pass before merging"
+#      - Add "Soliton PR Review" as a required check
+#
+# Docs: https://github.com/andyzengmath/soliton/blob/main/docs/ci-cd-integration.md
+
+name: Soliton PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: soliton-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone Soliton plugin
+        run: git clone --depth 1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+
+      - name: Run Soliton review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --plugin-dir /tmp/soliton
+          prompt: |
+            Run /pr-review ${{ github.event.pull_request.number }} --output json
+
+            After the review completes:
+
+            1. Post a human-readable summary as a PR comment using gh pr comment.
+               Include:
+               - Risk score and level
+               - Finding count by severity (critical, improvement, nitpick)
+               - Overall recommendation (approve / request-changes / needs-discussion)
+               - Each finding with its description and suggestion
+
+            2. Determine the exit behavior:
+               - If there are any CRITICAL severity findings, create a file /tmp/soliton-critical
+               - If there are no critical findings, do NOT create that file
+
+            Post the comment first, then handle the exit file.
+          allowed_tools: |
+            Read
+            Grep
+            Glob
+            Bash(git *)
+            Bash(gh pr *)
+            Bash(touch /tmp/soliton-critical)
+            Agent
+
+      - name: Check for critical findings
+        run: |
+          if [ -f /tmp/soliton-critical ]; then
+            echo "::error::Soliton found critical issues in this PR. See the review comment for details."
+            exit 1
+          else
+            echo "No critical findings. Review passed."
+          fi
