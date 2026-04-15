@@ -1,13 +1,8 @@
 # Soliton
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)](https://github.com/andyzengmath/soliton)
-[![Cursor Marketplace](https://img.shields.io/badge/Cursor-Marketplace-orange)](https://cursor.com/marketplace)
-[![Agents](https://img.shields.io/badge/Review_Agents-7-brightgreen)](agents/)
-
 **Your AI coding agent writes code 10x faster than you can review it. Soliton reviews it for you.**
 
-A Claude Code & Cursor plugin that runs 2-7 specialized review agents **in parallel**, adapting to how risky the PR actually is. Low-risk README fix? Two quick agents, done in seconds. Critical auth refactor? Full 7-agent battery with security data-flow analysis and hallucination detection.
+A Claude Code plugin that runs 2-7 specialized review agents in parallel, adapting to how risky the PR actually is. Low-risk README fix? Two quick agents, done in seconds. Critical auth refactor? Full 7-agent battery with security data-flow analysis and hallucination detection.
 
 > **Assist Mode** — every review surfaces high-confidence findings organized by severity plus a risk score, but makes no automated merge/reject decisions. You stay in control.
 
@@ -247,14 +242,16 @@ jobs:
       issues: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Clone Soliton
+      - name: Clone Soliton plugin
         run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
-      - uses: anthropics/claude-code-action@v1
+      - name: Run Soliton review
+        uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -284,7 +281,6 @@ jobs:
 
 **More strategies** (CI gating, interactive `@claude` mentions, Bedrock/Vertex auth, cost optimization):
 see the [full CI/CD integration guide](docs/ci-cd-integration.md) and [example workflows](examples/workflows/).
-
 
 ## Configuration
 
