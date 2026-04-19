@@ -370,3 +370,106 @@ wait
 # (DefaultAzureCredential). See bench/crb/run-phase3-pipeline.sh.
 bash bench/crb/run-phase3-pipeline.sh
 ```
+
+---
+
+## Phase 3.5 · Precision-tightening experiment (50 PRs, GPT-5.2 judge — 2026-04-19)
+
+**Setup.** Same 50 PRs as Phase 3, same GPT-5.2 judge via Azure OpenAI managed identity — but Soliton re-run with **3 of 9 proposed improvements applied** (see `bench/crb/IMPROVEMENTS.md`):
+
+| Lever | Change | Expected ΔF1 | Actual ΔF1 |
+|-------|--------|-------------:|-----------:|
+| L4 — threshold 80 → 85 | `skills/pr-review/SKILL.md` + `agents/synthesizer.md` defaults | +0.05 | see aggregate |
+| L2 — severity gate | Nitpicks dropped from markdown body (still in `--output json`). Critical + Improvements only in review body. | +0.10 | see aggregate |
+| L1 — atomic findings | `skills/pr-review/SKILL.md` Format A: no nested bullets, no "Option A / Option B" fix enumerations, no "also" conjunctions. | +0.10 | see aggregate |
+| — | **Projected combined** (with overlap penalty) | **+0.20** | **+0.042** |
+
+Also for the first time, **sentry-greptile#5** (13-file heavy PR) completed (at $8 cap), so n=50 vs Phase 3's n=49.
+
+### Headline (Phase 3.5)
+
+| Metric | Phase 3 | Phase 3.5 | Δ |
+|--------|--------:|----------:|------:|
+| n | 49 | **50** | +1 |
+| Micro-F1 | 0.235 | **0.277** | **+0.042** |
+| Precision | 0.146 | **0.183** | +0.037 |
+| Recall | 0.602 | 0.566 | −0.036 |
+| TP | 80 | 77 | −3 |
+| FP | 468 | **343** | **−125 (−27 %)** |
+| FN | 53 | 59 | +6 |
+| Goldens | 133 | 136 | +3 (one more PR) |
+| Mean candidates/PR | 11.6 | **8.4** | **−28 %** |
+| Mean review size (chars) | 10.5k | **~5.5k** | **−48 %** |
+
+**Clearest signal**: review size dropped ~48 % and candidate count dropped ~28 %. Levers L2 (drop nitpicks) + L1 (atomic findings) successfully reduced the step2 extraction surface. FP count dropped 27 % as expected.
+
+**Less clear signal**: F1 lifted only **+4.2 points vs +20 projected**. Precision moved in the right direction (+3.7 pts) but recall dropped (−3.6 pts), largely netting out. Investigation below.
+
+### Per-language breakdown (GPT-5.2 judge)
+
+| Lang | n | P3 F1 | P3.5 F1 | Δ F1 | P3.5 Precision | P3.5 Recall |
+|------|--:|------:|--------:|-----:|---------------:|------------:|
+| Java | 10 | 0.205 | **0.283** | **+0.078** | 0.191 | 0.542 |
+| Go | 10 | 0.241 | **0.326** | **+0.085** | 0.219 | 0.636 |
+| Ruby | 10 | 0.209 | **0.291** | **+0.082** | 0.191 | 0.607 |
+| Python | 10 | 0.182 | 0.237 | +0.055 | 0.161 | 0.452 |
+| **TypeScript** | 10 | **0.325** | **0.266** | **−0.059** | 0.170 | 0.613 |
+
+**TypeScript regressed**. It was our strongest language in Phase 3 (F1 = 0.325, R = 0.839 — top-tier recall) and dropped to F1 = 0.266 in Phase 3.5. Recall cratered (0.839 → 0.613), which means Lever L2 (drop nitpicks) killed low-severity TS goldens that Phase 3 was correctly catching. Specifically: the Phase 2 POC on `cal.com#10967` had 1 FN at Low severity ("redundant optional chaining") but 4 TP including 1 Low — the severity gate zeroes out that Low TP now.
+
+**Implication**: L2 should be **per-language**, not global. TS goldens have a higher density of Low-severity items that Soliton is correctly catching. A v2.1 tweak would keep severity-gate ON for Java/Python/Go/Ruby and OFF (or Low+) for TypeScript.
+
+### Why the projected +0.20 didn't materialize
+
+Three hypotheses from the data:
+
+1. **L1 (atomic findings) didn't actually cap step2 sub-splitting**. The candidates/PR number dropped from 11.6 to 8.4 — a 28 % reduction, but the projection assumed ≈50 % reduction (reaching ~6 candidates/PR — equivalent to what a human reviewer would emit). Looking at example Phase 3.5 reviews: findings are now **single bullets** but still have **multi-paragraph descriptions with nuance and trade-offs**, and step2's LLM still extracts 2-3 sub-issues from those paragraphs. **Next lever**: enforce descriptions ≤2 sentences + move long explanations out of the review body into linked-evidence blocks that step2 can skip.
+
+2. **L2 (severity gate) over-corrected on TS** — see per-language regression. −0.059 F1 on TS alone drags the aggregate.
+
+3. **L4 (threshold 85) suppressed some low-confidence real findings** — observed in Python (recall dropped from 0.50 → 0.45). Some of the findings that were previously at confidence 80-84 were legitimate (matched goldens).
+
+### Takeaway
+
+This run is a **modest but real step forward**:
+
+- **Precision tax is fixable, incrementally**. We cut FPs by 27 % and the review size by 48 % with 1.5 days of skill / synthesizer edits. Three more levers (L3 synthesizer dedup, L5 deeper cross-file retrieval, L6 evidence-scored filter) remain on the table, each estimated at +0.03 to +0.08 F1. A second iteration (Phase 3.6) could plausibly reach 0.32–0.35.
+- **Recall and precision are in tension and need finer-grained tuning**. Uniform severity-gating hurts languages where Soliton was already catching Low-severity real issues. Next iteration should make the gate per-language or per-project.
+- **50 of 50 PRs reviewed** — sentry-greptile#5 (13-file Python) that Phase 3 dropped at $5 budget completed at $8, validating the budget lever as a reliability tool for heavy PRs.
+- **The projected-vs-actual mismatch is itself useful data** — the big pre-registered gain was from L1 atomicity, and that's the lever whose impact was smallest in practice. The real structural fix is description compression, not bullet compression. Added to IMPROVEMENTS.md for v2.2.
+
+### Competitive position after Phase 3.5 (GPT-5.2 judge)
+
+| Rank | Tool | GPT-5.2 F1 |
+|------|------|-----------:|
+| 20 | codeant-v2 | 0.294 |
+| 20 | gemini | 0.295 |
+| **≈21** | **Soliton (Phase 3.5, n=50)** | **0.277** |
+| 21 | kg | 0.253 |
+| 22 | graphite | 0.158 |
+
+Still bottom-tier on raw F1, but the gap to `claude-code` (0.330) and `coderabbit` (0.333) closed from −0.09 to −0.05. A Phase 3.6 iteration targeting the TS regression + L3 synthesizer dedup + description compression could plausibly put us above both.
+
+### Cost tracking (Phase 3.5)
+
+- Soliton-side (Anthropic Console): ~50 × $1.50–$3 avg = **~$75–$150**. Heavier PRs hit $5 or $8 caps; lighter ones completed under $2.
+- Judge-side (Azure OpenAI gpt-5.2): 50 × ~2.75 s/review × ~$0.30/review = **~$15**.
+- Combined Phase 3.5: ~$90–$165, similar to Phase 3 as expected.
+
+### Reproduction
+
+```bash
+# Same setup as Phase 3 but output to phase35-reviews/:
+while read UP PR SLUG; do
+  MAX_BUDGET_USD=3 OUTPUT_DIR=bench/crb/phase35-reviews \
+    bash bench/crb/run-poc-review.sh "$UP" "$PR" "$SLUG" &
+done < bench/crb/phase3-dispatch-list.txt
+wait
+
+# sentry-greptile#5 needs higher cap:
+MAX_BUDGET_USD=8 OUTPUT_DIR=bench/crb/phase35-reviews \
+  bash bench/crb/run-poc-review.sh ai-code-review-evaluation/sentry-greptile 5 python-sentry-greptile-5
+
+# Pipeline (same Azure OpenAI config as Phase 3):
+bash bench/crb/run-phase35-pipeline.sh
+```
