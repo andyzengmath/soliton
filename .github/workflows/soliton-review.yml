@@ -27,6 +27,9 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      # anthropics/claude-code-action@v1 requires an OIDC token for attribution;
+      # without this the action fails with "Could not fetch an OIDC token".
+      id-token: write
 
     steps:
       - name: Checkout repository
