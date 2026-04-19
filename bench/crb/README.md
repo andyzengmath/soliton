@@ -38,45 +38,51 @@ Soliton's dogfood workflow (`.github/workflows/soliton-review.yml`, live on `mai
 
 ## Execution plan
 
-### Phase 1 (this PR) — plumbing only
+### Phase 1 (PR #12, merged) — plumbing only
 
 - `bench/crb/README.md` — this doc
 - `bench/crb/benchmark-prs.json` — extracted PR list + golden-comment counts + labels (frozen snapshot for reproducibility)
 - `bench/crb/RESULTS.md` — placeholder for POC + full-corpus results
-- `bench/crb/fork-benchmark-prs.sh` — helper bash script to fork the 51 PRs into a target org
+- `bench/crb/fork-benchmark-prs.sh` — helper bash script to fork PRs into a target org (**superseded by `run-poc-review.sh` for Phase 2; retained for Phase 3 fork-based path**)
 
-Commit to main so any maintainer can pick up Phase 2.
+### Phase 2 (this PR — in flight) — local POC run (5 PRs)
 
-### Phase 2 (next session or follow-up PR) — POC run
+Pivoted from a GH-Actions fork-based run to a **local** run after hitting two hard blockers on the operator's machine: (a) `ANTHROPIC_API_KEY` unavailable due to org policy, (b) `claude setup-token` requires a Claude Pro/Max plan (operator is on Anthropic Console). Neither blocks a local `claude -p` invocation that uses the operator's existing Console login.
 
-1. Create a throwaway GH org (e.g. `andyzengmath-crb-soliton`) or reuse an existing one.
-2. Install `.github/workflows/soliton-review.yml` on that org (cron or per-fork trigger).
-3. Run `bench/crb/fork-benchmark-prs.sh --org <org> --limit 5` → forks the first 5 PRs.
-4. Wait for Soliton dogfood to post reviews on each forked PR (typically 1-5 min per PR; concurrent across all 5).
-5. Clone `withmartian/code-review-benchmark`, create an `extra_tools/soliton/` entry (see "Wiring into CRB's pipeline" below).
-6. Run `uv run python -m code_review_benchmark.step1_download_prs --tool soliton`.
-7. Run steps 2, 2.5, 3, 4 to compute F1 + precision + recall for the 5-PR sample.
-8. Commit POC numbers to `bench/crb/RESULTS.md`.
+The local path trades away dogfood fidelity (no Actions, no fork PRs) for unblocking. Dogfood fidelity returns in Phase 3.
 
-### Phase 3 — full-corpus run
+1. Select 5 language-diverse PRs from `benchmark-prs.json` (one per language, mixed severity). Selection lives in `RESULTS.md §"Selected PRs"`.
+2. For each selection, run `bench/crb/run-poc-review.sh <upstream-owner/repo> <pr-number> <output-slug>`. This:
+   - Creates a sibling `../soliton-poc-work/<slug>-shim/` with `git init + remote add origin https://github.com/<upstream>.git` — just enough for `gh pr view <n>` (no-`--repo` form used by `/pr-review`) to resolve to the upstream repo.
+   - Invokes `claude -p --plugin-dir <repo-root> --permission-mode acceptEdits --allowedTools ... Run /pr-review <n>` against the shim.
+   - Writes the markdown review to `bench/crb/poc-reviews/<slug>.md`.
+   - Explicitly does NOT allow `Bash(gh pr comment *)` — we must not spam upstream PRs.
+3. Judge the 5 reviews against `../code-review-benchmark/offline/golden_comments/*.json` using the same semantic-match methodology as CRB's `step3_judge_comments.py` (prompt pair of candidate × golden, ask "same underlying issue?"). Judge model for Phase 2 is **Claude Opus 4.7 in-session** — not CRB's standard judges (Opus-4.5 / Sonnet-4.5 / GPT-5.2). Our F1 is therefore NOT directly comparable to the leaderboard; Phase 3 closes that gap.
+4. Write precision / recall / F1 per PR + aggregate into `bench/crb/RESULTS.md §"Phase 2"`.
 
-1. Fork all 51 PRs (loose parallelisation; 1-2 hours wall-clock total given Soliton's 15-60 s latency).
-2. Full pipeline.
-3. Publish `bench/crb/RESULTS.md` with raw F1 + **cost-normalised F1** (F1 per $ of Anthropic API spend) — the differentiator we call out in `idea-stage/IDEA_REPORT.md` §10. Soliton's risk-adaptive dispatch should win on cost / $-efficiency even if raw F1 lands mid-pack.
+### Phase 3 — full-corpus run (51 PRs, leaderboard-comparable)
+
+1. Unblock the GH-Actions path:
+   - GH org with Soliton workflow installed (`andyzengmath-crb-soliton` or reuse `WRDS-Graph`).
+   - `CLAUDE_CODE_OAUTH_TOKEN` org secret OR `ANTHROPIC_API_KEY` org secret (once org policy allows).
+2. Patch CRB locally (feature branch, **do not push upstream until leaderboard submission**):
+   - `offline/code_review_benchmark/step1_download_prs.py` — add `"soliton"` to `_NON_BOT_TOOLS` so human-authored review comments are collected.
+   - `offline/code_review_benchmark/step0_fork_prs.py` — skip `disable_actions` and inject `.github/workflows/soliton-review-bench.yml` into the fork's base branch before push.
+3. Fork all 51 PRs via patched `step0_fork_prs.py --org <org> --name soliton --file offline/golden_comments/*.json` (loose parallelisation; 1–2 h wall-clock at Soliton's 15–60 s latency).
+4. Run the full CRB pipeline (`step1`, `step2`, `step2_5`, `step3`, `step4`) under at least two judge models for robustness.
+5. Publish `bench/crb/RESULTS.md` Phase 3 section with raw F1 + **cost-normalised F1** (F1 per $ of API spend) — the differentiator we call out in `idea-stage/IDEA_REPORT.md` §10. Soliton's risk-adaptive dispatch should win on cost / $-efficiency even if raw F1 lands mid-pack.
 
 ### Phase 4 — upstream submission
 
 `withmartian/code-review-benchmark` README.md §"Adding a new tool": "Adding a new tool takes an afternoon — fork the benchmark PRs, trigger the tool, run the pipeline." Open a PR against the benchmark repo adding `soliton` to the evaluated-tools table with our numbers.
 
-## Wiring into CRB's pipeline
+## Wiring into CRB's pipeline (Phase 3 only — Phase 2 bypasses this)
 
-CRB's `step1_download_prs.py` expects a mapping from tool name to GitHub reviewer-bot user. Soliton's dogfood workflow posts as the invoking user (`andyzengmath`) via `gh pr comment`, not a dedicated bot account. Options:
+Reading `offline/code_review_benchmark/step1_download_prs.py` closely revealed the actual hook isn't an "author allowlist" — tools are detected by the fork's **repo name slug** (pattern `{config}__{repo}__{tool}__PR{N}__{date}`), and review comments are fetched per-tool. The twist: line 111 hardcodes a set `_NON_BOT_TOOLS = frozenset({"claude"})` — for any tool *not* in that set, only `type=Bot` users count as review authors. Soliton posts as a human account (`andyzengmath`), so Phase 3 needs one trivial patch: add `"soliton"` to that set.
 
-1. **Use a dedicated bot account** — create a `soliton-reviewer` GitHub account, install it on the forks org, post reviews via that account's `GITHUB_TOKEN`. Adds CRB-clean author attribution.
-2. **Tag-based detection** — add a marker line to every Soliton review comment (e.g. `<!-- soliton-review v2 -->`) and extend CRB's step 1 to detect by marker rather than author. Minimal changes to our side; requires CRB patch.
-3. **Patch CRB's step 1 author list** — simplest: add `andyzengmath` (or whatever account posts) to CRB's per-repo reviewer allowlist for the Soliton run only, revert after.
+Separately, `step0_fork_prs.py` line 197 hardcodes `self.disable_actions(new_repo_name)` — kills the injected Soliton workflow before it can run. Phase 3 needs to either skip that call for the Soliton tool name or fork the script. Additionally the step injects no workflow file; Phase 3 must commit `.github/workflows/soliton-review-bench.yml` onto the fork's base branch before the push.
 
-Recommended: **(1) dedicated bot account** — clean separation, reproducible for third parties. But (3) is faster for the POC.
+**Phase 2 skips the pipeline entirely** — reviews are local files, judge is in-session. That sidesteps both patches for the POC.
 
 ## Known considerations
 
