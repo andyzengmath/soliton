@@ -1,0 +1,328 @@
+# Soliton v2 — Tiered CI/CD workflow
+#
+# Runs deterministic Tier 0 (lint / type / SAST / secrets / SCA) BEFORE the LLM review.
+# On clean Tier-0 + trivial diff, the LLM review is skipped entirely — zero API cost.
+# On blocked Tier-0 findings (secrets, CVE-critical, fatal type error), LLM is skipped and
+# the check fails.
+#
+# Graph signals are an optional third stage — loaded if a pre-built graph is available at
+# .soliton/graph.json (produced by a separate `graph-build.yml` workflow on main branch).
+
+name: Soliton Tiered Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: soliton-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 1: Tier 0 — deterministic checks, no LLM
+  # ─────────────────────────────────────────────────────────────────────────
+  tier0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      verdict: ${{ steps.tier0.outputs.verdict }}
+      # Full findings flow through the uploaded tier0-findings artifact, not this output.
+      # (A prior declaration of findings_json here was never written — removed to avoid
+      # future consumers wiring to an always-empty string.)
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Tier-0 tools
+        run: |
+          pipx install ruff
+          pipx install mypy
+          pipx install semgrep
+          npm install -g eslint typescript
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+          cargo install difftastic || true
+
+      - name: Detect changed files
+        id: files
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          # Defense-in-depth: reject base refs that contain shell metacharacters. Git's own
+          # ref naming rules forbid most, but we validate explicitly before interpolating.
+          case "$BASE_REF" in
+            *[!A-Za-z0-9._/-]*) echo "::error::Invalid base ref"; exit 1 ;;
+          esac
+          BASE_SHA=$(git merge-base "origin/$BASE_REF" HEAD)
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          git diff --name-only --diff-filter=ACDMR "$BASE_SHA...HEAD" > /tmp/changed-files.txt
+          cat /tmp/changed-files.txt
+
+      - name: Run Tier 0
+        id: tier0
+        env:
+          BASE_SHA: ${{ steps.files.outputs.base_sha }}
+        run: |
+          mkdir -p .soliton/tier0
+          VERDICT="needs_llm"  # default
+          BLOCK_REASON=""
+          TYPE_FAIL_PY=0
+          TYPE_FAIL_TS=0
+
+          CHANGED_PY=$(grep -E '\.py$' /tmp/changed-files.txt || true)
+          CHANGED_TS=$(grep -E '\.(ts|tsx|js|jsx)$' /tmp/changed-files.txt || true)
+
+          # Lint — explicit if-blocks (avoids && || precedence traps)
+          if [ -n "$CHANGED_PY" ]; then
+            # shellcheck disable=SC2086   # word-splitting of newline-delimited file list is intentional
+            ruff check --output-format sarif $CHANGED_PY > .soliton/tier0/ruff.sarif || true
+          fi
+          if [ -n "$CHANGED_TS" ]; then
+            # shellcheck disable=SC2086
+            eslint --format @microsoft/sarif --output-file .soliton/tier0/eslint.sarif $CHANGED_TS || true
+          fi
+
+          # Type check — explicit if, and capture tsc's exit via PIPESTATUS
+          if [ -n "$CHANGED_PY" ]; then
+            # shellcheck disable=SC2086
+            mypy --no-color-output --show-error-codes $CHANGED_PY > .soliton/tier0/mypy.txt 2>&1 || TYPE_FAIL_PY=1
+          fi
+          if [ -n "$CHANGED_TS" ]; then
+            tsc --noEmit --pretty false 2>&1 | tee .soliton/tier0/tsc.txt
+            TYPE_FAIL_TS=${PIPESTATUS[0]}
+          fi
+
+          # SAST
+          semgrep ci --sarif --output .soliton/tier0/semgrep.sarif || true
+
+          # Secret scan — scan only new commits
+          gitleaks detect --source . \
+            --log-opts="$BASE_SHA..HEAD" \
+            --report-format sarif \
+            --report-path .soliton/tier0/gitleaks.sarif \
+            --exit-code 0
+
+          # SCA
+          osv-scanner --format sarif --output .soliton/tier0/osv.sarif --recursive . || true
+
+          # Compute verdict
+          if jq -e '.runs[].results[] | select(.properties.severity=="critical" or .level=="error")' .soliton/tier0/gitleaks.sarif >/dev/null 2>&1; then
+            VERDICT="blocked"
+            BLOCK_REASON="secret_leaked"
+          fi
+          if jq -e '.runs[].results[] | select(.properties.cvss>=9.0)' .soliton/tier0/osv.sarif >/dev/null 2>&1; then
+            VERDICT="blocked"
+            BLOCK_REASON="cve_critical"
+          fi
+          if [ "$TYPE_FAIL_PY" = "1" ] || [ "$TYPE_FAIL_TS" != "0" ]; then
+            VERDICT="blocked"
+            BLOCK_REASON="${BLOCK_REASON:+$BLOCK_REASON,}type_error_fatal"
+          fi
+
+          # Promote to `advisory_only` when the only findings Tier 0 produced are low-severity.
+          # Done BEFORE the later `clean` promotion so that non-blocking diffs with a few
+          # low/info findings don't consume a full LLM review — they just raise the synthesizer's
+          # confidence threshold to 90 for this invocation.
+          if [ "$VERDICT" = "needs_llm" ]; then
+            FINDING_COUNT_EARLY=$(jq '[.runs[].results[]?] | length' .soliton/tier0/*.sarif 2>/dev/null | awk '{s+=$1} END {print s+0}')
+            HIGH_COUNT=$(jq '[.runs[].results[]? | select(.level=="error" or .properties.severity=="high" or .properties.severity=="critical" or (.properties.cvss // 0) >= 7.0)] | length' .soliton/tier0/*.sarif 2>/dev/null | awk '{s+=$1} END {print s+0}')
+            if [ "${FINDING_COUNT_EARLY:-0}" -gt 0 ] && [ "${HIGH_COUNT:-0}" -eq 0 ]; then
+              VERDICT="advisory_only"
+            fi
+          fi
+
+          # Validate VERDICT against allowlist before writing to $GITHUB_OUTPUT (defense-in-depth
+          # for downstream prompt/conditional consumers).
+          case "$VERDICT" in
+            clean|advisory_only|needs_llm|blocked) ;;
+            *) echo "::error::Unexpected verdict: $VERDICT"; exit 1 ;;
+          esac
+
+          # Aggregate via jq --arg to avoid shell-variable interpolation into the jq program
+          jq -s \
+            --arg verdict "$VERDICT" \
+            --arg reason "$BLOCK_REASON" \
+            '{verdict: $verdict, reason: $reason, findings: [.[] | .runs[].results[]?]}' \
+            .soliton/tier0/*.sarif > .soliton/tier0-summary.json 2>/dev/null \
+          || jq -n --arg verdict "$VERDICT" --arg reason "$BLOCK_REASON" \
+            '{verdict: $verdict, reason: $reason, findings: []}' > .soliton/tier0-summary.json
+
+          FINDING_COUNT=$(jq '.findings | length' .soliton/tier0-summary.json)
+
+          # Robust shortstat parse with an empty-output guard (an empty SHORTSTAT previously
+          # evaluated to DIFF_LINES=0 and silently promoted error-states to `clean`).
+          SHORTSTAT=$(git diff --shortstat "$BASE_SHA...HEAD" 2>/dev/null || true)
+          if [ -z "$SHORTSTAT" ]; then
+            # Unknown size — do NOT promote to clean; leave as needs_llm.
+            DIFF_INS=0
+            DIFF_DEL=0
+            DIFF_KNOWN=false
+          else
+            DIFF_INS=$(echo "$SHORTSTAT" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+            DIFF_DEL=$(echo "$SHORTSTAT" | grep -oE '[0-9]+ deletion'  | grep -oE '[0-9]+' || echo 0)
+            DIFF_KNOWN=true
+          fi
+          DIFF_LINES=$(( DIFF_INS + DIFF_DEL ))
+
+          # Promote to "clean" only when: verdict still needs_llm, zero findings, diff is
+          # KNOWN small, AND the diff is not empty from a parse error.
+          if [ "$VERDICT" = "needs_llm" ] \
+             && [ "$FINDING_COUNT" = "0" ] \
+             && [ "$DIFF_KNOWN" = "true" ] \
+             && [ "$DIFF_LINES" -le 50 ]; then
+            VERDICT="clean"
+          fi
+
+          echo "verdict=$VERDICT" >> "$GITHUB_OUTPUT"
+          echo "Verdict: $VERDICT (findings=$FINDING_COUNT, diff_lines=$DIFF_LINES, known=$DIFF_KNOWN)"
+
+      - name: Upload Tier-0 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tier0-findings
+          path: .soliton/
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 2a: Fast-path — Tier 0 clean, skip LLM entirely
+  # ─────────────────────────────────────────────────────────────────────────
+  fast-path:
+    needs: tier0
+    if: needs.tier0.outputs.verdict == 'clean'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post fast-path comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --body "✅ **Soliton: Tier 0 clean** — no lint / type / security / secret / dep issues. LLM swarm skipped (trivial change, zero findings)." \
+            --repo "$REPO"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 2b: Blocked — post Tier-0 findings, fail CI
+  # ─────────────────────────────────────────────────────────────────────────
+  blocked:
+    needs: tier0
+    if: needs.tier0.outputs.verdict == 'blocked'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tier0-findings
+          path: .soliton/
+      - name: Post blocked findings
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Build the body in a file via printf so SARIF content (attacker-controlled tool
+          # output) never transits through a double-quoted shell string where backticks
+          # and $() would undergo command substitution.
+          SUMMARY=$(jq -r '.findings | map("- **\(.ruleId // .rule): \(.message.text // .message)** in `\(.locations[0].physicalLocation.artifactLocation.uri // "?")`") | join("\n")' .soliton/tier0-summary.json)
+          REASON=$(jq -r '.reason' .soliton/tier0-summary.json)
+          {
+            printf '🔴 **Soliton: Blocked by Tier 0** (%s)\n\n' "$REASON"
+            printf '%s\n\n' "$SUMMARY"
+            printf 'LLM swarm skipped. Fix the above and re-push.\n'
+          } > /tmp/soliton-blocked-body.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/soliton-blocked-body.md --repo "$REPO"
+      - name: Fail the check
+        run: exit 1
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 3: LLM review (only when Tier 0 says needs_llm or advisory_only)
+  # ─────────────────────────────────────────────────────────────────────────
+  llm-review:
+    needs: tier0
+    if: needs.tier0.outputs.verdict == 'needs_llm' || needs.tier0.outputs.verdict == 'advisory_only'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Tier-0 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tier0-findings
+          path: .soliton/
+
+      - name: Optional — fetch pre-built graph
+        continue-on-error: true
+        run: |
+          # Graph is built by a separate workflow on main; pull latest artifact by SHA.
+          # If graph unavailable, Soliton falls back to v1 heuristics automatically.
+          gh run download --name graph-json --dir .soliton/ || echo "Graph unavailable; using v1 fallback"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone Soliton
+        # Pin to an immutable release tag to prevent supply-chain attacks. Update this line
+        # to a v2.x.y tag after the v2 scaffolding is released. Until then we use the
+        # current stable v0.0.2 tag which matches the pin policy of the sibling workflows.
+        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          VERDICT: ${{ needs.tier0.outputs.verdict }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --plugin-dir /tmp/soliton
+          prompt: |
+            Run /pr-review $PR_NUMBER
+
+            Tier 0 already ran and produced findings at .soliton/tier0-summary.json.
+            Tier 0 verdict: $VERDICT.
+            Graph (if present) is at .soliton/graph.json.
+
+            Read .soliton/tier0-summary.json; pass its findings to the synthesizer
+            as pre-existing deterministic findings so the review agents don't
+            re-discover them.
+
+            If advisory_only, raise --threshold to 90 for this review.
+
+            After the review completes, WRITE the full markdown review to
+            /tmp/soliton-tiered-review.md and then post it with:
+
+              gh pr comment "$PR_NUMBER" --body-file /tmp/soliton-tiered-review.md
+
+            Do NOT attempt to pass the review as an inline --body "<review>"
+            argument — model-generated review content can contain backticks or
+            $(...) which bash would command-substitute inside double quotes.
+          allowed_tools: |
+            Read
+            Write
+            Grep
+            Glob
+            Bash(git diff *)
+            Bash(git log *)
+            Bash(git show *)
+            Bash(git branch *)
+            Bash(gh pr comment *)
+            Bash(gh pr diff *)
+            Bash(gh pr view *)
+            Bash(graph-cli *)
+            Bash(jq *)
+            Agent

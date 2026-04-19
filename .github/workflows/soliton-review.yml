@@ -1,0 +1,65 @@
+# Soliton PR Review — dogfooding soliton on itself
+#
+# Runs a risk-adaptive multi-agent code review on every pull request.
+
+name: Soliton PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+
+concurrency:
+  group: soliton-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Soliton review
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --plugin-dir .
+          prompt: |
+            Run /pr-review $PR_NUMBER
+
+            After the review completes, WRITE the full markdown review to
+            /tmp/soliton-review.md and then post it with:
+
+              gh pr comment "$PR_NUMBER" --body-file /tmp/soliton-review.md
+
+            Do NOT attempt to pass the review as an inline --body "<review>"
+            argument — model-generated review content can contain backticks or
+            $(...) which bash would command-substitute inside double quotes.
+          allowed_tools: |
+            Read
+            Write
+            Grep
+            Glob
+            Bash(git diff *)
+            Bash(git log *)
+            Bash(git show *)
+            Bash(git branch *)
+            Bash(gh pr comment *)
+            Bash(gh pr diff *)
+            Bash(gh pr view *)
+            Agent

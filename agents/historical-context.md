@@ -1,7 +1,7 @@
 ---
 name: historical-context
 description: Uses git history to identify high-risk patterns in changed files
-model: sonnet
+model: haiku
 tools: ["Read", "Grep", "Glob", "Bash"]
 ---
 
