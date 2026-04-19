@@ -10,3 +10,6 @@ research/
 research-pr-review-agents.md
 risk_gap.md
 tasks/
+
+# OMC (oh-my-claudecode) session state
+.omc/

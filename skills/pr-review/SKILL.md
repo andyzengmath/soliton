@@ -150,6 +150,9 @@ Parse the following flags from the arguments string. Flags can appear in any ord
 | `--output <format>` | `markdown` or `json` | markdown | Output format |
 | `--feedback` | boolean flag | false | Format findings as AgentInstruction[] (requires `--output json`) |
 | `--branch <name>` | string | auto-detect | Override head branch for local mode |
+| `--parent <PR#>` | integer | none | (v2) Stacked-PR mode — review delta vs parent PR's head. See `rules/stacked-pr-mode.md` |
+| `--parent-sha <SHA>` | string | none | (v2) Like `--parent` but against a specific SHA |
+| `--stack-auto` | boolean | false | (v2) Auto-detect Graphite stack parent via `gt` CLI |
 
 **Validation:** If `--feedback` is set without `--output json`, output: `Error: --feedback requires --output json` and **STOP**.
 
@@ -238,6 +241,104 @@ If all remaining files have status `deleted` (no added or modified files):
 - Run `security` (check for removed security controls) and `cross-file-impact` (check for broken importers)
 - Output summary of deleted files with risk score
 - Continue to Step 3 with the modified agent dispatch
+
+Proceed to **Step 2.6**.
+
+## Step 2.6: Tier 0 — Deterministic Gate (v2, feature-flagged)
+
+**Enabled when** `config.tier0.enabled == true` (from `.claude/soliton.local.md`).
+**Disabled**: skip to **Step 2.75**. v1 behavior preserved.
+
+Delegate to the `tier0` skill in this plugin. See `skills/pr-review/tier0.md` for the
+full protocol; tool catalog and exit-code contracts live in `rules/tier0-tools.md`.
+
+Parse the returned `TIER_ZERO_START..TIER_ZERO_END` block for `verdict`, `findings`, `stats`.
+
+### 2.6a Fast-path — verdict == `clean`
+
+When `verdict == "clean"` AND `config.tier0.skip_llm_on_clean == true`:
+
+- Output: `Approve. Risk: 0/100 | Tier 0 only | <files> files | <lines> lines.`
+- Set recommendation to `approve`.
+- **STOP** — do not run Steps 2.7 / 2.8 / 3 / 4 / 5. Still run Step 6 to emit the structured
+  "approved" output (unchanged v1 formatting).
+
+### 2.6b Blocked path — verdict == `blocked`
+
+When `verdict == "blocked"`:
+
+- Format the Tier-0 findings as standard `FINDING` blocks (`agent: tier0`, `confidence: 100`).
+- Skip Steps 2.7 / 2.8 / 3 / 4 (no LLM).
+- Skip directly to **Step 5** with only the Tier-0 findings.
+- In CI mode, set exit code 1 so the check fails.
+
+### 2.6c Normal path — verdict == `needs_llm` or `advisory_only`
+
+- Stash Tier-0 findings as `deterministicFindings[]` — these are passed through to Steps 3
+  (risk scorer) and 4 (agents) so downstream LLMs don't rediscover them.
+- If `advisory_only`, temporarily raise `config.confidenceThreshold` to `max(90, config.confidenceThreshold)` for this invocation (fewer findings surface; higher SNR).
+- Proceed to **Step 2.7**.
+
+## Step 2.7: Spec Alignment (v2, feature-flagged)
+
+**Enabled when** `config.spec_alignment.enabled == true`.
+**Disabled**: skip to **Step 2.8**. v1 behavior preserved.
+
+Dispatch the `spec-alignment` agent (`agents/spec-alignment.md`, model Haiku):
+
+```
+Agent tool:
+  subagent_type: "soliton:spec-alignment"
+  prompt: |
+    Check this PR against its stated spec.
+
+    Diff: <diff>
+    Files: <files>
+    PR description: <prDescription>
+    Existing comments (PR mode only): <existingComments>
+
+    Spec sources (in priority order):
+    - REVIEW.md at repo root (see rules/review-md-conventions.md)
+    - .claude/specs/*.md files
+    - Linked issues via gh issue view
+    - PR description checklist
+
+    Follow your agent definition. Output SPEC_ALIGNMENT_START..SPEC_ALIGNMENT_END
+    and any FINDING_START..FINDING_END blocks for unsatisfied criteria or failed
+    wiring-verification greps.
+```
+
+Parse the response:
+
+- If `SPEC_ALIGNMENT_NONE`, no spec found — nothing to do; proceed to Step 2.8.
+- If any `FINDING_START` blocks emitted (for unsatisfied criteria or failed wiring checks),
+  stash as `specFindings[]` — passed through to Step 5 synthesis.
+- Stash the `SPEC_ALIGNMENT_START..END` block as `specCompliance{}` for the synthesizer's
+  evidence chain.
+
+Proceed to **Step 2.8**.
+
+## Step 2.8: Graph Signals (v2, feature-flagged)
+
+**Enabled when** `config.graph.enabled == true` AND graph is available at
+`config.graph.path` or `.soliton/graph.json` or `$SOLITON_GRAPH_PATH`.
+**Disabled or graph missing**: skip to **Step 2.75**. v1 behavior preserved (risk-scorer
+falls back to Grep-based blast radius, `cross-file-impact` uses Grep, `historical-context`
+uses `git log` directly).
+
+Delegate to the `graph-signals` skill. See `skills/pr-review/graph-signals.md` for the
+protocol; CLI contract lives in `rules/graph-query-patterns.md`.
+
+Parse the returned `GRAPH_SIGNALS_START..GRAPH_SIGNALS_END` block.
+
+- If response is `GRAPH_SIGNALS_UNAVAILABLE`, fall back to v1 heuristics and continue.
+- Otherwise stash as `graphSignals{}`. Downstream consumers:
+  - **Step 2.75** chunking: prefer `graphSignals.affectedFeatures` over directory grouping.
+  - **Step 3** risk scorer: replace Grep blast-radius with `graphSignals.blastRadius`; add
+    factors `taint_path_exists` (weight 20 %) and `feature_criticality` (weight 10 %).
+  - **Step 4** agent dispatch: pass relevant signals into each agent's prompt — e.g., the
+    `cross-file-impact` agent receives `graphSignals.dependencyBreaks[]` pre-computed.
+  - **Step 5** synthesis: attach graph edges as evidence-chain citations on each finding.
 
 Proceed to **Step 2.75**.
 

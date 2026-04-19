@@ -1,0 +1,242 @@
+# Soliton v2 — Tiered CI/CD workflow
+#
+# Runs deterministic Tier 0 (lint / type / SAST / secrets / SCA) BEFORE the LLM review.
+# On clean Tier-0 + trivial diff, the LLM review is skipped entirely — zero API cost.
+# On blocked Tier-0 findings (secrets, CVE-critical, fatal type error), LLM is skipped and
+# the check fails.
+#
+# Graph signals are an optional third stage — loaded if a pre-built graph is available at
+# .soliton/graph.json (produced by a separate `graph-build.yml` workflow on main branch).
+
+name: Soliton Tiered Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: soliton-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 1: Tier 0 — deterministic checks, no LLM
+  # ─────────────────────────────────────────────────────────────────────────
+  tier0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      verdict: ${{ steps.tier0.outputs.verdict }}
+      findings_json: ${{ steps.tier0.outputs.findings }}
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Tier-0 tools
+        run: |
+          pipx install ruff
+          pipx install mypy
+          pipx install semgrep
+          npm install -g eslint typescript
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+          cargo install difftastic || true
+
+      - name: Detect changed files
+        id: files
+        run: |
+          BASE_SHA=$(git merge-base origin/${{ github.event.pull_request.base.ref }} HEAD)
+          echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
+          git diff --name-only --diff-filter=ACDMR $BASE_SHA...HEAD > /tmp/changed-files.txt
+          cat /tmp/changed-files.txt
+
+      - name: Run Tier 0
+        id: tier0
+        run: |
+          mkdir -p .soliton/tier0
+          VERDICT="needs_llm"  # default
+          BLOCK_REASON=""
+
+          CHANGED_PY=$(grep -E '\.py$' /tmp/changed-files.txt || true)
+          CHANGED_TS=$(grep -E '\.(ts|tsx|js|jsx)$' /tmp/changed-files.txt || true)
+
+          # Lint
+          [ -n "$CHANGED_PY" ] && ruff check --output-format sarif $CHANGED_PY > .soliton/tier0/ruff.sarif || true
+          [ -n "$CHANGED_TS" ] && eslint --format @microsoft/sarif --output-file .soliton/tier0/eslint.sarif $CHANGED_TS || true
+
+          # Type check
+          [ -n "$CHANGED_PY" ] && mypy --no-color-output --show-error-codes $CHANGED_PY > .soliton/tier0/mypy.txt 2>&1 || TYPE_FAIL_PY=1
+          [ -n "$CHANGED_TS" ] && tsc --noEmit --pretty false 2>&1 | tee .soliton/tier0/tsc.txt || TYPE_FAIL_TS=1
+
+          # SAST
+          semgrep ci --sarif --output .soliton/tier0/semgrep.sarif || true
+
+          # Secret scan (always — scan only new commits)
+          gitleaks detect --source . \
+            --log-opts="${{ steps.files.outputs.base_sha }}..HEAD" \
+            --report-format sarif \
+            --report-path .soliton/tier0/gitleaks.sarif \
+            --exit-code 0
+
+          # SCA
+          osv-scanner --format sarif --output .soliton/tier0/osv.sarif --recursive . || true
+
+          # Compute verdict
+          if jq -e '.runs[].results[] | select(.properties.severity=="critical" or .level=="error")' .soliton/tier0/gitleaks.sarif >/dev/null 2>&1; then
+            VERDICT="blocked"
+            BLOCK_REASON="secret_leaked"
+          fi
+          if jq -e '.runs[].results[] | select(.properties.cvss>=9.0)' .soliton/tier0/osv.sarif >/dev/null 2>&1; then
+            VERDICT="blocked"
+            BLOCK_REASON="cve_critical"
+          fi
+          if [ "$TYPE_FAIL_PY" = "1" ] || [ "$TYPE_FAIL_TS" = "1" ]; then
+            VERDICT="blocked"
+            BLOCK_REASON="${BLOCK_REASON:+$BLOCK_REASON,}type_error_fatal"
+          fi
+
+          # Aggregate
+          jq -s '{verdict:"'$VERDICT'", reason:"'$BLOCK_REASON'", findings: [.[] | .runs[].results[]?]}' \
+             .soliton/tier0/*.sarif > .soliton/tier0-summary.json 2>/dev/null || echo '{"verdict":"'$VERDICT'","reason":"'$BLOCK_REASON'","findings":[]}' > .soliton/tier0-summary.json
+
+          FINDING_COUNT=$(jq '.findings | length' .soliton/tier0-summary.json)
+          DIFF_LINES=$(git diff --shortstat ${{ steps.files.outputs.base_sha }}...HEAD | awk '{print $4+$6}')
+
+          # Promote to "clean" if verdict still needs_llm AND findings=0 AND diff trivial
+          if [ "$VERDICT" = "needs_llm" ] && [ "$FINDING_COUNT" = "0" ] && [ "${DIFF_LINES:-0}" -le "50" ]; then
+            VERDICT="clean"
+          fi
+
+          echo "verdict=$VERDICT" >> $GITHUB_OUTPUT
+          echo "Verdict: $VERDICT (findings=$FINDING_COUNT, diff_lines=$DIFF_LINES)"
+
+      - name: Upload Tier-0 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tier0-findings
+          path: .soliton/
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 2a: Fast-path — Tier 0 clean, skip LLM entirely
+  # ─────────────────────────────────────────────────────────────────────────
+  fast-path:
+    needs: tier0
+    if: needs.tier0.outputs.verdict == 'clean'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post fast-path comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "✅ **Soliton: Tier 0 clean** — no lint / type / security / secret / dep issues. LLM swarm skipped (trivial change, zero findings)." \
+            --repo ${{ github.repository }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 2b: Blocked — post Tier-0 findings, fail CI
+  # ─────────────────────────────────────────────────────────────────────────
+  blocked:
+    needs: tier0
+    if: needs.tier0.outputs.verdict == 'blocked'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tier0-findings
+          path: .soliton/
+      - name: Post blocked findings
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SUMMARY=$(jq -r '.findings | map("- **\(.ruleId // .rule): \(.message.text // .message)** in `\(.locations[0].physicalLocation.artifactLocation.uri // "?")`") | join("\n")' .soliton/tier0-summary.json)
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "🔴 **Soliton: Blocked by Tier 0** ($(jq -r '.reason' .soliton/tier0-summary.json))
+
+$SUMMARY
+
+LLM swarm skipped. Fix the above and re-push." \
+            --repo ${{ github.repository }}
+      - name: Fail the check
+        run: exit 1
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 3: LLM review (only when Tier 0 says needs_llm or advisory_only)
+  # ─────────────────────────────────────────────────────────────────────────
+  llm-review:
+    needs: tier0
+    if: needs.tier0.outputs.verdict == 'needs_llm' || needs.tier0.outputs.verdict == 'advisory_only'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Tier-0 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tier0-findings
+          path: .soliton/
+
+      - name: Optional — fetch pre-built graph
+        continue-on-error: true
+        run: |
+          # Graph is built by a separate workflow on main; pull latest artifact by SHA.
+          # If graph unavailable, Soliton falls back to v1 heuristics automatically.
+          gh run download --name graph-json --dir .soliton/ || echo "Graph unavailable; using v1 fallback"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone Soliton
+        run: git clone --depth 1 --branch v2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --plugin-dir /tmp/soliton
+          prompt: |
+            Run /pr-review ${{ github.event.pull_request.number }}
+
+            Tier 0 already ran and produced findings at .soliton/tier0-summary.json.
+            Tier 0 verdict: ${{ needs.tier0.outputs.verdict }}.
+            Graph (if present) is at .soliton/graph.json.
+
+            Read .soliton/tier0-summary.json; pass its findings to the synthesizer
+            as pre-existing deterministic findings so the review agents don't
+            re-discover them.
+
+            If advisory_only, raise --threshold to 90 for this review.
+
+            After the review completes, post the full markdown review as a PR comment:
+            gh pr comment ${{ github.event.pull_request.number }} --body "<review>"
+          allowed_tools: |
+            Read
+            Grep
+            Glob
+            Bash(git diff *)
+            Bash(git log *)
+            Bash(git show *)
+            Bash(git branch *)
+            Bash(gh pr comment *)
+            Bash(gh pr diff *)
+            Bash(gh pr view *)
+            Bash(graph-cli *)
+            Bash(jq *)
+            Agent
