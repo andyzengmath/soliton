@@ -1,0 +1,11 @@
+diff --git a/README.md b/README.md
+index 1234567..89abcde 100644
+--- a/README.md
++++ b/README.md
+@@ -42,7 +42,7 @@ Soliton runs a risk-adaptive multi-agent review swarm on every PR.
+ See [docs/ci-cd-integration.md](docs/ci-cd-integration.md) for setup.
+
+-## License
++## License
+
+ MIT

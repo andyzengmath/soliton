@@ -1,0 +1,8 @@
+{
+  "riskRange": [0, 10],
+  "expectedFindings": 0,
+  "expectedCategories": [],
+  "tier0Verdict": "clean",
+  "llmSwarmSkipped": true,
+  "description": "Trivial whitespace-only README diff. With tier0.enabled + skip_llm_on_clean, the full swarm must be skipped — only tier0 runs. Asserts the Tier-0 fast-path: verdict==clean, zero findings, LLM agents never dispatched."
+}

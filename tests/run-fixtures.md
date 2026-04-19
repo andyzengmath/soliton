@@ -4,6 +4,8 @@ This document describes how to validate the Soliton PR Review skill against the 
 
 ## Fixtures
 
+### v1 fixtures (original swarm)
+
 | Fixture | Expected Risk | Expected Findings | Expected Category | Expected Severity |
 |---------|--------------|-------------------|-------------------|-------------------|
 | trivial-readme-fix | 0-10 | 0 | (none) | (none) |
@@ -11,6 +13,19 @@ This document describes how to validate the Soliton PR Review skill against the 
 | hallucinated-api | 30-80 | 1+ | hallucination | critical |
 | missing-tests | 30-70 | 1+ | testing | improvement+ |
 | cross-file-break | 50-90 | 1+ | cross-file-impact | critical |
+
+### v2 fixtures (Tier-0, Spec Alignment, Graph Signals)
+
+Require the corresponding feature flag enabled in `.claude/soliton.local.md`.
+
+| Fixture | Flag | Expected Verdict | LLM Swarm | Notes |
+|---------|------|------------------|-----------|-------|
+| tier0-clean | `tier0.enabled` + `skip_llm_on_clean` | `clean` | **skipped** | trivial whitespace diff; fast-path must fire |
+| tier0-blocked-secret | `tier0.enabled` | `blocked` (`secret_leaked`) | **skipped** | fake-but-gitleaks-matching AWS key; CI must exit 1 |
+| tier0-advisory-only | `tier0.enabled` | `advisory_only` | runs with `--threshold 90` | lint-only findings; verdict promotion transitions to advisory_only rather than needs_llm |
+| spec-alignment-unmet-checklist | `spec_alignment.enabled` | — | runs | REVIEW.md mandates `logRequest(req)` + test file; handler lacks both; mechanical wiring-verification emits confidence-100 CRITICAL |
+
+Each v2 fixture's `expected.json` adds `tier0Verdict`, `llmSwarmSkipped`, `blockReason` (optional), `confidenceThresholdBumpedTo` (optional), or `wiringChecksFailed` (for spec-alignment) on top of the base fields.
 
 ## Validation Process
 
@@ -60,10 +75,16 @@ Severity: <found> (expected: <expected>)  [PASS/FAIL]
 
 ## Pass Criteria
 
-- ALL 5 fixtures must pass risk score range validation
-- ALL 5 fixtures must pass finding count validation
-- ALL 5 fixtures must have at least one finding matching the expected category
-- Overall: 5/5 fixtures passing = suite passes
+- ALL 5 v1 fixtures must pass risk score range validation
+- ALL 5 v1 fixtures must pass finding count validation
+- ALL 5 v1 fixtures must have at least one finding matching the expected category
+- Overall: 5/5 v1 fixtures passing = v1 suite passes
+
+For the v2 fixtures, each must additionally pass:
+- `tier0Verdict` matches the actual `TIER_ZERO_START..TIER_ZERO_END` block's `verdict:` field.
+- `llmSwarmSkipped == true` implies zero agent dispatches in Step 4 (no FINDING_START blocks from review agents — Tier-0 findings only).
+- `llmSwarmSkipped == false` implies the review swarm ran normally.
+- `blockReason`, `confidenceThresholdBumpedTo`, `wiringChecksFailed` are asserted when present.
 
 ## Regression Testing
 

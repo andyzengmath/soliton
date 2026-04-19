@@ -1,0 +1,10 @@
+{
+  "riskRange": [80, 100],
+  "expectedFindings": 1,
+  "expectedCategories": ["security"],
+  "expectedSeverity": "critical",
+  "tier0Verdict": "blocked",
+  "blockReason": "secret_leaked",
+  "llmSwarmSkipped": true,
+  "description": "Diff adds a file containing an AWS-key-formatted string that matches gitleaks's default ruleset. Tier 0 must emit verdict=blocked with reason=secret_leaked, skip the LLM swarm, and (in CI mode) exit 1. The test string is the documented AWS example non-key, safe to commit."
+}

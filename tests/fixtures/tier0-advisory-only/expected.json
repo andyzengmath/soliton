@@ -1,0 +1,10 @@
+{
+  "riskRange": [15, 40],
+  "expectedFindings": 1,
+  "expectedCategories": ["lint"],
+  "expectedSeverity": "improvement",
+  "tier0Verdict": "advisory_only",
+  "llmSwarmSkipped": false,
+  "confidenceThresholdBumpedTo": 90,
+  "description": "Diff introduces an unused import — eslint flags it at low/warning severity, no security or type-fatal findings. Tier 0 must emit verdict=advisory_only (NOT needs_llm) so downstream raises the synthesizer threshold to 90. The LLM swarm still runs but returns fewer, higher-SNR findings."
+}
