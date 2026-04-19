@@ -424,3 +424,44 @@ MAX_BUDGET_USD=8 OUTPUT_DIR=bench/crb/phase35-reviews \
 # Pipeline (same Azure OpenAI config as Phase 3):
 bash bench/crb/run-phase35-pipeline.sh
 ```
+
+---
+
+## Phase 3.7 · Synthesizer dedup tightening — NEGATIVE RESULT (10-PR mini, 2026-04-19)
+
+**Hypothesis**: widen synthesizer dedup window from ±5 to ±10 lines + relax merge criterion (v2.3) to cut intra-review agent overlap. Projected +0.03 F1.
+
+**Mini-run on 10 PRs** (aborted before remaining 40 to save spend after the trend became clear):
+
+| Metric | Phase 3.5 (full 50) | Phase 3.7 mini (10) | Δ |
+|--------|--------------------:|--------------------:|------:|
+| Micro-F1 | 0.277 | **0.255** | **−0.022** ❌ |
+| Precision | 0.183 | 0.173 | −0.010 |
+| Recall | 0.566 | **0.483** | **−0.083** ❌ |
+
+**Why it failed**: widening the merge window to ±10 lines and relaxing the merge criterion to "same function / category overlap / shared root cause" merged findings on genuinely DIFFERENT bugs that happened to cluster in the same region. The Phase 3.5 rule (±5 lines, strict "same issue") was well-calibrated; more-aggressive merging costs recall.
+
+### Two-experiment pattern
+
+| Experiment | Lever | Projected ΔF1 | Actual ΔF1 | Failure mode |
+|-----------|-------|--------------:|-----------:|--------------|
+| Phase 3.6 (20 PRs) | v2.2 description compression | +0.05 to +0.07 | **−0.021** | 2-sentence cap cut semantic matching surface; `<details>` didn't hide from step2 LLM |
+| Phase 3.7 (10 PRs) | v2.3 synthesizer dedup tightening | +0.03 | **−0.022** | ±10-line window merged unrelated findings |
+
+**Calibrated learning** (updating IMPROVEMENTS.md's prediction model):
+
+1. Phase 3.5 (L1+L2+L4) captured the low-hanging prompt-level fruit. F1 = 0.277 may be near the ceiling of what SKILL.md + synthesizer.md edits can achieve on CRB.
+2. Every "aggressive precision" lever has cut recall more than it helped precision. The CRB step3 judge is recall-hungry.
+3. ΔF1 projections in the original IMPROVEMENTS.md were 3–5× too optimistic. Real per-lever realistic range is +0.01 to +0.03, not +0.05 to +0.10.
+
+### Decision
+
+**Phase 3.5 remains the current best**. Phase 3.7 is a documented negative result; PR #20 is an experiment record, not a product change. v2.3 rule reverted before any merge to main.
+
+Cost: ~$20 Soliton + ~$3 judge on 10 PRs; saved ~$80 by aborting the remaining 40.
+
+### Path forward (honest, post-3.7)
+
+1. **v2.1 per-language severity gate** — recovers Phase 3.5's TS regression. Realistic +0.005 to +0.015 aggregate F1. Safe, ~$30 for a 20-PR pilot.
+2. **L5 deeper cross-file retrieval** — agent-level code change (not just prompt). Realistic +0.02 to +0.05 recall lift. ~3–5 dev-days.
+3. **Accept F1 = 0.277 as the current published number** — merge #18 (Phase 3.5), close #19 / #20 as experiments, pursue F1 improvement only via structural (L5 / I19) changes afterward. **Given two consecutive prompt-tuning failures, this is what the data supports.**
