@@ -589,6 +589,33 @@ For each improvement finding:
 - Emit alternative fixes as `Option A: ... Option B: ...` — consolidate into a single suggestion block. If two approaches are genuinely needed, they should be mentioned as trade-offs in the description prose, not as enumerated options that downstream candidate-extractors read as separate issues.
 - Conjoin multiple concerns with "also", "additionally", or numbered sub-points ("1. ...; 2. ..."). If the review agents flagged two related concerns, emit two separate findings — the synthesizer deduplicates overlapping ones.
 
+### Description-compression rule — v2.2 (Phase 3.6)
+
+**Each finding's inline `<description>` MUST be at most TWO sentences.** The description's job is to state the bug concisely, not to teach. Concretely:
+
+- Sentence 1: what is wrong. Name the specific code location and the concrete failure mode.
+- Sentence 2 (optional): one sentence of why it matters — the user-visible or operational impact.
+
+Anything longer — scenario walkthroughs, reproduction steps, pointers to related code, nuanced discussion of edge cases — goes into a **collapsed `<details>` block** immediately after the suggestion block:
+
+```markdown
+:red_circle: [<category>] <title> in <file>:<lineStart> (confidence: <confidence>)
+<one-sentence problem statement>. <optional one-sentence impact>.
+```suggestion
+<suggestion code>
+```
+<details><summary>More context</summary>
+
+<arbitrarily long prose, scenario walkthroughs, code references, etc.>
+</details>
+```
+
+**Why**: Phase 3 / Phase 3.5 data showed that CRB's `step2_extract_comments.py` LLM splits multi-paragraph `<description>` text into 2–3 sub-candidate issues, inflating FP count. Atomic bullets alone (v2.1) didn't stop this because the paragraphs were still there. Capping descriptions at 2 sentences forces the finding to be a 1:1 candidate match for extractor tools.
+
+**Exception**: if the description genuinely can't fit in 2 sentences without losing correctness (rare), use a single slightly-longer sentence — never split into paragraphs inside the main `<description>` field.
+
+---
+
 This keeps the markdown body's finding count aligned 1:1 with downstream candidate-extraction tools (CRB's `step2_extract_comments.py`, and similar), so our precision score isn't depressed by a sub-issue split that isn't a real duplicate review.
 
 
