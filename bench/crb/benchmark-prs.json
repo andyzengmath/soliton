@@ -1,0 +1,709 @@
+[
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/37429",
+    "language": "Java",
+    "num_golden_comments": 4,
+    "severity_mix": {
+      "Medium": 2,
+      "Low": 2
+    },
+    "num_files_touched": 4,
+    "size_category": "medium",
+    "domain": "UI",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/37634",
+    "language": "Java",
+    "num_golden_comments": 4,
+    "severity_mix": {
+      "Critical": 1,
+      "High": 1,
+      "Low": 2
+    },
+    "num_files_touched": 5,
+    "size_category": "medium",
+    "domain": "authentication",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/38446",
+    "language": "Java",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Medium": 1,
+      "Low": 1
+    },
+    "num_files_touched": 6,
+    "size_category": "medium",
+    "domain": "authentication",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/36882",
+    "language": "Java",
+    "num_golden_comments": 1,
+    "severity_mix": {
+      "Medium": 1
+    },
+    "num_files_touched": 4,
+    "size_category": "small",
+    "domain": "configuration",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/36880",
+    "language": "Java",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "High": 3
+    },
+    "num_files_touched": 4,
+    "size_category": "medium",
+    "domain": "authentication",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/37038",
+    "language": "Java",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 2
+    },
+    "num_files_touched": 2,
+    "size_category": "small",
+    "domain": "authentication",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/33832",
+    "language": "Java",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 1,
+      "Low": 1
+    },
+    "num_files_touched": 5,
+    "size_category": "medium",
+    "domain": "authentication",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/40940",
+    "language": "Java",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Critical": 1,
+      "Medium": 1
+    },
+    "num_files_touched": 2,
+    "size_category": "small",
+    "domain": "concurrency",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1",
+    "language": "Java",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Medium": 2
+    },
+    "num_files_touched": 5,
+    "size_category": "medium",
+    "domain": "authentication",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/getsentry/sentry/pull/93824",
+    "language": "Python",
+    "num_golden_comments": 5,
+    "severity_mix": {
+      "Medium": 3,
+      "Low": 1,
+      "High": 1
+    },
+    "num_files_touched": 3,
+    "size_category": "large",
+    "domain": "concurrency",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/5",
+    "language": "Python",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "Medium": 2,
+      "Low": 1
+    },
+    "num_files_touched": 13,
+    "size_category": "large",
+    "domain": "API",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1",
+    "language": "Python",
+    "num_golden_comments": 4,
+    "severity_mix": {
+      "Low": 1,
+      "High": 3
+    },
+    "num_files_touched": 3,
+    "size_category": "medium",
+    "domain": "API",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/97529",
+    "language": "Go",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 2
+    },
+    "num_files_touched": 4,
+    "size_category": "small",
+    "domain": "concurrency",
+    "risk_level": "critical",
+    "primary_concern": "reliability"
+  },
+  {
+    "url": "https://github.com/getsentry/sentry/pull/80168",
+    "language": "Python",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 1,
+      "Low": 1
+    },
+    "num_files_touched": 3,
+    "size_category": "small",
+    "domain": "data_processing",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/getsentry/sentry/pull/80528",
+    "language": "Python",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 1,
+      "Low": 1
+    },
+    "num_files_touched": 2,
+    "size_category": "small",
+    "domain": "scheduling",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/getsentry/sentry/pull/77754",
+    "language": "Python",
+    "num_golden_comments": 4,
+    "severity_mix": {
+      "Medium": 2,
+      "Low": 2
+    },
+    "num_files_touched": 4,
+    "size_category": "medium",
+    "domain": "serialization",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/getsentry/sentry/pull/95633",
+    "language": "Python",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "High": 1,
+      "Low": 2
+    },
+    "num_files_touched": 4,
+    "size_category": "medium",
+    "domain": "concurrency",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/2",
+    "language": "Python",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "Critical": 1,
+      "High": 2
+    },
+    "num_files_touched": 4,
+    "size_category": "medium",
+    "domain": "data_processing",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3",
+    "language": "Python",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "Low": 2,
+      "Medium": 1
+    },
+    "num_files_touched": 6,
+    "size_category": "medium",
+    "domain": "caching",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/103633",
+    "language": "Go",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 1,
+      "Low": 1
+    },
+    "num_files_touched": 3,
+    "size_category": "small",
+    "domain": "caching",
+    "risk_level": "high",
+    "primary_concern": "security"
+  },
+  {
+    "url": "https://github.com/getsentry/sentry/pull/67876",
+    "language": "Python",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "Medium": 2,
+      "High": 1
+    },
+    "num_files_touched": 2,
+    "size_category": "small",
+    "domain": "authentication",
+    "risk_level": "high",
+    "primary_concern": "security"
+  },
+  {
+    "url": "https://github.com/keycloak/keycloak/pull/32918",
+    "language": "Java",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Critical": 1,
+      "Medium": 1
+    },
+    "num_files_touched": 2,
+    "size_category": "small",
+    "domain": "caching",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/94942",
+    "language": "Go",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Critical": 1,
+      "High": 1
+    },
+    "num_files_touched": 3,
+    "size_category": "small",
+    "domain": "data_processing",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/90939",
+    "language": "Go",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Medium": 1,
+      "High": 1
+    },
+    "num_files_touched": 1,
+    "size_category": "small",
+    "domain": "caching",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/80329",
+    "language": "Go",
+    "num_golden_comments": 1,
+    "severity_mix": {
+      "Low": 1
+    },
+    "num_files_touched": 3,
+    "size_category": "small",
+    "domain": "logging",
+    "risk_level": "low",
+    "primary_concern": "maintainability"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/90045",
+    "language": "Go",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "Medium": 2,
+      "High": 1
+    },
+    "num_files_touched": 4,
+    "size_category": "medium",
+    "domain": "logging",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/106778",
+    "language": "Go",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Medium": 1,
+      "High": 1
+    },
+    "num_files_touched": 6,
+    "size_category": "medium",
+    "domain": "UI",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/107534",
+    "language": "Go",
+    "num_golden_comments": 1,
+    "severity_mix": {
+      "Low": 1
+    },
+    "num_files_touched": 3,
+    "size_category": "small",
+    "domain": "testing",
+    "risk_level": "low",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/79265",
+    "language": "Go",
+    "num_golden_comments": 5,
+    "severity_mix": {
+      "High": 1,
+      "Medium": 2,
+      "Low": 2
+    },
+    "num_files_touched": 7,
+    "size_category": "large",
+    "domain": "authentication",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9",
+    "language": "Ruby",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Low": 2
+    },
+    "num_files_touched": 3,
+    "size_category": "small",
+    "domain": "configuration",
+    "risk_level": "medium",
+    "primary_concern": "reliability"
+  },
+  {
+    "url": "https://github.com/grafana/grafana/pull/76186",
+    "language": "Go",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 1,
+      "Low": 1
+    },
+    "num_files_touched": 2,
+    "size_category": "small",
+    "domain": "logging",
+    "risk_level": "high",
+    "primary_concern": "reliability"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/10",
+    "language": "Ruby",
+    "num_golden_comments": 4,
+    "severity_mix": {
+      "Critical": 1,
+      "Medium": 2,
+      "High": 1
+    },
+    "num_files_touched": 15,
+    "size_category": "large",
+    "domain": "configuration",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7",
+    "language": "Ruby",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "Low": 3
+    },
+    "num_files_touched": 6,
+    "size_category": "medium",
+    "domain": "UI",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/8",
+    "language": "Ruby",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "High": 1,
+      "Medium": 2
+    },
+    "num_files_touched": 8,
+    "size_category": "medium",
+    "domain": "API",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3",
+    "language": "Ruby",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Medium": 2
+    },
+    "num_files_touched": 4,
+    "size_category": "medium",
+    "domain": "authentication",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5",
+    "language": "Ruby",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Low": 2
+    },
+    "num_files_touched": 3,
+    "size_category": "small",
+    "domain": "UI",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6",
+    "language": "Ruby",
+    "num_golden_comments": 1,
+    "severity_mix": {
+      "Medium": 1
+    },
+    "num_files_touched": 2,
+    "size_category": "small",
+    "domain": "serialization",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4",
+    "language": "Ruby",
+    "num_golden_comments": 6,
+    "severity_mix": {
+      "Critical": 1,
+      "Medium": 5
+    },
+    "num_files_touched": 12,
+    "size_category": "large",
+    "domain": "API",
+    "risk_level": "critical",
+    "primary_concern": "security"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/1",
+    "language": "Ruby",
+    "num_golden_comments": 3,
+    "severity_mix": {
+      "Medium": 2,
+      "Low": 1
+    },
+    "num_files_touched": 3,
+    "size_category": "medium",
+    "domain": "file_io",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/2",
+    "language": "Ruby",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 1,
+      "Low": 1
+    },
+    "num_files_touched": 7,
+    "size_category": "medium",
+    "domain": "UI",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/22532",
+    "language": "TypeScript",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Medium": 1,
+      "Low": 1
+    },
+    "num_files_touched": 11,
+    "size_category": "medium",
+    "domain": "caching",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/8330",
+    "language": "TypeScript",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Medium": 2
+    },
+    "num_files_touched": 3,
+    "size_category": "small",
+    "domain": "scheduling",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/14943",
+    "language": "TypeScript",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 2
+    },
+    "num_files_touched": 1,
+    "size_category": "small",
+    "domain": "scheduling",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/22345",
+    "language": "TypeScript",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Low": 1,
+      "Medium": 1
+    },
+    "num_files_touched": 1,
+    "size_category": "small",
+    "domain": "database",
+    "risk_level": "medium",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/11059",
+    "language": "TypeScript",
+    "num_golden_comments": 5,
+    "severity_mix": {
+      "High": 5
+    },
+    "num_files_touched": 9,
+    "size_category": "large",
+    "domain": "authentication",
+    "risk_level": "critical",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/7232",
+    "language": "TypeScript",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Medium": 1,
+      "High": 1
+    },
+    "num_files_touched": 9,
+    "size_category": "medium",
+    "domain": "scheduling",
+    "risk_level": "high",
+    "primary_concern": "reliability"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/14740",
+    "language": "TypeScript",
+    "num_golden_comments": 5,
+    "severity_mix": {
+      "High": 1,
+      "Critical": 1,
+      "Medium": 2,
+      "Low": 1
+    },
+    "num_files_touched": 6,
+    "size_category": "large",
+    "domain": "scheduling",
+    "risk_level": "critical",
+    "primary_concern": "security"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/10600",
+    "language": "TypeScript",
+    "num_golden_comments": 4,
+    "severity_mix": {
+      "Low": 2,
+      "Medium": 1,
+      "High": 1
+    },
+    "num_files_touched": 7,
+    "size_category": "medium",
+    "domain": "authentication",
+    "risk_level": "high",
+    "primary_concern": "security"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/10967",
+    "language": "TypeScript",
+    "num_golden_comments": 5,
+    "severity_mix": {
+      "High": 2,
+      "Low": 2,
+      "Medium": 1
+    },
+    "num_files_touched": 7,
+    "size_category": "large",
+    "domain": "scheduling",
+    "risk_level": "high",
+    "primary_concern": "correctness"
+  },
+  {
+    "url": "https://github.com/calcom/cal.com/pull/8087",
+    "language": "TypeScript",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "Low": 1,
+      "Critical": 1
+    },
+    "num_files_touched": 5,
+    "size_category": "medium",
+    "domain": "concurrency",
+    "risk_level": "critical",
+    "primary_concern": "reliability"
+  },
+  {
+    "url": "https://example/pr",
+    "language": "Python",
+    "num_golden_comments": 2,
+    "severity_mix": {
+      "High": 1,
+      "Low": 1
+    },
+    "num_files_touched": 1,
+    "size_category": "small",
+    "domain": "API",
+    "risk_level": null,
+    "primary_concern": null
+  }
+]
