@@ -239,41 +239,134 @@ Each writes `bench/crb/poc-reviews/<slug>.md`. Judge step is manual (see methodo
 
 ---
 
-## Phase 3 · Full corpus (51 PRs)
+## Phase 3 · Full corpus (49 PRs, GPT-5.2 judge — 2026-04-19)
 
-*Not yet run.* Full offline-benchmark corpus per `benchmark-prs.json`. Needs:
+**Setup.** Ran Soliton locally via `bench/crb/run-poc-review.sh` for 49 of 50 offline-benchmark PRs (1 PR — `ai-code-review-evaluation/sentry-greptile#5`, 13-file Python — exceeded a $5/PR Anthropic Console budget cap and was dropped). Reviews stored at `bench/crb/phase3-reviews/*.md`. Judge-side ran the real CRB pipeline (`build_benchmark_data → step2_extract_comments → step2_5_dedup_candidates → step3_judge_comments`) via **Azure OpenAI gpt-5.2 using managed-identity auth** (keyless) — see `bench/crb/run-phase3-pipeline.sh` and the CRB local patch at `offline/code_review_benchmark/llm_client.py` added for this run.
 
-- GH org with Soliton installed (see ROADMAP item A, Phase 3)
-- CRB `_NON_BOT_TOOLS` patch (add `"soliton"`)
-- CRB `step0_fork_prs.py` patch (skip `disable_actions`, inject `soliton-review-bench.yml` into fork base branch)
-- Judge LLM API key (Martian Router or OpenAI)
-- Cost budget ≈ $10–$50
+This is the first **leaderboard-comparable** Soliton F1 — same judge as CRB's published `openai_gpt-5.2` column, same pipeline, n=49 vs the leaderboard's n=50 (close enough).
 
 ### Headline (Phase 3)
 
-| Metric | Value |
-|--------|-------|
-| F1 | _tbd_ |
-| F1 (cost-normalised — F1 per $ of API spend) | _tbd_ |
-| Precision | _tbd_ |
-| Recall | _tbd_ |
-| Mean cost/PR | _tbd_ |
-| Mean latency/PR | _tbd_ |
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Micro-F1** | **0.235** | TP=80 / FP=468 / FN=53, goldens=133 |
+| Macro-F1 | 0.236 | mean of per-PR F1 |
+| Precision | **0.146** | 568 candidates; ~488 without a golden match |
+| Recall | **0.602** | 80 of 133 goldens matched |
+| Mean candidates/PR | 11.6 | consistent with Soliton's ~11 findings per review |
+| Mean latency/PR | ~3–6 min (observed range 2–10) | Soliton local run |
+| Mean Soliton cost/PR | est. $1.00–$2.50 | no token-metadata captured; bounded by observed `--max-budget-usd` hits |
+| Mean judge cost/PR | ~$0.30 | GPT-5.2 via Azure OpenAI, observed ≈ 2.96 s/review, ≈ $15 total |
+| Budget-dropped PRs | 1 of 50 | `sentry-greptile#5`, 13-file PR exceeded $5 cap |
 
-### Per-language breakdown (Phase 3)
+### Per-language breakdown (Phase 3, gpt-5.2 judge)
 
-| Language | PR count | Soliton F1 | Qodo (ref) | CodeRabbit (ref) |
-|----------|----------|------------|------------|------------------|
-| Python (Sentry) | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| Go (Grafana) | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| TypeScript (Cal.com) | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| Ruby (Discourse) | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
-| Java (Keycloak) | _tbd_ | _tbd_ | _tbd_ | _tbd_ |
+| Language | PRs | TP | FP | FN | Precision | Recall | F1 |
+|----------|----:|---:|---:|---:|----------:|-------:|---:|
+| Java (Keycloak + greptile) | 10 | 12 | 81 | 12 | 0.129 | 0.500 | 0.205 |
+| Python (Sentry + greptile) | 9 | 14 | 112 | 14 | 0.111 | 0.500 | 0.182 |
+| Go (Grafana) | 10 | 14 | 80 | 8 | 0.149 | 0.636 | 0.241 |
+| Ruby (Discourse-graphite) | 10 | 14 | 92 | 14 | 0.132 | 0.500 | 0.209 |
+| **TypeScript (Cal.com)** | 10 | 26 | 103 | 5 | 0.202 | **0.839** | **0.325** |
 
-### Multi-judge variance (Phase 3)
+TypeScript is Soliton's strongest language in Phase 3: 84 % recall (competitive with leaderboard leaders' overall recall) and the highest F1. Python is weakest — high FP count likely from Soliton's thorough multi-agent coverage on verbose business-logic PRs.
 
-| Judge model | Precision | Recall | F1 |
-|-------------|-----------|--------|----|
-| `anthropic_claude-opus-4-5-20251101` | _tbd_ | _tbd_ | _tbd_ |
-| `anthropic_claude-sonnet-4-5-20250929` | _tbd_ | _tbd_ | _tbd_ |
-| `openai_gpt-5.2` | _tbd_ | _tbd_ | _tbd_ |
+### Phase 2 (Opus-4.7 in-session) vs Phase 3 (GPT-5.2 pipeline) on the same 5 PRs
+
+Same Soliton reviews, different judge and candidate-extraction step. Demonstrates that **the F1 drop is almost entirely judge / pipeline variance, not a Soliton behavior change**:
+
+| PR | Phase 2 TP/FP/FN | P2 F1 | Phase 3 TP/FP/FN | P3 F1 | Δ F1 |
+|----|------------------:|------:|------------------:|------:|-----:|
+| `sentry#93824` | 3 / 8 / 2 | 0.375 | 2 / 15 / 3 | 0.182 | −0.193 |
+| `keycloak#37634` | 2 / 4 / 2 | 0.400 | 2 / 6 / 2 | 0.333 | −0.067 |
+| `grafana#79265` | 3 / 4 / 2 | 0.500 | 3 / 9 / 2 | 0.353 | −0.147 |
+| `cal.com#10967` | 4 / 7 / 1 | 0.500 | 3 / 12 / 2 | 0.300 | −0.200 |
+| `discourse#4` | 4 / 9 / 2 | 0.421 | 4 / 19 / 2 | 0.276 | −0.145 |
+| **Σ** | 16 / 32 / 9 | 0.438 | 14 / 61 / 11 | 0.280 | −0.158 |
+
+TP counts are nearly stable (16 → 14, ~12 % drop) — the core findings Soliton got right are still matching under a stricter judge. FPs nearly **doubled** (32 → 61) — CRB's step2 LLM splits each bulleted Soliton finding into 2–3 candidate sub-issues, and GPT-5.2 is stricter than Opus-4.7 on partial matches, so many of those sub-issues don't match a golden. That inflated FP denominator is the whole precision tax.
+
+### Competitive positioning (GPT-5.2 judge column, 51-PR CRB full corpus)
+
+Pulled directly from `withmartian/code-review-benchmark/offline/analysis/benchmark_dashboard.json` `openai_gpt-5.2` column — this is the **only apples-to-apples column** with our Phase 3 score:
+
+| Rank | Tool | GPT-5.2 F1 | GPT-5.2 P | GPT-5.2 R |
+|------|------|-----------|-----------|-----------|
+| 1 | cubic-v2 | **0.590** | ~0.56 | ~0.63 |
+| 2 | qodo-extended-v2 | 0.522 | | |
+| 3 | augment | 0.496 | | |
+| 4 | qodo-v2 | 0.440 | | |
+| 5 | bugbot | 0.435 | | |
+| 6 | devin | 0.413 | | |
+| 7 | macroscope | 0.413 | | |
+| 8 | qodo-extended | 0.412 | | |
+| 9 | propel-v2 | 0.408 | | |
+| 10 | propel | 0.403 | | |
+| 11 | greptile-v4-1 | 0.395 | | |
+| 12 | sourcery | 0.382 | | |
+| 13 | baz | 0.367 | | |
+| 14 | kodus-v2 | 0.351 | | |
+| 15 | claude | 0.346 | | |
+| 16 | copilot | 0.336 | | |
+| 17 | coderabbit | 0.333 | | |
+| 18 | claude-code | 0.330 | | |
+| 19 | gemini | 0.295 | | |
+| 20 | codeant-v2 | 0.294 | | |
+| 21 | kg | 0.253 | | |
+| **≈22** | **Soliton (this Phase 3, n=49)** | **0.235** | **0.146** | **0.602** |
+| 22 | graphite | 0.158 | | |
+
+Unvarnished read: **on raw F1 under the same judge, Soliton lands near the bottom** — between `kg` and `graphite`. That's a ~20-point drop from the ~rank-9 positioning Phase 2 implied (0.438 under a same-model lenient in-session judge).
+
+**But on recall**: Soliton's 0.602 is in the top tier (cubic-v2 ~0.63, top 3 tools ~0.55–0.63). Soliton catches the bugs that matter; it's the precision / noise ratio that loses the raw F1 game.
+
+### Judge variance is the elephant in the room
+
+Without a Sonnet-4.5 or Opus-4.5 judge run we can't say *which* judge is "right". From the leaderboard's multi-judge columns:
+
+- For most tools, F1 under **Opus-4.5 runs ~4–7 pts higher** than under GPT-5.2 (e.g. `cubic-v2` 0.618 vs 0.590, `claude-code` 0.376 vs 0.330).
+- Applying the same delta to Soliton: a plausible Opus-4.5 Phase 3 F1 would be **~0.27–0.29** — still below the leaderboard middle but less catastrophic.
+- Soliton's Opus-4.7 in-session Phase 2 score of 0.438 is a **ceiling** estimate (same-model judging is known-lenient); Phase 3's 0.235 is a **floor** (stricter cross-family judge + full pipeline); truth is likely in between.
+
+### What Soliton needs to do to climb the raw-F1 leaderboard
+
+1. **Threshold tighter** — Phase 3 suppressed 1 finding at confidence-threshold 80; raising the default to 85 or 90 would trim many low-confidence nits that get extracted as candidates and judged as FPs. Expected: precision up 0.05–0.10, recall down 0.03–0.05, net F1 up.
+2. **Collapse synthesizer output** — if multiple agents flag the same code region, merge into one finding instead of letting step2 later re-split them. Expected: lower candidate count per PR (target 5–7 vs current 11.6), ~proportional precision improvement.
+3. **Tier-0 fast-path** (ROADMAP item A, not enabled in Phase 3 for consistency with Phase 2) — skip LLM review on lint-clean trivial PRs; lower candidate count on exactly the PRs that produce the worst FP:TP ratio. Expected: same Σ-TP, lower Σ-FP, headline F1 up.
+4. **Hallucination-AST pre-check** (ROADMAP item D) — would eliminate some FPs where an agent imagines a signature mismatch that isn't actually there.
+
+### Cost-normalised F1 (Phase 3)
+
+| Tool | F1 | Cost / PR | F1 per \$ (× 100) |
+|------|----|-----------|-------------------|
+| Soliton (this run, Anthropic Console side only) | 0.235 | ~$1.50 | **15.7** |
+| Soliton incl. judge ($0.30/PR on Azure GPT-5.2) | 0.235 | ~$1.80 | 13.1 |
+| CRB leaderboard: no tool publishes per-PR API cost
+
+— so the denominator comparison isn't available today. This is still the clearest differentiator Soliton has when we get competitor per-PR cost data (request: Martian CRB dashboard adds `cost_per_pr` column). For now, the metric is ours to report, not compare.
+
+### Phase 3 caveats
+
+1. **1 PR dropped** (sentry-greptile#5, ≥$5 budget) — n=49 not 50; trivial for aggregate stats but should be noted in leaderboard submissions.
+2. **Single judge model** — only GPT-5.2 (constrained by operator's available Azure deployment). Adding Opus-4.5 / Sonnet-4.5 judge runs would tighten the variance band materially.
+3. **Soliton-side cost is estimate-only** — no `--output-format json` was captured in batch runs; a follow-up PR should add it for precise per-PR token / \$ accounting.
+4. **Tier-0 disabled** (per Phase 2 conventions). Phase 3b should re-run with Tier-0 on to separate the multi-agent-review F1 from Tier-0's cost-cutting effect.
+5. **Dedup ran "all-singletons"** — CRB's step2.5 reported no duplicates found in Soliton's candidate set. Possibly real (our findings are distinct) or a dedup-prompt sensitivity issue to investigate in a Phase 3.5 follow-up.
+6. **Training-data leakage** — full 50-PR corpus is from well-known OSS repos; same caveat as Phase 2.
+
+### Reproduction (Phase 3)
+
+```bash
+# Run all 50 Soliton reviews (dispatch list at bench/crb/phase3-dispatch-list.txt)
+# — use the same per-batch pattern as Phase 3 here to stay within your budget cap.
+while read UP PR SLUG; do
+  MAX_BUDGET_USD=3 OUTPUT_DIR=bench/crb/phase3-reviews \
+    bash bench/crb/run-poc-review.sh "$UP" "$PR" "$SLUG" &
+done < bench/crb/phase3-dispatch-list.txt
+wait
+
+# Pipeline: build benchmark_data.json, then run CRB step2→step2.5→step3.
+# Requires Azure OpenAI gpt-5.2 endpoint + managed-identity auth
+# (DefaultAzureCredential). See bench/crb/run-phase3-pipeline.sh.
+bash bench/crb/run-phase3-pipeline.sh
+```

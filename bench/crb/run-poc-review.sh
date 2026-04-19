@@ -33,7 +33,11 @@ SLUG="$3"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 SHIM_ROOT="$(dirname "$REPO_ROOT")/soliton-poc-work"
 SHIM_DIR="$SHIM_ROOT/$SLUG-shim"
-OUTPUT_FILE="$REPO_ROOT/bench/crb/poc-reviews/$SLUG.md"
+# OUTPUT_DIR can be overridden (Phase 3 uses bench/crb/phase3-reviews); default
+# keeps the Phase 2 POC signature unchanged.
+OUTPUT_DIR_REL="${OUTPUT_DIR:-bench/crb/poc-reviews}"
+OUTPUT_FILE="$REPO_ROOT/$OUTPUT_DIR_REL/$SLUG.md"
+mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 # Create a minimal git shim so `gh pr view $PR_NUM` (no --repo flag) resolves
 # to the upstream repo. The /pr-review skill calls gh without --repo so the
@@ -59,7 +63,7 @@ exec claude -p \
     'Bash(git diff *)' 'Bash(git log *)' 'Bash(git show *)' 'Bash(git branch *)' 'Bash(git status)' \
     'Bash(gh pr view *)' 'Bash(gh pr diff *)' 'Bash(gh auth status)' \
     Agent \
-  --max-budget-usd 2 \
+  --max-budget-usd "${MAX_BUDGET_USD:-2}" \
   "Run /pr-review $PR_NUM. DO NOT post any comments to the PR — we are running a local CRB benchmark evaluation and must not spam upstream maintainers.
 
 When the review is complete, WRITE the full markdown review output to this absolute path:
