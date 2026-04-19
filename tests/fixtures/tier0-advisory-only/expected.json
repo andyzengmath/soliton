@@ -1,7 +1,8 @@
 {
   "riskRange": [15, 40],
   "expectedFindings": 1,
-  "expectedCategories": ["lint"],
+  "expectedCategories": [],
+  "expectedTier0FindingCategory": "lint",
   "expectedSeverity": "improvement",
   "tier0Verdict": "advisory_only",
   "llmSwarmSkipped": false,

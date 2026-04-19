@@ -81,10 +81,30 @@ Severity: <found> (expected: <expected>)  [PASS/FAIL]
 - Overall: 5/5 v1 fixtures passing = v1 suite passes
 
 For the v2 fixtures, each must additionally pass:
-- `tier0Verdict` matches the actual `TIER_ZERO_START..TIER_ZERO_END` block's `verdict:` field.
-- `llmSwarmSkipped == true` implies zero agent dispatches in Step 4 (no FINDING_START blocks from review agents — Tier-0 findings only).
+- `tier0Verdict` matches the actual `TIER_ZERO_START..TIER_ZERO_END` block's `verdict:` field
+  when the field is present in `expected.json`. Fixtures whose primary assertion is NOT the
+  Tier-0 verdict (e.g., `spec-alignment-unmet-checklist`) may omit `tier0Verdict` — the v2
+  table's `—` in the verdict column indicates this intentional omission.
+- `llmSwarmSkipped == true` implies zero agent dispatches in Step 4 (no FINDING_START blocks
+  from review agents — Tier-0 findings only).
 - `llmSwarmSkipped == false` implies the review swarm ran normally.
-- `blockReason`, `confidenceThresholdBumpedTo`, `wiringChecksFailed` are asserted when present.
+- `blockReason`, `confidenceThresholdBumpedTo`, `wiringChecksFailed`, and
+  `expectedTier0FindingCategory` are asserted when present.
+- v2 fixtures inherit the v1 `riskRange` assertion: actual risk score must fall within
+  `riskRange[0]..riskRange[1]` inclusive.
+
+## Deferred
+
+The automated shell / CI runner that feeds each fixture's `diff.patch` through the
+orchestrator and asserts against `expected.json` is deferred to a follow-up PR. Until
+then, validation follows the manual steps above. Additional deferred items tracked for
+the same follow-up:
+
+- `tier0-blocked-cve/` fixture (OSV-scanner critical CVE → `blockReason: cve_critical`)
+- `tier0-blocked-type-error/` fixture (tsc/mypy fatal type error → `blockReason: type_error_fatal`)
+- `tier0-needs-llm/` fixture (non-trivial clean diff that routes through the default path)
+- `.gitleaksignore` entry or inline `# gitleaks:allow` annotation so consumers who run
+  full-tree scans don't false-positive on the `tier0-blocked-secret` fixture.
 
 ## Regression Testing
 
