@@ -596,7 +596,7 @@ For each improvement finding:
 - Sentence 1: what is wrong. Name the specific code location and the concrete failure mode.
 - Sentence 2 (optional): one sentence of why it matters — the user-visible or operational impact.
 
-Anything longer — scenario walkthroughs, reproduction steps, pointers to related code, nuanced discussion of edge cases — goes into a **collapsed `<details>` block** immediately after the suggestion block:
+**Do NOT add `<details>` blocks, "More context" sections, scenario walkthroughs, reproduction instructions, or any extra prose after the suggestion block.** If that depth matters, it belongs in the JSON output (`--output json`) via the `description` and `evidence` fields, not in the markdown body. Human reviewers see the 2-sentence description + the `suggestion` code block; anything downstream can consume the JSON.
 
 ```markdown
 :red_circle: [<category>] <title> in <file>:<lineStart> (confidence: <confidence>)
@@ -604,15 +604,11 @@ Anything longer — scenario walkthroughs, reproduction steps, pointers to relat
 ```suggestion
 <suggestion code>
 ```
-<details><summary>More context</summary>
-
-<arbitrarily long prose, scenario walkthroughs, code references, etc.>
-</details>
 ```
 
-**Why**: Phase 3 / Phase 3.5 data showed that CRB's `step2_extract_comments.py` LLM splits multi-paragraph `<description>` text into 2–3 sub-candidate issues, inflating FP count. Atomic bullets alone (v2.1) didn't stop this because the paragraphs were still there. Capping descriptions at 2 sentences forces the finding to be a 1:1 candidate match for extractor tools.
+**Why**: Phase 3 / Phase 3.5 data showed CRB's `step2_extract_comments.py` LLM splits multi-paragraph `<description>` text into 2–3 sub-candidate issues, inflating FP count. Phase 3.6's first pass tried to solve this with a `<details>` escape hatch — but `<details>` is just a visual collapse; the LLM extractor still reads everything inside it and splits it into sub-candidates, so reviews ended up **longer**, not shorter. v2.2b (this rule, 2026-04-19) closes that loophole: the markdown body is literally 2-sentence description + code suggestion, full stop.
 
-**Exception**: if the description genuinely can't fit in 2 sentences without losing correctness (rare), use a single slightly-longer sentence — never split into paragraphs inside the main `<description>` field.
+**Exception**: if the description genuinely can't fit in 2 sentences without losing correctness (rare), use a single slightly-longer sentence — never add paragraphs or collapsed sections.
 
 ---
 
