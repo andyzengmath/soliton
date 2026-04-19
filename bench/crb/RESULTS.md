@@ -424,3 +424,54 @@ MAX_BUDGET_USD=8 OUTPUT_DIR=bench/crb/phase35-reviews \
 # Pipeline (same Azure OpenAI config as Phase 3):
 bash bench/crb/run-phase35-pipeline.sh
 ```
+
+---
+
+## Phase 3.6 · Description-compression experiment — NEGATIVE RESULT (20 PRs, 2026-04-19)
+
+**Hypothesis tested**: capping each finding's inline `<description>` to ≤ 2 sentences would eliminate the residual precision tax from CRB's `step2_extract_comments.py` sub-splitting multi-paragraph descriptions. Projected +0.05–0.07 F1 from Phase 3.5 baseline (0.277). Called v2.2 in `IMPROVEMENTS.md`.
+
+**Result on 20 PRs** (partial run under GPT-5.2 judge, same endpoint):
+
+| Metric | Phase 3.5 (full 50) | Phase 3.6 partial (same-first-20) | Δ |
+|--------|--------------------:|----------------------------------:|------:|
+| Micro-F1 | 0.277 | **0.256** | **−0.021** ❌ |
+| Precision | 0.183 | 0.179 | −0.004 (flat) |
+| Recall | 0.566 | 0.455 | **−0.111** ❌ |
+| TP | — | 25 | — |
+| FP | — | 115 | — |
+| FN | — | 30 | — |
+
+**Why it failed**: the compression rule worked mechanically — descriptions in the v2.2 reviews are genuinely ≤ 2 sentences — but it **cut recall harder than it helped precision**. Two compounding issues:
+
+1. **Precision didn't meaningfully improve** because my first-pass v2.2 rule permitted a `<details>More context</summary>` escape hatch after the suggestion block. CRB's step2 LLM reads the entire markdown as raw text — `<details>` is a purely visual collapse, not a semantic "ignore this" signal — so the LLM still extracted sub-candidates from the `<details>` prose. Net: reviews got **larger** (some +25 to +93 %), not smaller, because the skill moved paragraphs INTO `<details>` blocks rather than dropping them.
+2. **Recall collapsed** because the step3 judge LLM matches candidates to goldens on semantic overlap, and a 2-sentence inline description contains less of the contextual language (scenario, impact, evidence) that makes a match recognizable. Findings Soliton actually got right stopped pattern-matching against their goldens once the description prose was stripped down.
+
+### What we learned
+
+- **Description length is NOT purely a precision lever.** Shorter descriptions trade precision (marginal, here) for recall (large, here). The CRB judge is information-hungry.
+- **`<details>` blocks are invisible to the judge pipeline but read normally by the LLM extractor.** Any hiding strategy in the markdown body has to actually *remove* content, not visually hide it.
+- **Corrected rule v2.2b** (commit `332138c` on `feat/soliton-phase3.6-description-compression`) removes the `<details>` loophole but **would not rescue the experiment** — the recall collapse comes from the 2-sentence cap itself, not from the `<details>` leak. v2.2b would likely still land net-negative vs Phase 3.5.
+
+### Decision
+
+**Phase 3.5 (L4 + L2 + L1, F1 = 0.277) remains the current best**. Phase 3.6 is a documented negative result — the `feat/soliton-phase3.6-description-compression` branch and PR #19 ship as an **experiment record**, not a product change. The v2.2 and v2.2b rules are explicitly reverted before any merge to main.
+
+**Next levers to try** (in rough expected-ROI order, unchanged from IMPROVEMENTS.md but with v2.2 removed):
+
+1. **v2.1 per-language severity gate** (recover Phase 3.5's TypeScript regression). Adds back Low-severity nits in the markdown body for TS PRs. Small scope, low risk. Expected +0.01 aggregate F1, mostly pulling TS from 0.266 back toward 0.325.
+2. **L3 synthesizer dedup** (collapse same-region findings from multiple agents). Targets the "3 agents flag one function from 3 angles" pattern that inflates candidates without adding goldens. Expected +0.05 F1.
+3. **L5 deeper cross-file retrieval** for the `hallucination` and `cross-file-impact` agents — they currently miss goldens that need type-hierarchy or callee-body lookup (e.g. `isinstance(SpawnProcess, Process)`). Expected +0.05 recall.
+4. **L6 evidence-scored filter** for speculative cross-file warnings. Small-bore precision win.
+
+**Ruled out**: description compression in any form. Information-carrying prose in the review body is a feature for the CRB judge, not a bug. Phase 3.5's L1 (atomic bullets, no sub-points) keeps the structural win without damaging recall.
+
+### Cost
+
+- Phase 3.6 partial (20 PRs Soliton-side): ~$30–$50 on Anthropic Console
+- Pipeline judge-side: ~$5
+- Total: ~$35–$55 — cheap as experiments go, and the negative result saved us from spending another ~$100 on the full Phase 3.6b run under the strict v2.2b rule that would almost certainly have landed negative as well.
+
+### Reproduction note
+
+The v2.2 rule lives in `skills/pr-review/SKILL.md` on branch `feat/soliton-phase3.6-description-compression`. To re-run the experiment under v2.2b (strict, no `<details>`), check out that branch past commit `332138c` and invoke `run-phase3-like-pipeline` with `OUTPUT_DIR=bench/crb/phase36-reviews/`. This doc's author recommends against it.
