@@ -1,0 +1,23 @@
+# Keep SHA-pinned GitHub Actions up-to-date.
+# Dependabot opens PRs that update both the SHA and the trailing version comment,
+# so we can review a real version bump rather than trusting a floating major tag.
+#
+# See rules/tier0-tools.md and the follow-up PR context for why we SHA-pin
+# (supply-chain hardening — OWASP A08, CWE-829).
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      # Group routine minor/patch bumps into a single PR to cut review noise.
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"

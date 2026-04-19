@@ -1,6 +1,6 @@
 ---
 name: comment-accuracy
-description: Detects stale / rotten / misleading code comments — docstrings that don't match the new signature, `// NOTE:` statements contradicted by the diff, `@deprecated` markers on functions still in heavy use, outdated TODO references. Only dispatched when the diff modifies comments.
+description: Detects stale comments, docstring-signature mismatches, and contradicted NOTE/TODO/FIXME markers
 model: haiku
 tools: ["Read", "Grep", "Glob"]
 ---
