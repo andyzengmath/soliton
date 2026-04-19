@@ -27,7 +27,9 @@ jobs:
     timeout-minutes: 5
     outputs:
       verdict: ${{ steps.tier0.outputs.verdict }}
-      findings_json: ${{ steps.tier0.outputs.findings }}
+      # Full findings flow through the uploaded tier0-findings artifact, not this output.
+      # (A prior declaration of findings_json here was never written — removed to avoid
+      # future consumers wiring to an always-empty string.)
     permissions:
       contents: read
       pull-requests: read
@@ -122,6 +124,18 @@ jobs:
           if [ "$TYPE_FAIL_PY" = "1" ] || [ "$TYPE_FAIL_TS" != "0" ]; then
             VERDICT="blocked"
             BLOCK_REASON="${BLOCK_REASON:+$BLOCK_REASON,}type_error_fatal"
+          fi
+
+          # Promote to `advisory_only` when the only findings Tier 0 produced are low-severity.
+          # Done BEFORE the later `clean` promotion so that non-blocking diffs with a few
+          # low/info findings don't consume a full LLM review — they just raise the synthesizer's
+          # confidence threshold to 90 for this invocation.
+          if [ "$VERDICT" = "needs_llm" ]; then
+            FINDING_COUNT_EARLY=$(jq '[.runs[].results[]?] | length' .soliton/tier0/*.sarif 2>/dev/null | awk '{s+=$1} END {print s+0}')
+            HIGH_COUNT=$(jq '[.runs[].results[]? | select(.level=="error" or .properties.severity=="high" or .properties.severity=="critical" or (.properties.cvss // 0) >= 7.0)] | length' .soliton/tier0/*.sarif 2>/dev/null | awk '{s+=$1} END {print s+0}')
+            if [ "${FINDING_COUNT_EARLY:-0}" -gt 0 ] && [ "${HIGH_COUNT:-0}" -eq 0 ]; then
+              VERDICT="advisory_only"
+            fi
           fi
 
           # Validate VERDICT against allowlist before writing to $GITHUB_OUTPUT (defense-in-depth
@@ -271,14 +285,16 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          VERDICT: ${{ needs.tier0.outputs.verdict }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: --plugin-dir /tmp/soliton
           prompt: |
-            Run /pr-review ${{ github.event.pull_request.number }}
+            Run /pr-review $PR_NUMBER
 
             Tier 0 already ran and produced findings at .soliton/tier0-summary.json.
-            Tier 0 verdict: ${{ needs.tier0.outputs.verdict }}.
+            Tier 0 verdict: $VERDICT.
             Graph (if present) is at .soliton/graph.json.
 
             Read .soliton/tier0-summary.json; pass its findings to the synthesizer
@@ -287,10 +303,17 @@ jobs:
 
             If advisory_only, raise --threshold to 90 for this review.
 
-            After the review completes, post the full markdown review as a PR comment:
-            gh pr comment ${{ github.event.pull_request.number }} --body "<review>"
+            After the review completes, WRITE the full markdown review to
+            /tmp/soliton-tiered-review.md and then post it with:
+
+              gh pr comment "$PR_NUMBER" --body-file /tmp/soliton-tiered-review.md
+
+            Do NOT attempt to pass the review as an inline --body "<review>"
+            argument — model-generated review content can contain backticks or
+            $(...) which bash would command-substitute inside double quotes.
           allowed_tools: |
             Read
+            Write
             Grep
             Glob
             Bash(git diff *)
