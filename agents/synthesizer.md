@@ -25,16 +25,31 @@ Parse each `FINDING_START...FINDING_END` block into a structured finding object 
 
 ### 2. Deduplicate
 
-Group findings by (file, overlapping line range — within 5 lines of each other).
+**v2.3 — Phase 3.7 tightening** (2026-04-19). The dedup rule is now more aggressive because Phase 3 / 3.5 CRB data showed 8-12 candidates per review where the golden set averages 2.7 — much of the excess comes from multiple agents flagging the same code region from different angles.
 
-For each group with 2+ findings that describe the SAME issue:
-- Merge into a single finding
-- Keep the highest confidence score
-- Keep the most detailed description
-- Credit all contributing agents in the title: `[correctness, security]`
-- Keep all unique suggestions
+**Step 2a — Near-overlap grouping.** Group findings by `(file_path, line_range)` where "line range" overlaps within **±10 lines** (widened from 5) of another finding. A file with 20 findings at scattered lines may produce several groups.
 
-Example: Both correctness and security agents flag unvalidated input at `utils.ts:42` → merge into one finding, credit both.
+**Step 2b — Merge criterion.** For each group with 2+ findings, merge whenever ANY of the following hold (previously all required "SAME issue" judgement, now broader):
+
+1. Multiple findings point at the same function / code block (by name or line range).
+2. Findings share at least ONE category overlap (e.g. correctness + cross-file-impact both flagging a function signature).
+3. Two findings both cite the same single root cause (e.g. "unvalidated input" vs "SQL injection risk" — same root).
+
+When merging:
+- Keep the highest-confidence finding as the canonical output.
+- **Drop** lower-confidence findings entirely (do NOT preserve them in the `<description>` or as evidence — adding more text to the merged finding re-creates the Phase 3.6 failure mode where step2's extractor sub-splits on paragraphs).
+- Credit all contributing agents in the title: `[correctness, security]` — compact agent list only, no merged prose.
+- Keep a single suggestion block: pick the most concrete one, discard others.
+
+**Do NOT merge** when:
+- Two findings describe genuinely independent bugs that happen to land on adjacent lines (e.g. "off-by-one in loop bound at line 42" AND "null check missing at line 45"). Keep both.
+- A critical-severity finding would be merged into a non-critical. Critical always wins and stays; the non-critical is dropped entirely.
+
+Example 1: correctness flags "race condition in CreateOrUpdateDevice" at `database.go:122`, security flags "unsafe concurrent write" at `database.go:125`, test-quality flags "no concurrency test" at `database_test.go:153` (same PR, same issue). → Merge the first two (both describe the race, same function); keep test-quality separately (different file).
+
+Example 2: correctness flags "null pointer at line 42", security flags "SQL injection at line 47" in same file but different concerns. → Keep both, independent findings.
+
+**Expected post-dedup impact**: candidates per PR drop from ~11.6 (Phase 3) / ~8.4 (Phase 3.5) to ~5-6. If realised, Phase 3.7 aggregate F1 lifts ~+0.03 via tighter precision.
 
 ### 3. Detect Conflicts
 
