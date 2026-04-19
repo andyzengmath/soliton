@@ -143,7 +143,7 @@ Parse the following flags from the arguments string. Flags can appear in any ord
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--threshold <number>` | integer 0-100 | 80 | Minimum confidence score to surface findings |
+| `--threshold <number>` | integer 0-100 | 85 | Minimum confidence score to surface findings (raised from 80 in Phase 3.5 — tuned from CRB run FP analysis, trims ~15 % stylistic nits without material recall loss) |
 | `--agents <list>` | comma-separated | auto | Force specific agents (e.g., `--agents security,hallucination`) |
 | `--skip <list>` | comma-separated | none | Skip specific agents (e.g., `--skip consistency`) |
 | `--sensitive-paths <glob>` | comma-separated | see defaults | Override sensitive file patterns |
@@ -163,7 +163,7 @@ Resolve configuration by merging three layers (later layers override earlier):
 ### Layer 1: Hardcoded Defaults
 ```
 ReviewConfig {
-  confidenceThreshold: 80
+  confidenceThreshold: 85
   agents: 'auto'
   skipAgents: []
   sensitivePaths: ['auth/', 'security/', 'payment/', '*.env', '*migration*', '*secret*', '*credential*', '*token*', '*.pem', '*.key']
@@ -577,15 +577,21 @@ For each improvement finding:
 ```
 ```
 
-**Nitpicks section** (omit if 0 nitpick findings):
-```markdown
-## Nitpicks
-```
-For each nitpick finding:
-```markdown
-:white_circle: [<category>] <title> in <file>:<lineStart> (confidence: <confidence>)
-<description>
-```
+**Nitpicks section** — *v2 change (Phase 3.5): DROPPED from markdown body.* Nitpicks are still emitted in the JSON output (`--output json`) but are intentionally excluded from the markdown review. Rationale: CRB / leaderboard judge pipelines extract one candidate per finding from the markdown body; low-confidence nitpicks create disproportionate FP volume (25 % of Phase 3 FPs came from nits) without catching any Critical/High goldens. Developers running `soliton` interactively can pass `--output json` if they want the full nitpick set.
+
+> If this feels wrong for a specific integration, revisit `v2.1` to consider re-adding nitpicks under an explicit `--include-nitpicks` flag. Measured impact of the change lives in `bench/crb/RESULTS.md` §"Phase 3.5".
+
+### Finding-atomicity rule (applies to Critical and Improvements sections)
+
+**Each finding MUST describe exactly ONE issue.** Do NOT:
+
+- Nest bullet sub-points inside a finding's `<description>` field.
+- Emit alternative fixes as `Option A: ... Option B: ...` — consolidate into a single suggestion block. If two approaches are genuinely needed, they should be mentioned as trade-offs in the description prose, not as enumerated options that downstream candidate-extractors read as separate issues.
+- Conjoin multiple concerns with "also", "additionally", or numbered sub-points ("1. ...; 2. ..."). If the review agents flagged two related concerns, emit two separate findings — the synthesizer deduplicates overlapping ones.
+
+This keeps the markdown body's finding count aligned 1:1 with downstream candidate-extraction tools (CRB's `step2_extract_comments.py`, and similar), so our precision score isn't depressed by a sub-issue split that isn't a real duplicate review.
+
+
 
 **Conflicts section** (omit if no conflicts):
 ```markdown
