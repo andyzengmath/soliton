@@ -1,6 +1,6 @@
 ---
 name: spec-alignment
-description: Checks whether PR implementation matches the stated intent (PR description, REVIEW.md, linked issues). Also runs mechanical wiring-verification greps. Runs BEFORE the review swarm to catch half-finished PRs and scope drift early.
+description: Verifies acceptance criteria from REVIEW.md / .claude/specs / PR description and runs mechanical wiring-verification greps (Stage 0, pre-swarm)
 model: haiku
 tools: ["Read", "Grep", "Glob", "Bash"]
 ---

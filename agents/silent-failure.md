@@ -1,6 +1,6 @@
 ---
 name: silent-failure
-description: Dedicated reviewer for silent error-handling failures — empty catches, swallowed exceptions, optional chaining that hides errors, fallback-to-mock in production paths, assertion-free tests. Borrowed pattern from pr-review-toolkit.
+description: Detects silent error-handling failures — empty catches, swallowed Promise rejections, optional-chaining-masked nullability, assertion-free tests
 model: sonnet
 tools: ["Read", "Grep", "Glob"]
 ---

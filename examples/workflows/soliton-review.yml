@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0  # Full history for git diff and historical-context agent
 
@@ -38,7 +38,7 @@ jobs:
         run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - name: Run Soliton review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@8a953dedac4f533f912f13656070914693ed0575 # v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
