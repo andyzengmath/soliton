@@ -52,7 +52,7 @@ Agents disagree on utils.ts:34:
 
 ### 4. Filter by Confidence
 
-Remove all findings with confidence below the configured threshold (default: 80).
+Remove all findings with confidence below the configured threshold (default: 85 — raised from 80 in v2.1 Phase 3.5; see `bench/crb/IMPROVEMENTS.md` §L4 for the rationale: the old 80 default emitted ~15 % stylistic nits that inflated FPs on leaderboard-style pipelines).
 
 Count the removed findings as `suppressed`.
 
