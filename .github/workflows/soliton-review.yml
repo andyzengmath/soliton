@@ -35,17 +35,24 @@ jobs:
         uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: --plugin-dir .
           prompt: |
-            Run /pr-review ${{ github.event.pull_request.number }}
+            Run /pr-review $PR_NUMBER
 
-            After the review completes, post the full markdown review output as a
-            PR comment using:
-            gh pr comment ${{ github.event.pull_request.number }} --body "<review>"
+            After the review completes, WRITE the full markdown review to
+            /tmp/soliton-review.md and then post it with:
+
+              gh pr comment "$PR_NUMBER" --body-file /tmp/soliton-review.md
+
+            Do NOT attempt to pass the review as an inline --body "<review>"
+            argument — model-generated review content can contain backticks or
+            $(...) which bash would command-substitute inside double quotes.
           allowed_tools: |
             Read
+            Write
             Grep
             Glob
             Bash(git diff *)
