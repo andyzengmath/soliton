@@ -1,0 +1,10 @@
+diff --git a/src/utils/noop.ts b/src/utils/noop.ts
+index 1234567..89abcde 100644
+--- a/src/utils/noop.ts
++++ b/src/utils/noop.ts
+@@ -1,4 +1,4 @@
+-export const noop = () => {};
++export const noop = () => { };
+
+ // A single whitespace-only edit on a .ts file. Exists to exercise the Tier-0
+ // clean fast-path on a non-markdown target — the dogfood CI paths-ignore

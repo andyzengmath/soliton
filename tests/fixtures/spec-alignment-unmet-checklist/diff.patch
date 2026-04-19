@@ -1,0 +1,16 @@
+diff --git a/src/handlers/getUser.ts b/src/handlers/getUser.ts
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/src/handlers/getUser.ts
+@@ -0,0 +1,10 @@
++import type { Request, Response } from 'express';
++import { db } from '../db';
++
++// INTENTIONALLY MISSING: the REVIEW.md says this handler MUST begin with logRequest(req).
++// This fixture asserts that spec-alignment's mechanical wiring-verification catches the absence.
++export async function getUserHandler(req: Request, res: Response) {
++  const { id } = req.params;
++  const user = await db.findUser(id);
++  return res.json(user);
++}

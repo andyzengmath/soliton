@@ -2,5 +2,7 @@
   "riskRange": [0, 10],
   "expectedFindings": 0,
   "expectedCategories": [],
-  "description": "Trivial README typo fix. Should trigger fast-path with no findings."
+  "tier0Verdict": "clean",
+  "llmSwarmSkipped": true,
+  "description": "Trivial README typo fix. Should trigger fast-path with no findings. v2 fields added so a uniform harness can apply the same Tier-0 assertions across v1 and v2 fixtures — semantically equivalent to tier0-clean, just a pre-v2 example kept for continuity."
 }

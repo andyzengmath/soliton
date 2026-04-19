@@ -1,0 +1,11 @@
+{
+  "riskRange": [30, 70],
+  "expectedFindings": 2,
+  "expectedCategories": ["spec-compliance"],
+  "expectedSeverity": "critical",
+  "specAlignmentEnabled": true,
+  "llmSwarmSkipped": false,
+  "wiringChecksFailed": 1,
+  "criteriaNotSatisfied": 1,
+  "description": "REVIEW.md mandates logRequest(req) as the first line of every handler + unit tests under __tests__/handlers/. The new getUser handler lacks both. Spec-alignment must emit one wiring-verification CRITICAL (confidence 100, deterministic) for the missing logRequest grep, plus one checklist-unsatisfied CRITICAL for the missing test file. No LLM reasoning involved in the wiring check."
+}

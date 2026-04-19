@@ -1,0 +1,14 @@
+diff --git a/src/utils/format.ts b/src/utils/format.ts
+index 1234567..89abcde 100644
+--- a/src/utils/format.ts
++++ b/src/utils/format.ts
+@@ -14,6 +14,11 @@ export function formatBytes(n: number): string {
+   return `${(n / 1024 / 1024).toFixed(2)} MB`;
+ }
+
++// Low-severity lint-only addition (unused import will get info-level diagnostic).
++import { debounce as _debounce } from 'lodash';
++
+ export function formatMillis(ms: number): string {
+   return `${ms}ms`;
+ }

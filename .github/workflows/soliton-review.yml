@@ -66,3 +66,14 @@ jobs:
             Bash(gh pr diff *)
             Bash(gh pr view *)
             Agent
+
+      - name: Assert review produced output
+        # Fail the check if claude-code-action timed out or errored and never produced
+        # a review file. Without this, an empty comment silently passes CI — the exact
+        # fail-open class commit 5352e6c addressed for the gated workflow.
+        run: |
+          if [ ! -s /tmp/soliton-review.md ]; then
+            echo "::error::Review produced no output at /tmp/soliton-review.md — claude-code-action may have timed out."
+            exit 1
+          fi
+          echo "Review size: $(wc -c < /tmp/soliton-review.md) bytes"
