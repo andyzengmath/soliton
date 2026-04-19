@@ -50,36 +50,59 @@ jobs:
 
       - name: Detect changed files
         id: files
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          BASE_SHA=$(git merge-base origin/${{ github.event.pull_request.base.ref }} HEAD)
-          echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
-          git diff --name-only --diff-filter=ACDMR $BASE_SHA...HEAD > /tmp/changed-files.txt
+          # Defense-in-depth: reject base refs that contain shell metacharacters. Git's own
+          # ref naming rules forbid most, but we validate explicitly before interpolating.
+          case "$BASE_REF" in
+            *[!A-Za-z0-9._/-]*) echo "::error::Invalid base ref"; exit 1 ;;
+          esac
+          BASE_SHA=$(git merge-base "origin/$BASE_REF" HEAD)
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          git diff --name-only --diff-filter=ACDMR "$BASE_SHA...HEAD" > /tmp/changed-files.txt
           cat /tmp/changed-files.txt
 
       - name: Run Tier 0
         id: tier0
+        env:
+          BASE_SHA: ${{ steps.files.outputs.base_sha }}
         run: |
           mkdir -p .soliton/tier0
           VERDICT="needs_llm"  # default
           BLOCK_REASON=""
+          TYPE_FAIL_PY=0
+          TYPE_FAIL_TS=0
 
           CHANGED_PY=$(grep -E '\.py$' /tmp/changed-files.txt || true)
           CHANGED_TS=$(grep -E '\.(ts|tsx|js|jsx)$' /tmp/changed-files.txt || true)
 
-          # Lint
-          [ -n "$CHANGED_PY" ] && ruff check --output-format sarif $CHANGED_PY > .soliton/tier0/ruff.sarif || true
-          [ -n "$CHANGED_TS" ] && eslint --format @microsoft/sarif --output-file .soliton/tier0/eslint.sarif $CHANGED_TS || true
+          # Lint — explicit if-blocks (avoids && || precedence traps)
+          if [ -n "$CHANGED_PY" ]; then
+            # shellcheck disable=SC2086   # word-splitting of newline-delimited file list is intentional
+            ruff check --output-format sarif $CHANGED_PY > .soliton/tier0/ruff.sarif || true
+          fi
+          if [ -n "$CHANGED_TS" ]; then
+            # shellcheck disable=SC2086
+            eslint --format @microsoft/sarif --output-file .soliton/tier0/eslint.sarif $CHANGED_TS || true
+          fi
 
-          # Type check
-          [ -n "$CHANGED_PY" ] && mypy --no-color-output --show-error-codes $CHANGED_PY > .soliton/tier0/mypy.txt 2>&1 || TYPE_FAIL_PY=1
-          [ -n "$CHANGED_TS" ] && tsc --noEmit --pretty false 2>&1 | tee .soliton/tier0/tsc.txt || TYPE_FAIL_TS=1
+          # Type check — explicit if, and capture tsc's exit via PIPESTATUS
+          if [ -n "$CHANGED_PY" ]; then
+            # shellcheck disable=SC2086
+            mypy --no-color-output --show-error-codes $CHANGED_PY > .soliton/tier0/mypy.txt 2>&1 || TYPE_FAIL_PY=1
+          fi
+          if [ -n "$CHANGED_TS" ]; then
+            tsc --noEmit --pretty false 2>&1 | tee .soliton/tier0/tsc.txt
+            TYPE_FAIL_TS=${PIPESTATUS[0]}
+          fi
 
           # SAST
           semgrep ci --sarif --output .soliton/tier0/semgrep.sarif || true
 
-          # Secret scan (always — scan only new commits)
+          # Secret scan — scan only new commits
           gitleaks detect --source . \
-            --log-opts="${{ steps.files.outputs.base_sha }}..HEAD" \
+            --log-opts="$BASE_SHA..HEAD" \
             --report-format sarif \
             --report-path .soliton/tier0/gitleaks.sarif \
             --exit-code 0
@@ -96,25 +119,55 @@ jobs:
             VERDICT="blocked"
             BLOCK_REASON="cve_critical"
           fi
-          if [ "$TYPE_FAIL_PY" = "1" ] || [ "$TYPE_FAIL_TS" = "1" ]; then
+          if [ "$TYPE_FAIL_PY" = "1" ] || [ "$TYPE_FAIL_TS" != "0" ]; then
             VERDICT="blocked"
             BLOCK_REASON="${BLOCK_REASON:+$BLOCK_REASON,}type_error_fatal"
           fi
 
-          # Aggregate
-          jq -s '{verdict:"'$VERDICT'", reason:"'$BLOCK_REASON'", findings: [.[] | .runs[].results[]?]}' \
-             .soliton/tier0/*.sarif > .soliton/tier0-summary.json 2>/dev/null || echo '{"verdict":"'$VERDICT'","reason":"'$BLOCK_REASON'","findings":[]}' > .soliton/tier0-summary.json
+          # Validate VERDICT against allowlist before writing to $GITHUB_OUTPUT (defense-in-depth
+          # for downstream prompt/conditional consumers).
+          case "$VERDICT" in
+            clean|advisory_only|needs_llm|blocked) ;;
+            *) echo "::error::Unexpected verdict: $VERDICT"; exit 1 ;;
+          esac
+
+          # Aggregate via jq --arg to avoid shell-variable interpolation into the jq program
+          jq -s \
+            --arg verdict "$VERDICT" \
+            --arg reason "$BLOCK_REASON" \
+            '{verdict: $verdict, reason: $reason, findings: [.[] | .runs[].results[]?]}' \
+            .soliton/tier0/*.sarif > .soliton/tier0-summary.json 2>/dev/null \
+          || jq -n --arg verdict "$VERDICT" --arg reason "$BLOCK_REASON" \
+            '{verdict: $verdict, reason: $reason, findings: []}' > .soliton/tier0-summary.json
 
           FINDING_COUNT=$(jq '.findings | length' .soliton/tier0-summary.json)
-          DIFF_LINES=$(git diff --shortstat ${{ steps.files.outputs.base_sha }}...HEAD | awk '{print $4+$6}')
 
-          # Promote to "clean" if verdict still needs_llm AND findings=0 AND diff trivial
-          if [ "$VERDICT" = "needs_llm" ] && [ "$FINDING_COUNT" = "0" ] && [ "${DIFF_LINES:-0}" -le "50" ]; then
+          # Robust shortstat parse with an empty-output guard (an empty SHORTSTAT previously
+          # evaluated to DIFF_LINES=0 and silently promoted error-states to `clean`).
+          SHORTSTAT=$(git diff --shortstat "$BASE_SHA...HEAD" 2>/dev/null || true)
+          if [ -z "$SHORTSTAT" ]; then
+            # Unknown size — do NOT promote to clean; leave as needs_llm.
+            DIFF_INS=0
+            DIFF_DEL=0
+            DIFF_KNOWN=false
+          else
+            DIFF_INS=$(echo "$SHORTSTAT" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+            DIFF_DEL=$(echo "$SHORTSTAT" | grep -oE '[0-9]+ deletion'  | grep -oE '[0-9]+' || echo 0)
+            DIFF_KNOWN=true
+          fi
+          DIFF_LINES=$(( DIFF_INS + DIFF_DEL ))
+
+          # Promote to "clean" only when: verdict still needs_llm, zero findings, diff is
+          # KNOWN small, AND the diff is not empty from a parse error.
+          if [ "$VERDICT" = "needs_llm" ] \
+             && [ "$FINDING_COUNT" = "0" ] \
+             && [ "$DIFF_KNOWN" = "true" ] \
+             && [ "$DIFF_LINES" -le 50 ]; then
             VERDICT="clean"
           fi
 
-          echo "verdict=$VERDICT" >> $GITHUB_OUTPUT
-          echo "Verdict: $VERDICT (findings=$FINDING_COUNT, diff_lines=$DIFF_LINES)"
+          echo "verdict=$VERDICT" >> "$GITHUB_OUTPUT"
+          echo "Verdict: $VERDICT (findings=$FINDING_COUNT, diff_lines=$DIFF_LINES, known=$DIFF_KNOWN)"
 
       - name: Upload Tier-0 artifacts
         uses: actions/upload-artifact@v4
@@ -135,10 +188,12 @@ jobs:
       - name: Post fast-path comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} \
+          gh pr comment "$PR_NUMBER" \
             --body "✅ **Soliton: Tier 0 clean** — no lint / type / security / secret / dep issues. LLM swarm skipped (trivial change, zero findings)." \
-            --repo ${{ github.repository }}
+            --repo "$REPO"
 
   # ─────────────────────────────────────────────────────────────────────────
   # Stage 2b: Blocked — post Tier-0 findings, fail CI
@@ -157,15 +212,20 @@ jobs:
       - name: Post blocked findings
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         run: |
+          # Build the body in a file via printf so SARIF content (attacker-controlled tool
+          # output) never transits through a double-quoted shell string where backticks
+          # and $() would undergo command substitution.
           SUMMARY=$(jq -r '.findings | map("- **\(.ruleId // .rule): \(.message.text // .message)** in `\(.locations[0].physicalLocation.artifactLocation.uri // "?")`") | join("\n")' .soliton/tier0-summary.json)
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --body "🔴 **Soliton: Blocked by Tier 0** ($(jq -r '.reason' .soliton/tier0-summary.json))
-
-$SUMMARY
-
-LLM swarm skipped. Fix the above and re-push." \
-            --repo ${{ github.repository }}
+          REASON=$(jq -r '.reason' .soliton/tier0-summary.json)
+          {
+            printf '🔴 **Soliton: Blocked by Tier 0** (%s)\n\n' "$REASON"
+            printf '%s\n\n' "$SUMMARY"
+            printf 'LLM swarm skipped. Fix the above and re-push.\n'
+          } > /tmp/soliton-blocked-body.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/soliton-blocked-body.md --repo "$REPO"
       - name: Fail the check
         run: exit 1
 
@@ -203,7 +263,10 @@ LLM swarm skipped. Fix the above and re-push." \
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone Soliton
-        run: git clone --depth 1 --branch v2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        # Pin to an immutable release tag to prevent supply-chain attacks. Update this line
+        # to a v2.x.y tag after the v2 scaffolding is released. Until then we use the
+        # current stable v0.0.2 tag which matches the pin policy of the sibling workflows.
+        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - uses: anthropics/claude-code-action@v1
         env:

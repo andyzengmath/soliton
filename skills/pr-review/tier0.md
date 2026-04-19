@@ -236,5 +236,8 @@ Persist the Tier-0 output block to `.soliton/state/tier0/<pr-number-or-sha>.json
 
 ## Return
 
-After emitting `TIER_ZERO_END`, return control to `SKILL.md` which proceeds to **Step 2.7 Graph
-Signals** (if graph available) or **Step 3 Risk Scoring** (if not).
+After emitting `TIER_ZERO_END`, return control to `SKILL.md` which proceeds to
+**Step 2.7 Spec Alignment** (if `spec_alignment.enabled`), then **Step 2.8 Graph Signals**
+(if `graph.enabled` and graph available), then **Step 2.75 Large PR Chunking**, then
+**Step 3 Risk Scoring**. If tier 0 returns `verdict == clean` and `skip_llm_on_clean == true`
+Soliton short-circuits to Step 6 output; if `verdict == blocked` it jumps directly to Step 5.

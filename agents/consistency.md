@@ -1,7 +1,7 @@
 ---
 name: consistency
 description: Checks changed code against project conventions and coding style
-model: sonnet
+model: haiku
 tools: ["Read", "Grep", "Glob"]
 ---
 
