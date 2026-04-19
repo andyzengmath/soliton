@@ -1,6 +1,6 @@
 ---
 name: realist-check
-description: Post-synthesis pressure-test pass. For every CRITICAL finding, demands a realistic worst-case argument and a "Mitigated by:" rationale for any downgrade. Cuts CRITICAL false positives without dropping real issues. Borrowed from oh-my-claudecode's critic agent.
+description: Confirms or downgrades CRITICAL findings post-synthesis using deployment context; requires a cited mitigation for any downgrade
 model: sonnet
 tools: ["Read", "Grep", "Bash"]
 ---
