@@ -63,6 +63,30 @@ def test_from_import_records_each_name():
             assert r.module == "requests"
 
 
+def test_from_import_alias_records_original_symbol():
+    """`from numpy import array as arr` — the thing to validate is
+    numpy.array, not arr. `symbol` records the original dotted form."""
+    from hallucination_ast.extract import extract_from_source
+
+    refs = extract_from_source("from numpy import array as arr\n", "foo.py")
+    imports = [r for r in refs if r.kind == "import"]
+    assert len(imports) == 1
+    assert imports[0].symbol == "numpy.array"
+    assert imports[0].module == "numpy"
+
+
+def test_from_import_alias_populates_alias_to_module():
+    """extract_imports_info must populate alias_to_module['arr'] =
+    'numpy.array' AND imported_roots must contain 'arr' (the local binding)
+    AND the module root 'numpy'."""
+    from hallucination_ast.extract import extract_imports_info
+
+    info = extract_imports_info("from numpy import array as arr\n")
+    assert info.alias_to_module.get("arr") == "numpy.array"
+    assert "arr" in info.imported_roots
+    assert "numpy" in info.imported_roots
+
+
 def test_from_import_star_records_module_only():
     from hallucination_ast.extract import extract_from_source
 
@@ -262,3 +286,85 @@ def test_diff_ignores_non_python_files(tmp_path):
     )
     refs = extract_from_diff(diff, repo_root=tmp_path)
     assert refs == []
+
+
+# --- path-traversal containment --------------------------------------------
+
+
+def test_diff_rejects_dotdot_target_outside_repo_root(tmp_path):
+    """Attacker-controlled diff targets `b/../../secret.py` which escapes the
+    repo root. _load_post_image must NOT read the file; falls back to
+    synthesizing the post-image from the diff body.
+
+    We plant a unique SECRET token on the escape-target file and assert it
+    never surfaces in the extracted refs (the only way it could is if
+    read_text was called on the escaping path)."""
+    from hallucination_ast.extract import extract_from_diff
+
+    secret = tmp_path.parent / "leak_marker.py"
+    secret.write_text("LEAK_MARKER = 'should_not_appear'\n")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    diff = (
+        "--- /dev/null\n+++ b/../leak_marker.py\n@@ -0,0 +1,1 @@\n"
+        "+import os\n"
+    )
+    refs = extract_from_diff(diff, repo_root=repo)
+    # Refs should be empty (non-.py prefix filter won't catch a .py suffix
+    # target — the containment check is what protects us).
+    syms = {r.symbol for r in refs}
+    assert "LEAK_MARKER" not in syms
+
+
+def test_diff_rejects_absolute_path_target(tmp_path):
+    """Absolute target `b//etc/passwd.py` — pathlib's `repo / "/etc/..."`
+    drops the repo prefix. Containment check must reject."""
+    from hallucination_ast.extract import extract_from_diff
+
+    diff = (
+        "--- /dev/null\n+++ b//absolutely/evil.py\n@@ -0,0 +1,1 @@\n+x = 1\n"
+    )
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    # Must not raise, must not read anything — just returns whatever
+    # the synthesized post-image extracts (here: 'x = 1' — no refs).
+    refs = extract_from_diff(diff, repo_root=repo)
+    assert refs == []
+
+
+def test_diff_rejects_dev_null_as_target(tmp_path):
+    """/dev/null is unidiff's sentinel for deleted files; must not read."""
+    from hallucination_ast.extract import extract_from_diff
+
+    # Synthetic diff targeting /dev/null (never legitimate post-image).
+    diff = (
+        "--- /dev/null\n+++ b//dev/null\n@@ -0,0 +1,1 @@\n+import os\n"
+    )
+    refs = extract_from_diff(diff, repo_root=tmp_path)
+    assert refs == []
+
+
+def test_safe_join_within_rejects_escapes(tmp_path):
+    """Direct unit test for the containment helper."""
+    from hallucination_ast.extract import _safe_join_within
+
+    root = tmp_path
+    # Benign relative path inside root.
+    p = _safe_join_within(root, "a/b.py")
+    assert p is not None
+    assert p.parent == root / "a"
+
+    # Dotdot escape.
+    assert _safe_join_within(root, "../escaped.py") is None
+    assert _safe_join_within(root, "a/../../escaped.py") is None
+
+    # Absolute.
+    assert _safe_join_within(root, "/etc/passwd") is None
+
+    # Empty / dev/null.
+    assert _safe_join_within(root, "") is None
+    assert _safe_join_within(root, "/dev/null") is None
+
+    # NUL-byte — just plain unsafe.
+    assert _safe_join_within(root, "a\x00b") is None

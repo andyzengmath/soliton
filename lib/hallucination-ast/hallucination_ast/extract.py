@@ -164,15 +164,59 @@ def extract_from_diff(
 # --- diff helpers ----------------------------------------------------------
 
 
+def _safe_join_within(root: Path, rel: str) -> Path | None:
+    """Join `rel` onto `root` and verify the result stays inside `root`.
+
+    Returns the resolved path if it is strictly contained under `root`, else
+    None. Rejects absolute / drive-qualified paths, `..`-containing paths,
+    `/dev/null`, empty strings, NUL-byte paths, and any candidate that escapes
+    the root via resolve() (symlinks, Windows junctions, etc.).
+
+    This is the defense against PR-diff-controlled `target_file` headers
+    like `b/../../etc/passwd.py` (see PR #26 security review).
+    """
+    if not rel or "\x00" in rel or rel == "/dev/null":
+        return None
+    # Normalize separators so Windows-style paths don't sneak past the checks.
+    normalized = rel.replace("\\", "/")
+    if normalized.startswith("/") or normalized.startswith("//"):
+        return None
+    # Reject any path that contains a '..' segment — pathlib won't normalize
+    # it out before resolution.
+    if ".." in normalized.split("/"):
+        return None
+    try:
+        candidate = Path(normalized)
+    except (TypeError, ValueError):
+        return None
+    if candidate.is_absolute() or candidate.drive:
+        return None
+    try:
+        root_resolved = root.resolve(strict=False)
+        full_resolved = (root / candidate).resolve(strict=False)
+    except (OSError, RuntimeError):
+        return None
+    try:
+        full_resolved.relative_to(root_resolved)
+    except ValueError:
+        return None
+    return full_resolved
+
+
 def _load_post_image(
     patched_file: unidiff.PatchedFile,
     target: str,
     repo_root: Path | None,
 ) -> str | None:
-    """Best-effort load of the post-image source text for a changed file."""
+    """Best-effort load of the post-image source text for a changed file.
+
+    When repo_root is provided the disk read is gated by _safe_join_within
+    so an attacker-crafted diff target cannot escape the repo. Failures
+    (escape, symlink, unreadable, bad encoding) fall through to the
+    diff-synthesized image."""
     if repo_root is not None:
-        on_disk = repo_root / target
-        if on_disk.is_file():
+        on_disk = _safe_join_within(repo_root, target)
+        if on_disk is not None and on_disk.is_file():
             try:
                 return on_disk.read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError):

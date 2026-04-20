@@ -140,6 +140,57 @@ def test_check_diff_merges_reports_across_multiple_files(tmp_path):
     assert "os.makedirs" in symbols
 
 
+def test_check_diff_rejects_path_traversal(tmp_path):
+    """An attacker diff targeting `b/../leak.py` must NOT read a file
+    outside repo_root. Regression for PR #26 security review."""
+    from hallucination_ast.check import check_diff
+    from hallucination_ast.resolve import SitePackagesKB
+
+    # Plant a file outside the repo with an import that WOULD produce a
+    # ref if read — so if the read escapes containment, leaked-content
+    # refs would show up in the report.
+    outside = tmp_path / "leak.py"
+    outside.write_text("import secrets\nsecrets.token_hex(16)\n")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    diff = (
+        "--- /dev/null\n+++ b/../leak.py\n@@ -0,0 +1,2 @@\n"
+        "+import os\n"
+        "+os.makedirs('x', exist_ok=True)\n"
+    )
+    report = check_diff(diff, repo, SitePackagesKB())
+    # Crucial: no 'secrets' symbol from the escaping file.
+    leaked_symbols = [
+        (f.symbol, r.symbol)
+        for f in report.findings
+        for r in report.unresolved
+        if "secrets" in f.symbol or "secrets" in r.symbol
+    ]
+    assert all(
+        "secrets" not in (r.symbol or "") for r in report.unresolved
+    ), report.unresolved
+    assert all(
+        "secrets" not in (f.symbol or "") for f in report.findings
+    ), report.findings
+
+
+def test_check_diff_rejects_absolute_target(tmp_path):
+    """Absolute path targets must not bypass repo_root containment."""
+    from hallucination_ast.check import check_diff
+    from hallucination_ast.resolve import SitePackagesKB
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    diff = (
+        "--- /dev/null\n+++ b//etc/passwd.py\n@@ -0,0 +1,1 @@\n+x = 1\n"
+    )
+    # Must not raise and must not read anything.
+    report = check_diff(diff, repo, SitePackagesKB())
+    assert report.findings == []
+
+
 def test_check_diff_stats_populated(tmp_path):
     from hallucination_ast.check import check_diff
     from hallucination_ast.resolve import SitePackagesKB

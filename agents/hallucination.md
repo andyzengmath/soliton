@@ -49,12 +49,19 @@ Before the LLM-based external-package verification in Step 3, run the
 et al. 2026 (arXiv 2601.19106) with F1=0.968 on the paper's 200-sample Python
 corpus: 100% precision discipline, aggressive recall, zero LLM tokens.
 
-**Command** (shelled out via Bash):
+**Command** (shelled out via Bash — use the stdin-pipe form to avoid tempfile TOCTOU and shell-injection surface):
 
+```bash
+# REQUIRED: validate BASE/HEAD refs before invocation.
+# Reject anything that doesn't match the refname regex.
+echo "$BASE $HEAD" | grep -E '^[A-Za-z0-9._/-]+ [A-Za-z0-9._/-]+$' > /dev/null || exit 2
+
+# Pipe via stdin — no /tmp file, no shell-metachar interpolation in the pipeline.
+git -C "$REPO" diff --no-color "$BASE..$HEAD" \
+  | python -m hallucination_ast --diff - --repo-root "$REPO"
 ```
-git diff <base>..<head> > /tmp/soliton-halluc-diff.patch
-python -m hallucination_ast --diff /tmp/soliton-halluc-diff.patch --repo-root <repo>
-```
+
+Do NOT substitute `<base>`, `<head>`, `<repo>` into a shell command string — PR branch names from forks can contain `;`, `$(...)`, backticks, `&&`, `|`, etc. The regex gate + quoted `"$VAR"` form above is the only safe pattern.
 
 The CLI reads the diff, introspects the target's installed packages, and
 emits a JSON `Report`:
@@ -81,9 +88,26 @@ emits a JSON `Report`:
 
 **How to use the output:**
 
-1. For each `finding` in the JSON, emit a FINDING_START block **verbatim**
-   using the Step 8 schema. These are zero-LLM findings at confidence 100;
-   do NOT re-reason about them. The four deterministic rules are:
+1. For each `finding` in the JSON, emit a FINDING_START block using the
+   Step 8 schema with this **exact field mapping** (do NOT re-reason;
+   copy values directly). The AST JSON schema and FINDING_START schema
+   differ in field names — follow the table verbatim:
+
+   | FINDING_START field | JSON source                                  |
+   |---------------------|----------------------------------------------|
+   | `agent`             | `hallucination` (literal)                    |
+   | `category`          | `hallucination` (literal)                    |
+   | `severity`          | `finding.severity`                           |
+   | `confidence`        | `finding.confidence` (always 100 here)       |
+   | `file`              | `finding.file`                               |
+   | `lineStart`         | `finding.line`                               |
+   | `lineEnd`           | `finding.line` (AST hits are single-line)    |
+   | `title`             | compose as: `Hallucination: <finding.symbol> (<finding.rule>)` |
+   | `description`       | `finding.message`                            |
+   | `suggestion`        | `finding.suggestedFix` if present, else null |
+   | `evidence`          | `finding.evidence`                           |
+
+   The four deterministic rules are:
    - `identifier_not_found` (critical) — symbol doesn't exist in target module
    - `signature_mismatch_arity` (critical) — wrong positional argument count
    - `signature_mismatch_keyword` (improvement) — unknown kwarg passed

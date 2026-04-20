@@ -252,3 +252,101 @@ def test_site_packages_kb_graceful_on_import_time_exception():
     res = resolve(_ref("zzz_does_not_exist.thing", module="zzz_does_not_exist"), kb)
     assert res.known is False
     assert res.found is False
+
+
+# --- Allowlist for arbitrary-import RCE defense (PR #26 security review) ----
+
+
+def test_site_packages_kb_refuses_non_allowlisted_root_without_import(monkeypatch):
+    """Untrusted module root not in stdlib + allowlist and not pre-imported:
+    must NOT call importlib.import_module (could execute attacker code).
+
+    Spies on importlib.import_module itself to prove the outer entry was
+    never reached — the allowlist check inside _import_module raises first."""
+    import importlib
+    import sys
+
+    from hallucination_ast.resolve import SitePackagesKB, resolve
+
+    fake_name = "attacker_controlled_pkg_xyz_123"
+    assert fake_name not in sys.modules
+
+    real = importlib.import_module
+    calls: list[str] = []
+
+    def _spy(name, *a, **kw):
+        calls.append(name)
+        return real(name, *a, **kw)
+
+    monkeypatch.setattr(importlib, "import_module", _spy)
+
+    kb = SitePackagesKB()
+    res = resolve(_ref(f"{fake_name}.thing", module=fake_name), kb)
+
+    # Must forward (known=False), NOT execute the import.
+    assert res.known is False
+    assert res.found is False
+    assert fake_name not in calls, (
+        f"allowlist bypass: importlib.import_module({fake_name!r}) was called"
+    )
+
+
+def test_site_packages_kb_import_module_raises_importerror_for_disallowed_root():
+    """Direct unit test: _import_module raises ImportError for non-allowlisted
+    roots that aren't in sys.modules."""
+    import sys
+
+    from hallucination_ast.resolve import SitePackagesKB
+
+    fake = "attacker_controlled_pkg_xyz_456"
+    assert fake not in sys.modules
+
+    kb = SitePackagesKB()
+    with pytest.raises(ImportError):
+        kb._import_module(fake)
+
+
+def test_site_packages_kb_allows_stdlib_without_explicit_allowlist_entry():
+    """Stdlib modules (e.g. json, urllib) must resolve without being on the
+    curated allowlist — they're already safe to import by definition."""
+    from hallucination_ast.resolve import SitePackagesKB, resolve
+
+    kb = SitePackagesKB(allowed_packages=frozenset())  # empty curated list
+    res = resolve(_ref("json.dumps", module="json"), kb)
+    assert res.known is True
+    assert res.found is True
+
+
+def test_site_packages_kb_allows_pre_imported_modules():
+    """A module already in sys.modules is safe to return (the import side
+    effects already happened). Don't refuse pre-imported names."""
+    import sys
+
+    from hallucination_ast.resolve import SitePackagesKB, resolve
+
+    # pytest itself is pre-imported (we're running inside it).
+    assert "pytest" in sys.modules
+
+    kb = SitePackagesKB(allowed_packages=frozenset())  # not on allowlist
+    res = resolve(_ref("pytest.fixture", module="pytest"), kb)
+    assert res.known is True
+    # May or may not be "found" depending on whether fixture is in dir(pytest);
+    # the security-relevant assertion is that we got a non-None mod (known=True).
+
+
+def test_site_packages_kb_custom_allowlist_overrides_default():
+    """Constructor accepts a custom allowlist."""
+    from hallucination_ast.resolve import SitePackagesKB, resolve
+
+    # Allow ONLY 'json' — nothing else, not even numpy.
+    kb = SitePackagesKB(allowed_packages=frozenset({"json"}))
+    res_json = resolve(_ref("json.dumps", module="json"), kb)
+    assert res_json.known is True
+
+    # numpy is in the default allowlist but NOT in this custom one. Since
+    # pytest may or may not have numpy pre-imported, we can only assert
+    # the weaker property: if numpy is not pre-imported, it's refused.
+    import sys
+    if "numpy" not in sys.modules:
+        res_np = resolve(_ref("numpy.array", module="numpy"), kb)
+        assert res_np.known is False

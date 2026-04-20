@@ -15,10 +15,31 @@ from __future__ import annotations
 
 import importlib
 import inspect
+import sys
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from .types import AstExtractedReference
+
+
+# Packages the KB is allowed to freshly import (PR #26 security review).
+# Untrusted diff content can name arbitrary modules; importing them runs
+# their top-level code. Restrict to stdlib (always safe) plus a curated set
+# of well-known packages that are likely to legitimately appear in Khati-
+# corpus-style reviewable diffs. Anything else falls through to sys.modules
+# lookup only (no fresh import) or is refused — see SitePackagesKB._import_module.
+_DEFAULT_ALLOWED_PACKAGES: frozenset[str] = frozenset({
+    # Khati 2026 corpus libraries
+    "numpy", "pandas", "matplotlib", "requests",
+    # Dev / toolchain deps already on the Phase 4b trust boundary
+    "click", "tree_sitter", "tree_sitter_python", "unidiff",
+    "pytest", "pytest_cov", "hypothesis", "coverage",
+    # Package ecosystem adjacent
+    "setuptools", "pip", "wheel", "packaging",
+    # The package itself
+    "hallucination_ast",
+})
 
 
 @dataclass
@@ -59,8 +80,18 @@ class SitePackagesKB:
 
     _SENTINEL_MISSING = object()
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        allowed_packages: Iterable[str] | None = None,
+    ) -> None:
+        """`allowed_packages` overrides the default curated allowlist. Pass
+        `frozenset()` to lock it down to stdlib + pre-imported modules only."""
         self._module_cache: dict[str, Any] = {}
+        self._allowed: frozenset[str] = (
+            frozenset(allowed_packages)
+            if allowed_packages is not None
+            else _DEFAULT_ALLOWED_PACKAGES
+        )
 
     def lookup(self, module: str, symbol: str) -> Resolution:
         mod = self._get_cached(module)
@@ -110,6 +141,23 @@ class SitePackagesKB:
 
     # Indirection point for tests — patched in test_site_packages_kb_caches_module_imports.
     def _import_module(self, name: str) -> Any:
+        """Enforce the import allowlist before calling importlib.
+
+        Rules:
+          1. Already-imported modules (in sys.modules) are always returned —
+             their side effects have already run, so there's no new risk.
+          2. Stdlib roots and roots in the allowlist may be freshly imported.
+          3. Anything else raises ImportError so the caller forwards to the
+             LLM layer (known=False) rather than executing untrusted code.
+        """
+        if name in sys.modules:
+            return sys.modules[name]
+        root = name.split(".", 1)[0]
+        if root not in sys.stdlib_module_names and root not in self._allowed:
+            raise ImportError(
+                f"{root!r} not in SitePackagesKB allowlist; refusing "
+                f"fresh import of untrusted module"
+            )
         return importlib.import_module(name)
 
     def _get_cached(self, name: str) -> Any:
