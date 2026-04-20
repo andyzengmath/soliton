@@ -575,3 +575,90 @@ CONCURRENCY=3 bash bench/crb/dispatch-phase4c.sh  # faster
 # 2. Score via Azure OpenAI gpt-5.2 judge (~3 min, ~$15):
 bash bench/crb/run-phase4c-pipeline.sh
 ```
+
+
+## Phase 4c.1 · Isolation — Phase 4a alone (50 PRs, GPT-5.2 judge — 2026-04-20)
+
+**Setup.** Same 50 PRs, same Azure OpenAI GPT-5.2 judge as Phase 3.5 / 4c. This run restores **Phase 4a exactly as PR #24 shipped it** — the cross-file-retrieval skill + `agents/hallucination.md` §2 `NOT_FOUND_IN_TREE` handoff + `agents/correctness.md` L5 invocation — but NOT Phase 4b's §2.5 pre-check. Goal: isolate whether the Phase 4c regression came from 4b's §2.5 dedup or from the Phase 4a changes themselves.
+
+Branch: `feat/phase-4c1-isolate-4a` (PR #29). `lib/hallucination-ast/` remained on disk but was not invoked by any agent.
+
+### Headline (Phase 4c.1)
+
+| Metric | Phase 3.5 | Phase 4c | **Phase 4c.1** | Δ 3.5 | Δ 4c |
+|--------|---------:|---------:|---------------:|------:|-----:|
+| F1 | **0.277** | 0.261 | **0.278** | **+0.001** | **+0.017** |
+| Precision | 0.183 | 0.175 | 0.190 | +0.007 | +0.015 |
+| Recall | 0.566 | 0.515 | 0.522 | −0.044 | +0.007 |
+| TP | 77 | 70 | 71 | −6 | +1 |
+| FP | 343 | 330 | 303 | −40 | −27 |
+| FN | 59 | 66 | 65 | +6 | −1 |
+
+**Aggregate verdict:** Phase 4a alone is **neutral** vs Phase 3.5 (+0.001 F1, within sample noise). Phase 4b's §2.5 integration was a net **−0.016 F1 drag** when combined (Phase 4c vs Phase 4c.1). Still below the 0.29 hold floor → **CLOSE** per pre-registered ship criteria.
+
+### Ship criteria verdict — CLOSE (again)
+
+| Outcome | Aggregate F1 | Recall | Action |
+|---|---:|---:|---|
+| ✅ Ship | ≥ 0.32 | ≥ 0.64 | — |
+| ⚠️ Hold | 0.29–0.31 | 0.60–0.63 | — |
+| ❌ **Close** | **< 0.29** | **< 0.60** | **Documented negative-result** |
+
+Phase 4a alone at F1=0.278 doesn't clear the hold floor. Even though Phase 4c.1 beats Phase 4c by +0.017, it only matches Phase 3.5 — there's no net F1 win to publish.
+
+### Per-language breakdown (vs Phase 3.5 and Phase 4c)
+
+| Lang | n | P3.5 | P4c | **P4c.1** | Δ P3.5 | Δ P4c | Interpretation |
+|------|--:|-----:|----:|----------:|-------:|------:|---|
+| Java | 10 | 0.283 | 0.278 | **0.329** | **+0.046** | **+0.051** | Phase 4a L5 clearly helped Java. |
+| TS | 10 | 0.266 | 0.344 | 0.301 | +0.035 | −0.043 | TS swapped direction — 10-PR sample is noisy; can't attribute confidently. |
+| Python | 10 | 0.237 | 0.226 | 0.255 | +0.018 | +0.029 | Removing §2.5 helped Python recall (consistent with the hypothesis that §2.5 dedup silenced LLM findings). |
+| Ruby | 10 | 0.291 | 0.208 | 0.283 | −0.008 | +0.075 | Ruby recovered once §2.5 was removed — large delta. |
+| **Go** | 10 | **0.326** | 0.248 | **0.214** | **−0.112** | −0.034 | Go kept regressing — **the §2 NOT_FOUND_IN_TREE suppression is the likely Go-specific driver**, not §2.5. |
+
+**The Go signal** stays negative across Phase 4c AND Phase 4c.1. Since 4b never touched non-Python languages, and 4a's only non-trivial addition on non-Python paths is the `§2 NOT_FOUND_IN_TREE` suppression in `agents/hallucination.md`, that suppression is the prime suspect for Go's continued regression.
+
+### Aggregate vs per-language tension
+
+Aggregate F1 is neutral (+0.001), but per-language is bimodal:
+- **Java +0.046, Python +0.018, Ruby −0.008**: L5 retrieval + cross-file type grounding net-helps these.
+- **Go −0.112, TS +0.035 or −0.043 (noisy)**: mixed signal.
+
+**10 PRs per language is too small a sample to confidently attribute sub-language effects.** The Go number especially is driven by ~1-2 goldens worth of delta. A second isolation run or a wider corpus would be needed to distinguish "4a truly hurts Go" from "corpus noise".
+
+### Recommended action: leave the revert as-is
+
+The close-out revert (PR #28, commit `d85e2af`) remains correct:
+
+1. **Phase 4a alone doesn't reach ship/hold** — no reason to re-integrate.
+2. **10-PR-per-lang signal is too noisy to confidently ship per-language partial adoption** (e.g., "apply L5 only for Java").
+3. **The `§2 NOT_FOUND_IN_TREE` handoff** that was added as a lead-in to Phase 4b now serves no purpose (4b not wired) AND is the prime suspect for the Go regression. Reverting it makes the agent state coherent.
+
+`lib/hallucination-ast/` + `skills/pr-review/cross-file-retrieval.md` both retain standalone value:
+- The lib passes the Khati 2026 corpus at F1=0.968 independently — useful for future deterministic AST tooling.
+- The skill is installable and could be invoked on-demand rather than as a forced agent step.
+
+### Cost tracking (Phase 4c.1)
+
+- Soliton-side: 50 × ~$2.50 = **~$125**. No $10-cap hits.
+- Judge-side: ~$15 Azure OpenAI gpt-5.2.
+- Combined: **~$140** (same as Phase 4c).
+
+### Reproduction
+
+```bash
+# Branch feat/phase-4c1-isolate-4a (PR #29, closed without merge):
+bash bench/crb/dispatch-phase4c1.sh     # CONCURRENCY=1 default
+CONCURRENCY=3 bash bench/crb/dispatch-phase4c1.sh  # faster
+bash bench/crb/run-phase4c1-pipeline.sh
+```
+
+### Summary across Phase 4
+
+| Run | Lever on top of 3.5 | F1 | Verdict |
+|---|---|---:|---|
+| Phase 3.5 | (baseline) | 0.277 | published |
+| Phase 4c | 4a + 4b | 0.261 | close (regression) |
+| **Phase 4c.1** | **4a alone** | **0.278** | **close (neutral)** |
+
+Phase 4 produced a validated standalone hallucination-AST library (Khati F1=0.968) and a reusable cross-file-retrieval skill, but no net CRB F1 improvement at the pipeline level. **Phase 3.5's 0.277 remains Soliton's CRB number of record.**
