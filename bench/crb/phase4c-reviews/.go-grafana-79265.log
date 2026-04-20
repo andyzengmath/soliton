@@ -1,8 +1,0 @@
-Starting Soliton review: upstream=grafana/grafana pr=79265 → C:/Users/andyzeng/OneDrive - Microsoft/Documents/GitHub/soliton/bench/crb/phase4c-reviews/go-grafana-79265.md
-File confirmed written successfully.
-
-DONE
-SessionEnd hook [node "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-end.js"] failed: Hook cancelled
-SessionEnd hook [node "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/evaluate-session.js"] failed: Hook cancelled
-SessionEnd hook [node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/session-end.mjs] failed: Hook cancelled
-SessionEnd hook [node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/wiki-session-end.mjs] failed: Hook cancelled

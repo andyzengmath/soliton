@@ -1,6 +1,0 @@
-Starting Soliton review: upstream=keycloak/keycloak pr=40940 → C:/Users/andyzeng/OneDrive - Microsoft/Documents/GitHub/soliton/bench/crb/phase4c-reviews/java-keycloak-40940.md
-DONE
-SessionEnd hook [node "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-end.js"] failed: Hook cancelled
-SessionEnd hook [node "${CLAUDE_PLUGIN_ROOT}/scripts/hooks/evaluate-session.js"] failed: Hook cancelled
-SessionEnd hook [node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/session-end.mjs] failed: Hook cancelled
-SessionEnd hook [node "$CLAUDE_PLUGIN_ROOT"/scripts/run.cjs "$CLAUDE_PLUGIN_ROOT"/scripts/wiki-session-end.mjs] failed: Hook cancelled
