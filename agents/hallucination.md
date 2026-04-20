@@ -42,6 +42,70 @@ For each retrieved block:
 
 **Do not re-grep** for symbols the skill already attempted. The skill caps at 8 resolutions; if you need a 9th, fall back to a focused Grep on that one symbol only and document why in the finding's evidence.
 
+### 2.5. Run Hallucination-AST Pre-Check (Phase 4b)
+
+Before the LLM-based external-package verification in Step 3, run the
+**deterministic AST checker** at `lib/hallucination-ast/`. It reproduces Khati
+et al. 2026 (arXiv 2601.19106) with F1=0.968 on the paper's 200-sample Python
+corpus: 100% precision discipline, aggressive recall, zero LLM tokens.
+
+**Command** (shelled out via Bash):
+
+```
+git diff <base>..<head> > /tmp/soliton-halluc-diff.patch
+python -m hallucination_ast --diff /tmp/soliton-halluc-diff.patch --repo-root <repo>
+```
+
+The CLI reads the diff, introspects the target's installed packages, and
+emits a JSON `Report`:
+
+```json
+{
+  "findings": [
+    {
+      "rule": "identifier_not_found",
+      "severity": "critical",
+      "confidence": 100,
+      "file": "src/foo.py",
+      "line": 42,
+      "symbol": "requests.gett",
+      "message": "Symbol 'requests.gett' does not exist in module 'requests'. Did you mean 'get'?",
+      "evidence": "Introspected module 'requests' — dir() did not contain the path 'requests.gett'.",
+      "suggestedFix": "get"
+    }
+  ],
+  "unresolved": [ /* references the AST checker couldn't confirm either way */ ],
+  "stats": { "totalReferences": 12, "resolvedOk": 9, "resolvedBad": 1, "unresolved": 2, "wallMs": 87 }
+}
+```
+
+**How to use the output:**
+
+1. For each `finding` in the JSON, emit a FINDING_START block **verbatim**
+   using the Step 8 schema. These are zero-LLM findings at confidence 100;
+   do NOT re-reason about them. The four deterministic rules are:
+   - `identifier_not_found` (critical) — symbol doesn't exist in target module
+   - `signature_mismatch_arity` (critical) — wrong positional argument count
+   - `signature_mismatch_keyword` (improvement) — unknown kwarg passed
+   - `deprecated_identifier` (improvement) — PEP 702 `__deprecated__` set
+
+2. For each entry in `unresolved[]`, fall through to Step 3 (external
+   package verification) and Step 4+ LLM reasoning. The AST checker
+   couldn't introspect the target module (not installed, import-time
+   error, dynamic import). **Treat unresolved as a forward, not a miss.**
+
+3. Only Python is covered by this pre-check in v0.1. For TypeScript, Go,
+   Java, or Ruby diffs, the pre-check emits no findings and you proceed
+   directly to Step 3. TS/JS backends follow in 4b.1.
+
+4. Exit code of the CLI: 0 = no critical findings, 1 = at least one
+   critical finding, 2 = input error. Exit 1 does **not** block your
+   review; it's a signal that critical findings were emitted.
+
+**Do not re-emit** findings the AST pre-check already raised — that would
+cause duplicate critical findings at the synthesizer. Only emit NEW
+findings on symbols in `unresolved[]` plus any non-Python diffs.
+
 ### 3. Verify External Packages
 
 For each new call to an EXTERNAL package:
