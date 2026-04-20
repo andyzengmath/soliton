@@ -29,14 +29,18 @@ Parse the diff for all NEW imports, function calls, and method invocations (line
 
 ### 2. Verify Local Code
 
-For each new call to a LOCAL function/class (not from external packages):
+**Invoke the `cross-file-retrieval` skill** (see `skills/pr-review/cross-file-retrieval.md`) with:
+- `diff` = the input diff
+- `files` = the changed files list
+- `caller` = `hallucination`
 
-1. Use Grep to search for the definition in the project source:
-   ```
-   Search for: "function functionName", "def functionName", "class ClassName", "const functionName ="
-   ```
-2. If found: Read the definition and verify the call signature matches (parameter count, types)
-3. If NOT found: Flag as potential hallucination
+The skill priority-ranks `import` and `function_call` symbols (your prefered kinds) and returns `CROSS_FILE_CONTEXT_START...CROSS_FILE_CONTEXT_END` blocks for each resolved symbol, OR a `source: NOT_FOUND_IN_TREE` block for symbols that don't resolve locally.
+
+For each retrieved block:
+- If the block has a real `source: <file>:<lines>` and `definition`, read the definition and verify the call's signature matches (parameter count, kwarg names, types). Mismatch → emit `signature_mismatch_*` finding at confidence ≥ 90.
+- If the block is `source: NOT_FOUND_IN_TREE`, the symbol is external. **Do NOT immediately flag as hallucination** — defer to step 3 (external verification) which handles installed-package introspection. Local-tree absence does not imply hallucination.
+
+**Do not re-grep** for symbols the skill already attempted. The skill caps at 8 resolutions; if you need a 9th, fall back to a focused Grep on that one symbol only and document why in the finding's evidence.
 
 ### 3. Verify External Packages
 
