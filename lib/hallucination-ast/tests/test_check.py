@@ -106,6 +106,48 @@ def test_arity_variadic_allows_any_count():
     assert all(x.rule != "signature_mismatch_arity" for x in check_reference(ref, res))
 
 
+def test_arity_variadic_still_enforces_required_positional():
+    """F11: `def f(a, b, *args)` — must require at least 2 positional even
+    with *args present."""
+    from hallucination_ast.check import check_reference
+
+    def f(a, b, *args): ...
+    ref = _ref("mod.f", arg_count=1, kwargs=[])
+    res = Resolution(found=True, known=True, signature=_sig(f))
+    assert any(x.rule == "signature_mismatch_arity" for x in check_reference(ref, res))
+
+
+def test_arity_variadic_accepts_more_than_required():
+    """F11 partner: `def f(a, b, *args)` with arg_count=5 must pass — the
+    *args sink absorbs the extras."""
+    from hallucination_ast.check import check_reference
+
+    def f(a, b, *args): ...
+    ref = _ref("mod.f", arg_count=5, kwargs=[])
+    res = Resolution(found=True, known=True, signature=_sig(f))
+    assert all(x.rule != "signature_mismatch_arity" for x in check_reference(ref, res))
+
+
+def test_locally_bound_names_returns_empty_set_on_syntax_error():
+    """F9: _locally_bound_names must absorb parse failures and return ().
+    A SyntaxError propagating out would crash check_source."""
+    from hallucination_ast.check import _locally_bound_names
+
+    result = _locally_bound_names("def (broken syntax")
+    assert result == set()
+
+
+def test_check_source_unparseable_snippet_does_not_raise():
+    """F9 partner: check_source must handle SyntaxError in input source
+    without raising."""
+    from hallucination_ast.check import check_source
+    from hallucination_ast.resolve import SitePackagesKB
+
+    src = "def (broken:\n    pass\n"
+    report = check_source(src, "bad.py", SitePackagesKB())
+    assert report is not None
+
+
 def test_arity_skipped_when_arg_count_none():
     """Extract set arg_count=None because the call used *splat — skip check."""
     from hallucination_ast.check import check_reference
@@ -125,19 +167,67 @@ def test_arity_skipped_when_signature_none():
     assert all(x.rule != "signature_mismatch_arity" for x in check_reference(ref, res))
 
 
-def test_self_parameter_skipped_for_method_calls():
-    """A method sig has `self` as first param; module-level access passes it
-    implicitly (or explicitly as the first positional for unbound access).
-    Heuristic: if first param is `self` or `cls`, skip it in arity arithmetic.
-    """
+def test_self_parameter_skipped_for_unbound_method_calls():
+    """A method sig has `self` as first param; when accessed via a bound
+    call (`instance.meth(arg)`) the receiver is passed implicitly. The
+    `is_unbound_method` flag from Resolution tells _arity_bounds to strip it."""
     from hallucination_ast.check import check_reference
 
     class Example:
         def meth(self, url): ...
 
     ref = _ref("mod.meth", arg_count=1, kwargs=[])
-    res = Resolution(found=True, known=True, signature=_sig(Example.meth))
+    res = Resolution(
+        found=True,
+        known=True,
+        signature=_sig(Example.meth),
+        is_unbound_method=True,
+    )
     assert all(x.rule != "signature_mismatch_arity" for x in check_reference(ref, res))
+
+
+def test_cls_parameter_skipped_for_classmethod_context():
+    """Classmethods get `cls` as first param — also stripped when
+    is_unbound_method=True (classmethods surface their cls in the sig
+    only when retrieved from the class __dict__; in practice our KB
+    passes is_unbound_method=False for them because the descriptor has
+    already bound cls. This test pins the behavior: if an 'unbound method
+    with cls' is ever passed, the heuristic catches it)."""
+    from hallucination_ast.check import check_reference
+
+    class Example:
+        def create(cls, value): ...
+
+    ref = _ref("mod.create", arg_count=1, kwargs=[])
+    res = Resolution(
+        found=True,
+        known=True,
+        signature=_sig(Example.create),
+        is_unbound_method=True,
+    )
+    assert all(x.rule != "signature_mismatch_arity" for x in check_reference(ref, res))
+
+
+def test_staticmethod_first_param_not_skipped():
+    """Key F8 fix: for a @staticmethod whose first param is coincidentally
+    named `self`, our KB resolves it with is_unbound_method=False so the
+    first param is treated as a real positional. arg_count=0 must flag
+    arity mismatch (was silently passed under the old unconditional
+    skip)."""
+    from hallucination_ast.check import check_reference
+
+    def static_like(self, url): ...  # param coincidentally named 'self'
+
+    ref = _ref("mod.static_like", arg_count=0, kwargs=[])
+    res = Resolution(
+        found=True,
+        known=True,
+        signature=_sig(static_like),
+        is_unbound_method=False,  # staticmethod path
+    )
+    assert any(
+        x.rule == "signature_mismatch_arity" for x in check_reference(ref, res)
+    )
 
 
 def test_arity_respects_defaults():

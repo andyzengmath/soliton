@@ -44,13 +44,23 @@ _DEFAULT_ALLOWED_PACKAGES: frozenset[str] = frozenset({
 
 @dataclass
 class Resolution:
-    """Outcome of checking one AstExtractedReference against a KB."""
+    """Outcome of checking one AstExtractedReference against a KB.
+
+    `is_unbound_method` is True when the resolved object is a regular
+    function attached to a class (i.e., `Class.method` retrieved from
+    the class `__dict__` — NOT a staticmethod). The arity checker uses
+    this to decide whether to strip a leading `self` / `cls` parameter
+    from the signature. Bare functions, callable classes, and static-
+    methods always resolve with is_unbound_method=False so `_arity_bounds`
+    treats their first parameter as a real positional arg.
+    """
     found: bool
     known: bool
     signature: inspect.Signature | None = None
     is_deprecated: bool = False
     deprecation_message: str | None = None
     siblings: list[str] = field(default_factory=list)
+    is_unbound_method: bool = False
 
 
 class KnowledgeBase(Protocol):
@@ -105,10 +115,14 @@ class SitePackagesKB:
             return Resolution(found=True, known=True)
 
         obj: Any = mod
+        parent: Any = None
+        leaf_part: str | None = None
         qualified = module
         for part in remainder.split("."):
             qualified = f"{qualified}.{part}"
             if hasattr(obj, part):
+                parent = obj
+                leaf_part = part
                 obj = getattr(obj, part)
                 continue
             # Some packages don't eagerly expose submodules (e.g. matplotlib
@@ -116,6 +130,8 @@ class SitePackagesKB:
             # qualified path before declaring the symbol missing.
             submod = self._get_cached(qualified)
             if submod is not self._SENTINEL_MISSING and submod is not None:
+                parent = obj
+                leaf_part = part
                 obj = submod
                 continue
             siblings = sorted(_public_names(obj))
@@ -131,12 +147,14 @@ class SitePackagesKB:
                 signature = None
 
         is_dep, dep_msg = _check_deprecated(obj)
+        is_unbound = _is_unbound_method(parent, leaf_part)
         return Resolution(
             found=True,
             known=True,
             signature=signature,
             is_deprecated=is_dep,
             deprecation_message=dep_msg,
+            is_unbound_method=is_unbound,
         )
 
     # Indirection point for tests — patched in test_site_packages_kb_caches_module_imports.
@@ -165,9 +183,13 @@ class SitePackagesKB:
             return self._module_cache[name]
         try:
             mod = self._import_module(name)
+        except (KeyboardInterrupt, SystemExit):
+            # User cancellation / explicit interpreter exit must propagate.
+            raise
         except BaseException:
-            # Broad catch: a broken dep might raise anything on import,
-            # including SystemExit. We never want that to break the CLI.
+            # Broad catch (narrower than BaseException so KI/SE get through):
+            # a broken dep might raise anything on import. We never want that
+            # to break the CLI — but KI/SE are handled above.
             mod = self._SENTINEL_MISSING
         self._module_cache[name] = mod
         return mod
@@ -206,6 +228,24 @@ def _public_names(obj: Any) -> list[str]:
     except Exception:
         return []
     return [n for n in names if not n.startswith("_")]
+
+
+def _is_unbound_method(parent: Any, leaf_part: str | None) -> bool:
+    """Return True iff `parent.<leaf_part>` is a regular function attached
+    to a class — i.e., what `inspect.signature` will include a leading `self`
+    / `cls` parameter for. Staticmethods and classmethods return False: their
+    descriptor protocol already strips the binding for the signature we see.
+    """
+    if parent is None or leaf_part is None:
+        return False
+    if not isinstance(parent, type):
+        return False
+    raw = parent.__dict__.get(leaf_part)
+    if raw is None:
+        return False
+    if isinstance(raw, (staticmethod, classmethod)):
+        return False
+    return inspect.isfunction(raw)
 
 
 def _check_deprecated(obj: Any) -> tuple[bool, str | None]:

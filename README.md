@@ -203,7 +203,7 @@ The score determines how many agents are dispatched:
 |-------|-------|-----------------|
 | **correctness** | Sonnet | Off-by-one, null dereference, race conditions, infinite loops, missing returns |
 | **security** | Opus | OWASP Top 10, SQL/XSS/SSRF injection, hardcoded secrets, auth bypass |
-| **hallucination** | Opus | Non-existent APIs (`fs.readFileAsync`), wrong signatures, deprecated methods |
+| **hallucination** | Opus + deterministic AST pre-check | Non-existent APIs (`fs.readFileAsync`), wrong signatures, deprecated methods. Python diffs run through a zero-LLM pre-check ([`lib/hallucination-ast/`](lib/hallucination-ast/), Khati 2026 pattern, F1=0.968 on 200-sample corpus) before Opus reasoning |
 | **test-quality** | Sonnet | Missing coverage, mock-only tests, assertion-free tests, missing edge cases |
 | **consistency** | Sonnet | Naming violations, import ordering, style deviations from project patterns |
 | **cross-file-impact** | Sonnet | Changed signatures breaking callers, removed exports, type mismatches |
@@ -326,17 +326,26 @@ CLI flags always override config file values. A sample template is at `templates
   plugin.json                  Claude Code plugin manifest
   marketplace.json             Marketplace listing metadata
 .cursor-plugin/plugin.json     Cursor Marketplace manifest
-skills/pr-review/SKILL.md      Main orchestrator (input → risk → dispatch → synthesize → output)
+skills/pr-review/
+  SKILL.md                     Main orchestrator (input → risk → dispatch → synthesize → output)
+  cross-file-retrieval.md      Phase 4a — L5 lightweight symbol-definition lookup, shared by
+                               correctness / hallucination / cross-file-impact
+  graph-signals.md             Tier-1 cross-file queries (blast-radius, dep-diff, …) — gated on
+                               graph-cli ecosystem
 agents/
   risk-scorer.md               Risk scoring engine (6 weighted factors)
   correctness.md               Logic & correctness reviewer
   security.md                  OWASP Top 10 security reviewer (Opus)
-  hallucination.md             AI hallucination detector (Opus)
+  hallucination.md             AI hallucination detector (Opus + §2.5 deterministic AST pre-check)
   test-quality.md              Test coverage & quality reviewer
   consistency.md               Code style & convention reviewer
   cross-file-impact.md         Cross-file breakage detector
   historical-context.md        Git history risk analyzer
   synthesizer.md               Finding merger & deduplicator
+lib/hallucination-ast/         Phase 4b — Python package implementing Khati 2026 deterministic
+                               AST hallucination pre-check. Python-only v0.1, F1=0.968 on the
+                               paper's 200-sample public corpus. Shells out from §2.5 via
+                               `python -m hallucination_ast`; non-Python diffs skip cleanly.
 rules/
   risk-factors.md              Factor definitions and weights
   sensitive-paths.md           Default sensitive file patterns

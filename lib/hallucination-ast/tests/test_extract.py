@@ -150,6 +150,30 @@ def test_method_call_arg_count_ignores_stars():
     assert methods[0].arg_count is None
 
 
+def test_method_call_double_splat_only_returns_none_arity():
+    """F26: `f(1, 2, **opts)` — only **splat, no *splat. arg_count still
+    None because **opts can expand positional slots."""
+    from hallucination_ast.extract import extract_from_source
+
+    src = "import x\nx.f(1, 2, **opts)\n"
+    refs = extract_from_source(src, "a.py")
+    methods = [r for r in refs if r.kind == "method"]
+    assert len(methods) == 1
+    assert methods[0].arg_count is None
+
+
+def test_call_pure_kwargs_no_splat_preserves_count():
+    """F26 partner: `foo(a=1, b=2)` — keyword args only, no splat.
+    arg_count should be 0 and kwargs=['a', 'b']."""
+    from hallucination_ast.extract import extract_from_source
+
+    refs = extract_from_source("foo(a=1, b=2)\n", "a.py")
+    calls = [r for r in refs if r.kind == "call"]
+    assert len(calls) == 1
+    assert calls[0].arg_count == 0
+    assert sorted(calls[0].kwargs) == ["a", "b"]
+
+
 def test_attribute_access_not_called():
     from hallucination_ast.extract import extract_from_source
 

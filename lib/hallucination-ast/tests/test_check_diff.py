@@ -191,6 +191,50 @@ def test_check_diff_rejects_absolute_target(tmp_path):
     assert report.findings == []
 
 
+def test_check_diff_repo_root_none_synthesizes_from_diff():
+    """F10: when repo_root=None there's no disk to read; check_diff must
+    synthesize post-image from the diff body without raising."""
+    from hallucination_ast.check import check_diff
+    from hallucination_ast.resolve import SitePackagesKB
+
+    diff = (
+        "--- /dev/null\n+++ b/snippet.py\n@@ -0,0 +1,2 @@\n"
+        "+import requests\n"
+        "+def f(u): return requests.get(u)\n"
+    )
+    report = check_diff(diff, None, SitePackagesKB())
+    assert report is not None
+    assert report.findings == [], report.findings
+
+
+def test_check_diff_deduplicates_missing_import_across_lines(tmp_path):
+    """F12: `np` used on multiple added lines without import — only ONE
+    missing-import finding, not one per line."""
+    from hallucination_ast.check import check_diff
+    from hallucination_ast.resolve import SitePackagesKB
+
+    foo = tmp_path / "foo.py"
+    foo.write_text(
+        "def f(x):\n"
+        "    a = np.array(x)\n"
+        "    b = np.sum(a)\n"
+        "    return np.mean(b)\n"
+    )
+    diff = (
+        "--- /dev/null\n+++ b/foo.py\n@@ -0,0 +1,4 @@\n"
+        "+def f(x):\n"
+        "+    a = np.array(x)\n"
+        "+    b = np.sum(a)\n"
+        "+    return np.mean(b)\n"
+    )
+    report = check_diff(diff, tmp_path, SitePackagesKB())
+    np_missing = [
+        f for f in report.findings
+        if "np" in f.symbol and f.rule == "identifier_not_found"
+    ]
+    assert len(np_missing) == 1
+
+
 def test_check_diff_stats_populated(tmp_path):
     from hallucination_ast.check import check_diff
     from hallucination_ast.resolve import SitePackagesKB

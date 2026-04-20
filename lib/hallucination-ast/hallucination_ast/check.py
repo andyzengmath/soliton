@@ -18,8 +18,17 @@ import ast
 import dataclasses
 import inspect
 import time
+from pathlib import Path
 from typing import Protocol
 
+import unidiff
+
+from .extract import (
+    _added_line_numbers,
+    _load_post_image,
+    extract_from_source,
+    extract_imports_info,
+)
 from .resolve import KnowledgeBase, Resolution, resolve
 from .similarity import closest_match
 from .types import (
@@ -110,7 +119,9 @@ def check_reference(
     findings: list[Finding] = []
 
     if resolution.signature is not None:
-        arity = _check_arity(ref, resolution.signature)
+        arity = _check_arity(
+            ref, resolution.signature, resolution.is_unbound_method
+        )
         if arity is not None:
             findings.append(arity)
         for kw in _check_kwargs(ref, resolution.signature):
@@ -160,11 +171,12 @@ def _identifier_not_found(
 def _check_arity(
     ref: AstExtractedReference,
     sig: inspect.Signature,
+    is_unbound_method: bool = False,
 ) -> Finding | None:
     if ref.arg_count is None:
         return None  # call used *splat — unverifiable
 
-    min_required, max_allowed = _arity_bounds(sig)
+    min_required, max_allowed = _arity_bounds(sig, is_unbound_method)
 
     if ref.arg_count < min_required:
         return Finding(
@@ -247,20 +259,26 @@ def _deprecated(
 # --- signature introspection helpers --------------------------------------
 
 
-def _arity_bounds(sig: inspect.Signature) -> tuple[int, int | None]:
+def _arity_bounds(
+    sig: inspect.Signature,
+    is_unbound_method: bool = False,
+) -> tuple[int, int | None]:
     """Return (min_required_positional, max_allowed_positional_or_None).
 
-    Skips a leading `self`/`cls` parameter so we don't false-positive on
-    unbound method access (`Class.method(x)` passes the instance implicitly
-    in typical call-through-instance cases).
+    When `is_unbound_method` is True, strip a leading `self`/`cls` parameter
+    so bound method calls (`obj.method(x)` which inject the receiver) don't
+    trip arity checking. For staticmethods and module-level functions the
+    flag is False and the first param is treated as a real positional — so
+    a staticmethod whose first parameter is coincidentally named `self` no
+    longer produces a false-negative arity check (was F1 in the Phase 4b
+    review).
     """
     min_required = 0
     max_allowed = 0
     unbounded = False
     params = list(sig.parameters.values())
 
-    # Skip leading self/cls heuristic.
-    if params and params[0].name in ("self", "cls"):
+    if is_unbound_method and params and params[0].name in ("self", "cls"):
         params = params[1:]
 
     for p in params:
@@ -313,16 +331,6 @@ def check_diff(
     to references whose line is on an added ('+') line. Context-line refs
     and refs in other files are ignored.
     """
-    from .extract import (
-        _added_line_numbers,
-        _load_post_image,
-        extract_from_source,
-        extract_imports_info,
-    )
-    import unidiff
-
-    from pathlib import Path as _Path
-
     start = time.perf_counter()
 
     if not diff_text.strip():
@@ -331,11 +339,13 @@ def check_diff(
 
     try:
         patch = unidiff.PatchSet(diff_text)
-    except Exception:
+    except (unidiff.UnidiffParseError, ValueError):
+        # Narrow: malformed diffs produce empty reports. Keep the catch
+        # tight so unexpected exceptions surface as real bugs.
         wall_ms = int((time.perf_counter() - start) * 1000)
         return Report(stats=ReportStats(0, 0, 0, 0, wall_ms))
 
-    repo_root_path = _Path(repo_root) if repo_root is not None else None
+    repo_root_path = Path(repo_root) if repo_root is not None else None
 
     all_findings: list[Finding] = []
     all_unresolved: list[AstExtractedReference] = []
@@ -360,10 +370,13 @@ def check_diff(
         imports = extract_imports_info(post_image)
         local_names = _locally_bound_names(post_image)
 
-        rewritten, missing = _apply_import_context(refs, imports, local_names)
+        rewritten, missing, shadowed = _apply_import_context(
+            refs, imports, local_names
+        )
 
         added_rewritten = [r for r in rewritten if r.line in added_lines]
         added_missing = [m for m in missing if m.line in added_lines]
+        added_shadowed = [s for s in shadowed if s.line in added_lines]
 
         subreport = check_all(added_rewritten, kb)
         if added_missing:
@@ -371,10 +384,23 @@ def check_diff(
 
         all_findings.extend(subreport.findings)
         all_unresolved.extend(subreport.unresolved)
-        total_refs += subreport.stats.total_references + len(added_missing)
+        all_unresolved.extend(added_shadowed)
+        # Missing-import refs were never passed to the KB (they're name-
+        # unbound at runtime); account them as `unresolved` rather than
+        # `resolved_bad` which is semantically "KB-confirmed missing".
+        # Shadowed refs likewise forward to unresolved.
+        total_refs += (
+            subreport.stats.total_references
+            + len(added_missing)
+            + len(added_shadowed)
+        )
         resolved_ok += subreport.stats.resolved_ok
-        resolved_bad += subreport.stats.resolved_bad + len(added_missing)
-        unresolved_count += subreport.stats.unresolved
+        resolved_bad += subreport.stats.resolved_bad
+        unresolved_count += (
+            subreport.stats.unresolved
+            + len(added_missing)
+            + len(added_shadowed)
+        )
 
     wall_ms = int((time.perf_counter() - start) * 1000)
     return Report(
@@ -399,15 +425,17 @@ def check_source(
     alias-qualified refs, flag references whose root module is never imported,
     then run the standard resolve + check pipeline on the rest.
     """
-    from .extract import extract_from_source, extract_imports_info
-
     refs = extract_from_source(source, file_path)
     imports = extract_imports_info(source)
     local_names = _locally_bound_names(source)
-    rewritten, missing_findings = _apply_import_context(refs, imports, local_names)
+    rewritten, missing_findings, shadowed = _apply_import_context(
+        refs, imports, local_names
+    )
     report = check_all(rewritten, kb)
     if missing_findings:
         report.findings = missing_findings + report.findings
+    if shadowed:
+        report.unresolved = list(report.unresolved) + shadowed
     return report
 
 
@@ -415,16 +443,27 @@ def _apply_import_context(
     refs: list[AstExtractedReference],
     imports: ImportInfo,
     local_names: set[str] | None = None,
-) -> tuple[list[AstExtractedReference], list[Finding]]:
-    """Return (refs_with_aliases_rewritten, missing_import_findings).
+) -> tuple[
+    list[AstExtractedReference],
+    list[Finding],
+    list[AstExtractedReference],
+]:
+    """Return (refs_with_aliases_rewritten, missing_import_findings,
+    locally_shadowed_refs).
 
     Missing-import findings are emitted at most once per missing root so we
-    don't double-count when the same alias is used on many lines. The
-    corresponding references are dropped from the rewritten list — once a
-    module is known to be un-bound, KB lookup would be meaningless.
+    don't double-count when the same alias is used on many lines.
+
+    Locally-shadowed refs (where the root name is a function param / local
+    assignment) are NOT dropped — they are forwarded to the LLM layer via
+    `unresolved[]` so the downstream agent can still reason about them if
+    an LLM-visible shadow is actually a hallucination. This preserves the
+    precision contract (no auto-flagging on locals) while closing the
+    silent-drop gap from the Phase 4b review (F2).
     """
     rewritten: list[AstExtractedReference] = []
     missing_findings: list[Finding] = []
+    shadowed: list[AstExtractedReference] = []
     already_flagged: set[str] = set()
     locals_set = local_names or set()
 
@@ -443,11 +482,13 @@ def _apply_import_context(
         new_ref = _rewrite_alias(ref, imports.alias_to_module)
         mod_root = new_ref.module.split(".", 1)[0]
 
-        # Local-bound names (function params, assignments, for-vars, etc.)
-        # are definitely not modules — KB lookup against them is nonsense
-        # (e.g. local `numbers = set()` would resolve against the stdlib
-        # `numbers` module and flag `.add` as missing). Drop the ref.
+        # Local-bound names (function params, assignments, for-vars) are
+        # definitely not modules — KB lookup against them is nonsense.
+        # Forward to LLM via the unresolved list so the downstream agent
+        # can still catch shadow-hallucinations (e.g. `time = ...;
+        # time.sleep()` where `time` has been reassigned to a non-module).
         if mod_root in locals_set:
+            shadowed.append(new_ref)
             continue
 
         # Only flag when the root name isn't any of:
@@ -482,7 +523,7 @@ def _apply_import_context(
 
         rewritten.append(new_ref)
 
-    return rewritten, missing_findings
+    return rewritten, missing_findings, shadowed
 
 
 def _rewrite_alias(

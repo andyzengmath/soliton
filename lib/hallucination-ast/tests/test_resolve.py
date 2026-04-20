@@ -306,6 +306,83 @@ def test_site_packages_kb_import_module_raises_importerror_for_disallowed_root()
         kb._import_module(fake)
 
 
+def test_get_cached_stores_sentinel_by_identity():
+    """F35: on import failure, _get_cached stores exactly the singleton
+    sentinel object — not a copy, not None. `is` identity must survive
+    the cache round-trip."""
+    from hallucination_ast.resolve import SitePackagesKB
+
+    kb = SitePackagesKB()
+
+    def _boom(name):
+        raise ImportError("test-forced failure")
+
+    kb._import_module = _boom
+    result = kb._get_cached("fake_pkg_for_sentinel_test")
+    assert result is kb._SENTINEL_MISSING
+
+    # Second call must hit cache — no re-import attempted.
+    calls: list[str] = []
+
+    def _spy(name):
+        calls.append(name)
+        raise ImportError("should not reach here")
+
+    kb._import_module = _spy
+    result2 = kb._get_cached("fake_pkg_for_sentinel_test")
+    assert result2 is kb._SENTINEL_MISSING
+    assert calls == []
+
+
+def test_lookup_sets_is_unbound_method_for_plain_class_method():
+    """F8 partner at the KB level: `Class.method` resolution marks the
+    result as is_unbound_method=True so _arity_bounds strips self."""
+    from hallucination_ast.resolve import SitePackagesKB
+
+    # Inject a synthetic class into a temp module to test the lookup path.
+    import sys
+    import types as _types
+
+    mod = _types.ModuleType("_unbound_method_test_mod")
+
+    class Example:
+        def meth(self, url): ...
+
+        @staticmethod
+        def sm(x): ...
+
+        @classmethod
+        def cm(cls, x): ...
+
+    mod.Example = Example
+    sys.modules["_unbound_method_test_mod"] = mod
+    try:
+        kb = SitePackagesKB(
+            allowed_packages=frozenset({"_unbound_method_test_mod"})
+        )
+        res_meth = kb.lookup(
+            "_unbound_method_test_mod", "_unbound_method_test_mod.Example.meth"
+        )
+        assert res_meth.found is True
+        assert res_meth.is_unbound_method is True
+
+        res_sm = kb.lookup(
+            "_unbound_method_test_mod", "_unbound_method_test_mod.Example.sm"
+        )
+        assert res_sm.found is True
+        # Staticmethod — the descriptor in __dict__ is a staticmethod instance.
+        assert res_sm.is_unbound_method is False
+
+        res_cm = kb.lookup(
+            "_unbound_method_test_mod", "_unbound_method_test_mod.Example.cm"
+        )
+        assert res_cm.found is True
+        # Classmethod — also not treated as "unbound method" for our strip logic.
+        assert res_cm.is_unbound_method is False
+    finally:
+        del sys.modules["_unbound_method_test_mod"]
+
+
 def test_site_packages_kb_allows_stdlib_without_explicit_allowlist_entry():
     """Stdlib modules (e.g. json, urllib) must resolve without being on the
     curated allowlist — they're already safe to import by definition."""

@@ -213,7 +213,18 @@ def _load_post_image(
     When repo_root is provided the disk read is gated by _safe_join_within
     so an attacker-crafted diff target cannot escape the repo. Failures
     (escape, symlink, unreadable, bad encoding) fall through to the
-    diff-synthesized image."""
+    diff-synthesized image.
+
+    Line-number coordinate system caveat: `_added_line_numbers` emits
+    `target_line_no` values that index the *full* post-image. When
+    repo_root is provided and the file is clean relative to the diff, the
+    on-disk image matches and line numbers align. When repo_root is None
+    (synthesis path), the partial image omits deleted lines; tree-sitter
+    then assigns line numbers starting at 1 in the partial source, which
+    only matches `target_line_no` for hunks that start at line 1 (i.e.
+    new-file diffs). For modified-file diffs without repo_root, the
+    filter is best-effort — pass repo_root for correct line alignment.
+    """
     if repo_root is not None:
         on_disk = _safe_join_within(repo_root, target)
         if on_disk is not None and on_disk.is_file():
@@ -315,17 +326,22 @@ def _walk(
     elif t == "attribute":
         # Emit only the top of a pure dotted-name chain, and not when it is
         # the `function` field of a call (call handler owns that).
+        # Use .id for tree-sitter node identity: `child_by_field_name` returns
+        # a fresh Python wrapper each call, so `is` comparison is unreliable
+        # with tree-sitter >= 0.22.
         parent = node.parent
-        is_mid_chain = (
-            parent is not None
-            and parent.type == "attribute"
-            and parent.child_by_field_name("object") is node
+        _obj_field = (
+            parent.child_by_field_name("object")
+            if parent is not None and parent.type == "attribute"
+            else None
         )
-        is_call_func = (
-            parent is not None
-            and parent.type == "call"
-            and parent.child_by_field_name("function") is node
+        is_mid_chain = _obj_field is not None and _obj_field.id == node.id
+        _func_field = (
+            parent.child_by_field_name("function")
+            if parent is not None and parent.type == "call"
+            else None
         )
+        is_call_func = _func_field is not None and _func_field.id == node.id
         if not is_mid_chain and not is_call_func:
             dotted = _dotted_name(node)
             if dotted is not None:
@@ -478,8 +494,10 @@ def _count_args(args_node: Node | None) -> tuple[int | None, list[str]]:
             name_node = child.child_by_field_name("name")
             if name_node is not None:
                 kwargs.append(_text(name_node))
-        elif t in ("list_splat", "dictionary_splat",
-                   "list_splat_pattern", "dictionary_splat_pattern"):
+        elif t in ("list_splat", "dictionary_splat"):
+            # Note: `list_splat_pattern` and `dictionary_splat_pattern` only
+            # appear in assignment targets / for-loop unpacking — never inside
+            # a call's `arguments` node, so they are not listed here.
             has_splat = True
         elif t.startswith("comment"):
             continue

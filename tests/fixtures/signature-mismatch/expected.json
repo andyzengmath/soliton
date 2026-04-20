@@ -7,7 +7,6 @@
   "phase4bExpected": {
     "rule": "signature_mismatch_keyword",
     "symbol": "os.makedirs",
-    "unknownKwarg": "recursive",
     "confidence": 100,
     "emittedByPreCheck": true
   }

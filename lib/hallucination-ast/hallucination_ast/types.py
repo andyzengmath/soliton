@@ -36,6 +36,31 @@ Severity = Literal["critical", "improvement", "nitpick"]
 
 @dataclass
 class AstExtractedReference:
+    """One external-symbol reference extracted from a Python source file.
+
+    Fields:
+        kind: Syntactic role (import / call / method / attribute / type /
+            decorator).
+        file: Source file path, relative to the repo root.
+        line: 1-based line number in the post-image (tree-sitter's 0-indexed
+            row + 1).
+        column: 0-based column offset in the source line.
+        symbol: Fully-qualified dotted name as it appears in source —
+            e.g. "requests.get", "np.average", "json.dumps".
+        module: Top-level package / module that owns the symbol
+            (e.g. "requests" for "requests.get"). NONE for bare function
+            calls with no dotted qualifier (e.g. `len(x)` → module=None,
+            symbol="len"). When None, `resolve.resolve()` falls back to
+            `_first_segment(symbol)` as the KB lookup key so bare calls
+            are still checked against builtins / site-packages.
+        arg_count: Positional argument count at the call site. NONE when
+            the call uses `*splat` / `**splat` (arity statically
+            unverifiable — downstream skips the arity rule).
+        kwargs: Keyword argument names present at the call site. NONE for
+            non-call kinds.
+        type_args: Generic type parameters (reserved for future `type`
+            kind; not populated in v0.1).
+    """
     kind: RefKind
     file: str
     line: int
@@ -80,30 +105,53 @@ class Report:
 
 @dataclass
 class ImportInfo:
-    """Summary of top-level imports in one source file.
+    """Summary of every import statement (at any scope) in one source file.
 
-    alias_to_module maps a local name back to the canonical module path so
-    check_source can rewrite `np.average` → `numpy.average` before handing
-    the reference to the KB.
+    `alias_to_module` maps a locally-bound name back to its canonical
+    target:
 
-    imported_roots is the set of top-level names bound by any form of
-    import (including `from X import Y`'s `Y`), used by the
-    missing-import heuristic to decide whether a referenced module was
-    ever brought into scope.
+      - `import numpy as np`              →  alias_to_module["np"] = "numpy"
+      - `from requests import get as g`   →  alias_to_module["g"] = "requests.get"
+
+    Note the asymmetry: for `import X as Y` the target is a MODULE path;
+    for `from X import Y as Z` the target is a MODULE.MEMBER path. Both
+    forms are consumed by `check._rewrite_alias` which strips the alias
+    prefix off the ref's symbol before KB lookup.
+
+    `imported_roots` is the set of top-level names that have been bound
+    by any form of import, including aliases. This set is the input to
+    the missing-import heuristic — a reference whose root segment is
+    NOT in imported_roots (and not a stdlib module and not a builtin
+    and not a local variable) is flagged as an undefined name.
+
+    For `from requests import get as http_get`:
+      - `"requests"` goes into imported_roots (the module was loaded)
+      - `"http_get"` goes into imported_roots (the local binding)
+      - the bare `"get"` does NOT — it's shadowed by the alias
     """
     alias_to_module: dict[str, str] = field(default_factory=dict)
     imported_roots: set[str] = field(default_factory=set)
 
 
 _SNAKE_TO_CAMEL = {
+    # AstExtractedReference multi-word fields
+    # (single-word fields — kind, file, line, column, symbol, module,
+    #  kwargs — pass through unchanged and need no entry here):
     "arg_count": "argCount",
     "type_args": "typeArgs",
+    # Finding multi-word fields (rule, severity, file, line, symbol,
+    #  message, evidence, confidence — no entry needed):
     "suggested_fix": "suggestedFix",
+    # ReportStats fields:
     "total_references": "totalReferences",
     "resolved_ok": "resolvedOk",
     "resolved_bad": "resolvedBad",
     "wall_ms": "wallMs",
 }
+# Invariant: every snake_case field (containing '_') in Finding,
+# AstExtractedReference, ReportStats, and ImportInfo that is emitted by
+# report_to_json_dict MUST appear above. When adding a new field, update
+# this table in the same commit.
 
 
 def _camelize(d: dict) -> dict:

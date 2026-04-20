@@ -102,11 +102,29 @@ def test_cli_emits_camelcase_stats(runner, tmp_path):
 
 
 def test_cli_missing_diff_file_exits_two(runner, tmp_path):
+    """NOTE: exit 2 here comes from Click's UsageError at argument-parse
+    time (`click.File(exists=True)` semantics) — NOT from the OSError
+    handler inside main(). Both paths are documented as → 2. See
+    test_cli_malformed_diff_stdin_handles_cleanly for the main() path."""
     from hallucination_ast.cli import main
 
     missing = tmp_path / "does_not_exist.patch"
     result = runner.invoke(main, ["--diff", str(missing)])
     assert result.exit_code == 2
+
+
+def test_cli_malformed_diff_stdin_handles_cleanly(runner):
+    """F48: the CLI should not crash on malformed/binary input via stdin —
+    unidiff's parse failure produces an empty Report (exit 0, 'clean')."""
+    from hallucination_ast.cli import main
+
+    # Garbage that unidiff can't parse.
+    garbage = "not a unified diff at all, just some random text\n"
+    result = runner.invoke(main, ["--diff", "-"], input=garbage)
+    assert result.exit_code == 0
+    import json as _json
+    payload = _json.loads(result.output)
+    assert payload["findings"] == []
 
 
 def test_cli_empty_diff_is_valid_zero_report(runner):

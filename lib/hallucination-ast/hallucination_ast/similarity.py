@@ -28,11 +28,12 @@ def closest_match(
         d = _levenshtein(target, candidate, cap=max_distance)
         if d > max_distance:
             continue
-        if best_distance is None or d < best_distance or (
-            d == best_distance and candidate < (best or "")
-        ):
+        if best_distance is None or d < best_distance:
             best = candidate
             best_distance = d
+        elif d == best_distance and best is not None and candidate < best:
+            # Alphabetical tie-break for determinism.
+            best = candidate
     return best
 
 

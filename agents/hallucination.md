@@ -113,10 +113,14 @@ emits a JSON `Report`:
    - `signature_mismatch_keyword` (improvement) — unknown kwarg passed
    - `deprecated_identifier` (improvement) — PEP 702 `__deprecated__` set
 
-2. For each entry in `unresolved[]`, fall through to Step 3 (external
-   package verification) and Step 4+ LLM reasoning. The AST checker
-   couldn't introspect the target module (not installed, import-time
-   error, dynamic import). **Treat unresolved as a forward, not a miss.**
+2. For each entry in `unresolved[]`, the AST checker couldn't introspect
+   the target module (not installed, import-time error, dynamic import,
+   attacker-name refused by the allowlist, or a locally-shadowed name).
+   **Treat unresolved as a forward, not a miss.** Continue with the full
+   remaining pipeline: Step 3 external-package verification if applicable,
+   then Steps 4–7 LLM reasoning, then Step 8 emission. Do NOT discard an
+   unresolved entry after Step 3 finds nothing — the LLM reasoning in
+   Steps 4+ may still catch it.
 
 3. Only Python is covered by this pre-check in v0.1. For TypeScript, Go,
    Java, or Ruby diffs, the pre-check emits no findings and you proceed
@@ -127,8 +131,17 @@ emits a JSON `Report`:
    review; it's a signal that critical findings were emitted.
 
 **Do not re-emit** findings the AST pre-check already raised — that would
-cause duplicate critical findings at the synthesizer. Only emit NEW
-findings on symbols in `unresolved[]` plus any non-Python diffs.
+cause duplicate critical findings at the synthesizer. Track the SET of
+symbols for which the pre-check emitted a finding. In Step 2
+(cross-file-retrieval) and Steps 4–7 (LLM reasoning), skip emitting a
+new finding whose `symbol` is already in that set, even if the LLM
+independently reaches the same conclusion. Vendored-dependency PRs (a
+`vendor/` directory containing Python packages) are the common scenario
+where both paths flag the same symbol.
+
+Only emit NEW findings on:
+- symbols in `unresolved[]` (per bullet 2);
+- any non-Python file in the diff.
 
 ### 3. Verify External Packages
 

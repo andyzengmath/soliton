@@ -39,6 +39,32 @@ def _is_clean_sample(row) -> bool:
     return str(row.get("reason", "")).strip().lower() == "no hallucination"
 
 
+@pytest.mark.parametrize(
+    "row, expected",
+    [
+        # Clean samples — various capitalizations and whitespace.
+        ({"reason": "No hallucination"}, True),
+        ({"reason": "NO HALLUCINATION"}, True),
+        ({"reason": "  No hallucination  "}, True),
+        ({"reason": "no hallucination"}, True),
+        # Hallucinated samples — actual reason strings from the corpus.
+        ({"reason": "API misuse (Incorrect function name)"}, False),
+        ({"reason": "API misuse (Missing import)"}, False),
+        ({"reason": "API substitution (Incorrect function name)"}, False),
+        ({"reason": "Contextual misnaming (.csv path implies read_csv)"}, False),
+        # Edge cases that must NOT silently flip polarity.
+        ({"reason": ""}, False),
+        ({}, False),  # missing key → defaults to ""
+        ({"reason": "no hallucination extra"}, False),  # not a substring match
+    ],
+)
+def test_is_clean_sample_polarity_pinned(row, expected):
+    """F49: the precision/recall calculation inverts if this predicate
+    flips — lock it down with a parametrized unit test that never
+    requires the full corpus."""
+    assert _is_clean_sample(row) is expected
+
+
 def _was_flagged(report) -> bool:
     return any(f.severity == "critical" for f in report.findings)
 

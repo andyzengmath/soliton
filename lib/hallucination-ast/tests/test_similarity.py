@@ -90,6 +90,30 @@ def test_closest_match_handles_empty_target():
     assert closest_match("", ["get"]) is None  # distance 3 > 2
 
 
+def test_levenshtein_row_min_early_exit_triggers_mid_computation():
+    """F36: row_min>cap early-exit must fire mid-DP. Inputs with same
+    length (passes the |la-lb|>cap check) but fully different characters
+    force the DP into the row-min branch.
+
+    'abcd' vs 'wxyz' with cap=1:
+    - length diff is 0, passes initial check
+    - real edit distance is 4
+    - row 2 has row_min=2 > cap=1 → early exit returns cap+1
+    """
+    from hallucination_ast.similarity import _levenshtein
+
+    assert _levenshtein("abcd", "wxyz", cap=1) == 2  # cap + 1
+
+
+def test_levenshtein_partial_match_avoids_early_exit():
+    """F36 partner: when a shared character keeps row_min below cap,
+    the DP must complete rather than take the early-exit."""
+    from hallucination_ast.similarity import _levenshtein
+
+    # 'axxx' vs 'axyz' — first chars match, row_min stays low.
+    assert _levenshtein("axxx", "axyz", cap=2) <= 2
+
+
 # --- integration with check.py -------------------------------------------
 
 
