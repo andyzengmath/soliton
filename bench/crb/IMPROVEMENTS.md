@@ -1,5 +1,20 @@
 # Soliton × CRB Phase 3 — how to climb the F1 leaderboard
 
+> **⚠️ Calibration notice (added 2026-04-19 after Phase 3.5 / 3.6 / 3.7)**
+>
+> **Every ΔF1 estimate in this doc was written BEFORE Phase 3.5 shipped.** Subsequent experiments showed the projections were **3–5× too optimistic**:
+> - Phase 3.5 (L4+L2+L1 stacked): projected **+0.20** → actual **+0.042**
+> - Phase 3.6 v2.2 description compression: projected **+0.05 to +0.07** → actual **−0.021** (regression)
+> - Phase 3.7 v2.3 synthesizer dedup widening: projected **+0.03** → actual **−0.022** (regression)
+>
+> **When reading this doc**: apply a **3–5× discount** to every per-lever ΔF1 estimate in §2 and §3. Realistic range for any remaining prompt-level lever here is **+0.01 to +0.03**, not the +0.05 to +0.10 shown.
+>
+> **Load-bearing update**: "aggressive precision" levers (L1 atomicity, v2.2 compression, v2.3 dedup widening) have consistently cut recall more than they help precision — the CRB step3 judge is recall-hungry. Any future lever that reduces matching surface area downstream should be treated with skepticism.
+>
+> Phase 3.5 (F1 = 0.277) is the current published best. The next realistic push is **Phase 4** (design doc at `bench/crb/PHASE_4_DESIGN.md`): agent-level cross-file retrieval + ROADMAP D hallucination-AST, not more prompt tweaks. See `RESULTS.md` §§"Phase 3.5 / 3.6 / 3.7" for the full story.
+
+---
+
 Companion doc to `RESULTS.md`. Phase 3 landed Soliton at **F1 = 0.235** under the GPT-5.2 judge on the full 49-PR CRB offline corpus — rank ≈22 of 23 on raw F1, but **recall 0.602 is top-tier** (cubic-v2 leader at ~0.63). This doc unpacks *where* the F1 is leaking and proposes concrete levers with estimated F1 impact, effort, and risk.
 
 Analysis is grounded in actual Phase 3 data: `../code-review-benchmark/offline/results/azure_gpt-5.2/evaluations.json` + `candidates.json`. Run was n=49, 133 goldens, 568 candidates, **TP=80 / FP=468 / FN=53**.
