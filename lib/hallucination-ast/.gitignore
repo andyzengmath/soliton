@@ -10,3 +10,7 @@ build/
 dist/
 *.egg
 .venv/
+
+# Khati 2026 corpus — fetched on demand, not vendored.
+# Run scripts/fetch_khati_corpus.py to populate.
+tests/fixtures/khati-2026/dataset.csv
