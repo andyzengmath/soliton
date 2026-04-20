@@ -1,4 +1,4 @@
-# Soliton
+# Soliton-pr-review
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)](https://github.com/andyzengmath/soliton)
