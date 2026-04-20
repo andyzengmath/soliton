@@ -14,9 +14,9 @@ every rule must bail out rather than guess when its signal is weak:
 """
 from __future__ import annotations
 
+import ast
 import dataclasses
 import inspect
-import sys
 import time
 from typing import Protocol
 
@@ -31,9 +31,6 @@ from .types import (
 )
 
 
-_STDLIB_MODULES = frozenset(sys.stdlib_module_names)
-
-
 def _is_builtin_name(name: str) -> bool:
     """Is `name` in the builtins namespace? Handles both dict and module
     representations of __builtins__ (differs between main and imported)."""
@@ -41,6 +38,56 @@ def _is_builtin_name(name: str) -> bool:
     if isinstance(b, dict):
         return name in b
     return hasattr(b, name)
+
+
+def _locally_bound_names(source: str) -> set[str]:
+    """Return names bound by function params, assignments, for-loops, and
+    def / class statements. Used to suppress false-positive missing-import
+    findings against function parameters etc.
+
+    Uses the stdlib `ast` module (cheap, no extra dependency). If parsing
+    fails the caller falls back to its input imports-only view, which is
+    still safe (just noisier on unparseable snippets)."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            names.add(node.name)
+            for arg in node.args.args + node.args.kwonlyargs + node.args.posonlyargs:
+                names.add(arg.arg)
+            if node.args.vararg is not None:
+                names.add(node.args.vararg.arg)
+            if node.args.kwarg is not None:
+                names.add(node.args.kwarg.arg)
+        elif isinstance(node, ast.ClassDef):
+            names.add(node.name)
+        elif isinstance(node, ast.Lambda):
+            for arg in node.args.args + node.args.kwonlyargs + node.args.posonlyargs:
+                names.add(arg.arg)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for t in targets:
+                for inner in ast.walk(t):
+                    if isinstance(inner, ast.Name):
+                        names.add(inner.id)
+        elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
+            for inner in ast.walk(node.target):
+                if isinstance(inner, ast.Name):
+                    names.add(inner.id)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    for inner in ast.walk(item.optional_vars):
+                        if isinstance(inner, ast.Name):
+                            names.add(inner.id)
+        elif isinstance(node, (ast.ExceptHandler,)):
+            if node.name:
+                names.add(node.name)
+    return names
 
 
 # --- per-reference rule application ---------------------------------------
@@ -266,7 +313,8 @@ def check_source(
 
     refs = extract_from_source(source, file_path)
     imports = extract_imports_info(source)
-    rewritten, missing_findings = _apply_import_context(refs, imports)
+    local_names = _locally_bound_names(source)
+    rewritten, missing_findings = _apply_import_context(refs, imports, local_names)
     report = check_all(rewritten, kb)
     if missing_findings:
         report.findings = missing_findings + report.findings
@@ -276,6 +324,7 @@ def check_source(
 def _apply_import_context(
     refs: list[AstExtractedReference],
     imports: ImportInfo,
+    local_names: set[str] | None = None,
 ) -> tuple[list[AstExtractedReference], list[Finding]]:
     """Return (refs_with_aliases_rewritten, missing_import_findings).
 
@@ -287,6 +336,7 @@ def _apply_import_context(
     rewritten: list[AstExtractedReference] = []
     missing_findings: list[Finding] = []
     already_flagged: set[str] = set()
+    locals_set = local_names or set()
 
     for ref in refs:
         # Never rewrite or flag imports themselves — they're the source of truth.
@@ -303,10 +353,16 @@ def _apply_import_context(
         new_ref = _rewrite_alias(ref, imports.alias_to_module)
         mod_root = new_ref.module.split(".", 1)[0]
 
+        # Only flag when the root name isn't any of:
+        #   - an imported module (or aliased to one)
+        #   - a locally-bound name (function param, assignment, for-var, ...)
+        #   - a Python builtin
+        # Stdlib modules are NOT exempted: `json.dumps(x)` without `import json`
+        # is a real runtime NameError per Khati 2026's methodology.
         if (
             mod_root not in imports.imported_roots
             and mod_root not in imports.alias_to_module
-            and mod_root not in _STDLIB_MODULES
+            and mod_root not in locals_set
             and not _is_builtin_name(mod_root)
         ):
             if mod_root not in already_flagged:

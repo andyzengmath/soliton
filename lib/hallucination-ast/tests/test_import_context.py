@@ -164,26 +164,56 @@ def test_check_source_missing_import_real_module_flagged():
     assert any(f.rule == "identifier_not_found" for f in report.findings)
 
 
-def test_check_source_stdlib_module_never_flagged_even_without_import():
-    """A reference to a stdlib module without `import` is a real Python bug,
-    but some snippets may legitimately skip the import line. We should NOT
-    generate spurious findings on stdlib-looking refs — let Python itself
-    error at runtime. The 95% precision target demands this caution."""
+def test_check_source_stdlib_module_without_import_is_flagged():
+    """Khati 2026 treats `json.dumps(x)` without `import json` as a
+    hallucination — the code is a guaranteed runtime NameError. Matching
+    that methodology improves recall on 11 corpus samples at the cost of
+    1 edge case (stdlib used via an implicit mechanism). Rationale: real
+    Soliton diffs loaded with repo_root will see the import from disk
+    and won't false-positive; standalone Python snippets without imports
+    are genuine bugs."""
     from hallucination_ast.check import check_source
     from hallucination_ast.resolve import SitePackagesKB
 
-    # Without import, this code WOULD NameError at runtime — but not our
-    # flag. We're detecting library hallucinations, not teaching Python.
     src = "def func(x):\n    return json.dumps(x)\n"
     report = check_source(src, "a.py", SitePackagesKB())
-    # Acceptable either way, but if flagged must not be a false positive on
-    # the clean Khati samples (which all include the imports). This test
-    # pins the behavior: stdlib without import is NOT flagged.
-    missing_import_flags = [
-        f for f in report.findings
-        if f.rule == "identifier_not_found" and "json" in f.symbol
-    ]
-    assert missing_import_flags == []
+    assert any(
+        f.rule == "identifier_not_found" and "json" in f.symbol
+        for f in report.findings
+    )
+
+
+def test_check_source_function_parameter_not_flagged_as_missing_import():
+    """`def func(df): return df.to_csv(...)` — `df` is a parameter, not
+    an unbound module. Must not be flagged. This is the false-positive
+    that showed up on Khati id=157 in the first gate run; fixing it
+    pushes precision from 0.986 to 0.994."""
+    from hallucination_ast.check import check_source
+    from hallucination_ast.resolve import SitePackagesKB
+
+    src = (
+        "import pandas as pd\n"
+        "def func(df):\n"
+        "    return df.to_csv('o.csv')\n"
+    )
+    report = check_source(src, "a.py", SitePackagesKB())
+    assert report.findings == [], report.findings
+
+
+def test_check_source_local_assignment_not_flagged_as_missing_import():
+    """`x = pd.DataFrame(...); x.to_csv(...)` — `x` is a local assignment,
+    not an unbound module."""
+    from hallucination_ast.check import check_source
+    from hallucination_ast.resolve import SitePackagesKB
+
+    src = (
+        "import pandas as pd\n"
+        "def func():\n"
+        "    x = pd.DataFrame({'a':[1]})\n"
+        "    return x.to_csv('o.csv')\n"
+    )
+    report = check_source(src, "a.py", SitePackagesKB())
+    assert report.findings == [], report.findings
 
 
 def test_check_source_doesnt_duplicate_missing_import_findings():
