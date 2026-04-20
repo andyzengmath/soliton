@@ -662,3 +662,81 @@ bash bench/crb/run-phase4c1-pipeline.sh
 | **Phase 4c.1** | **4a alone** | **0.278** | **close (neutral)** |
 
 Phase 4 produced a validated standalone hallucination-AST library (Khati F1=0.968) and a reusable cross-file-retrieval skill, but no net CRB F1 improvement at the pipeline level. **Phase 3.5's 0.277 remains Soliton's CRB number of record.**
+
+
+## Phase 3.5.1 · Per-language Nitpicks gate (50 PRs, GPT-5.2 judge — 2026-04-20)
+
+**Setup.** Same 50 PRs, same Azure OpenAI GPT-5.2 judge as Phase 3.5 / 4c / 4c.1. Soliton re-run against `main@da4e953` + a single SKILL.md edit: the Nitpicks section is now rendered only when the diff's primary language is TypeScript or JavaScript (unchanged dropping behavior on Java/Python/Go/Ruby).
+
+Branch: `feat/severity-gate-v2.1` (PR #31). Target: recover Phase 3's TS recall (0.839) and F1 (0.325) without regressing other languages.
+
+### Headline (Phase 3.5.1)
+
+| Metric | Phase 3 | Phase 3.5 | **Phase 3.5.1** | Δ vs 3.5 |
+|--------|--------:|---------:|----------------:|---------:|
+| F1 | 0.235 | **0.277** | **0.243** | **−0.034** |
+| Precision | 0.146 | 0.183 | 0.158 | −0.025 |
+| Recall | 0.602 | 0.566 | 0.529 | −0.037 |
+| TP | 80 | 77 | 72 | −5 |
+| FP | 468 | 343 | **385** | +42 |
+| FN | 53 | 59 | 64 | +5 |
+
+### Per-language breakdown
+
+| Lang | P3 F1 | P3.5 F1 | **P3.5.1 F1** | P3.5.1 R | Δ P3.5 | Note |
+|------|------:|--------:|--------------:|---------:|-------:|------|
+| **TS** | **0.325** | 0.266 | **0.265** | **0.710** | −0.001 | **Recall DID recover** (0.613 → 0.710). Precision fell enough (0.170 → 0.163) to cancel F1. Nitpicks per se WORKED for TS. |
+| Java | 0.205 | **0.283** | 0.220 | 0.500 | −0.063 | Regression despite gate being OFF for Java. FPs up 66% vs 3.5. |
+| Go | 0.241 | **0.326** | 0.275 | 0.500 | −0.051 | Same pattern: regression without Java/Go/Ruby getting the nitpick change. |
+| Ruby | 0.209 | **0.291** | 0.224 | 0.464 | −0.067 | Regression. |
+| Python | 0.182 | 0.237 | 0.230 | 0.452 | −0.007 | ~Flat. |
+
+### Ship criteria verdict — CLOSE
+
+Pre-registered on PR #31:
+- ✅ Ship: aggregate F1 ≥ 0.28 AND TS F1 ≥ 0.30 AND no lang regressed > 0.02
+- ⚠️ Hold: aggregate flat/+0.01 with TS improved
+- ❌ **Close**: TS F1 doesn't move above 0.29
+
+TS F1=0.265 fails the ≥ 0.29 TS floor. Aggregate 0.243 < 0.28 ship floor. Three non-target languages each regressed > 0.05. Unambiguous **CLOSE**.
+
+### The real finding: non-TS precision collapse
+
+The expected story was "TS regains nitpicks, F1 lifts, other languages unchanged." Actual:
+
+- **TS recall recovered** (0.613 → 0.710) as predicted — the nitpicks-per-language mechanism worked.
+- But **Java/Go/Ruby precision all cratered** despite their Nitpicks gate still being OFF (the SKILL.md change was strictly additive for TS/JS — non-TS code paths are identical to Phase 3.5).
+
+**Hypothesis.** The SKILL.md edit added ~40 lines of v2.1 prose: rationale paragraph, primary-language extension table, config override snippet, markdown render-pattern example. That text lives in Format A instructions that the `claude -p` orchestrator reads as part of its context. The additional instructional noise likely biased the review agents toward more verbose / more inclusive finding emission on ALL language paths, not just TS. FPs rose by 42 aggregate despite the nitpick change touching only one code path.
+
+**Falsifiable next test** (not run): rewrite the v2.1 gate in minimal form — one conditional line, no rationale prose, no config override block. If Java/Go/Ruby F1 return to Phase 3.5 levels and TS retains the recall gain, the prose-verbosity hypothesis holds and a trimmed v2.1 ships cleanly.
+
+### Cumulative Phase 3.5 successor summary
+
+| Run | Lever | F1 | Verdict | Note |
+|---|---|---:|---|---|
+| Phase 3.5 | (baseline) | **0.277** | published | Global nitpick drop + L4 threshold + L1 atomic |
+| Phase 4c | +4a +4b | 0.261 | close | Combined 4a + 4b regressed |
+| Phase 4c.1 | +4a only | 0.278 | close | Isolated 4a neutral; 4b was the −0.016 drag |
+| **Phase 3.5.1** | **TS-specific nitpicks** | **0.243** | **close** | Non-TS precision collapse; prose verbosity hypothesis |
+
+Three consecutive close verdicts at aggregate F1 since Phase 3.5. ~$420 of experiments have confirmed Phase 3.5 as a local maximum for the current SKILL.md structure.
+
+### Recommended action: revert the SKILL.md v2.1 edit
+
+The Phase 3.5.1 branch should not be merged. The v2.1 gate needs a second iteration (minimal-prose rewrite) before another $140 run is worth it. Until then, `main@da4e953` (Phase 3.5 behavior) is the current best.
+
+### Cost tracking (Phase 3.5.1)
+
+- Soliton-side: 50 × ~$2.50 avg = **~$125**.
+- Judge-side: ~$15 Azure OpenAI gpt-5.2.
+- Combined: **~$140**.
+
+### Reproduction
+
+```bash
+# Branch feat/severity-gate-v2.1 (PR #31, closed without merge):
+bash bench/crb/dispatch-phase3_5_1.sh      # CONCURRENCY=1 default
+CONCURRENCY=3 bash bench/crb/dispatch-phase3_5_1.sh   # faster
+bash bench/crb/run-phase3_5_1-pipeline.sh
+```
