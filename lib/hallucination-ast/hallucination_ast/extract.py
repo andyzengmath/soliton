@@ -28,7 +28,7 @@ from tree_sitter import Language, Node, Parser
 import tree_sitter_python as _tspy
 import unidiff
 
-from .types import AstExtractedReference
+from .types import AstExtractedReference, ImportInfo
 
 
 _LANGUAGE = Language(_tspy.language())
@@ -45,6 +45,66 @@ def extract_from_source(source: str, file_path: str) -> list[AstExtractedReferen
     tree = _PARSER.parse(source.encode("utf-8"))
     skip_ids: set[int] = set()
     return list(_walk(tree.root_node, file_path, skip_ids))
+
+
+def extract_imports_info(source: str) -> ImportInfo:
+    """Parse only top-level import statements and return alias/root info.
+
+    Shares the tree-sitter parser but walks just the module-level import
+    constructs. Nested / conditional imports are intentionally ignored —
+    our heuristics only care whether a name was unconditionally bound.
+    """
+    info = ImportInfo()
+    if not source:
+        return info
+    tree = _PARSER.parse(source.encode("utf-8"))
+    for child in tree.root_node.children:
+        if child.type == "import_statement":
+            _record_import_statement(child, info)
+        elif child.type == "import_from_statement":
+            _record_from_import_statement(child, info)
+    return info
+
+
+def _record_import_statement(node: Node, info: ImportInfo) -> None:
+    for c in node.children:
+        if c.type == "dotted_name":
+            name = _dotted_name(c)
+            if name:
+                info.imported_roots.add(_first_segment(name))
+        elif c.type == "aliased_import":
+            name_node = c.child_by_field_name("name")
+            alias_node = c.child_by_field_name("alias")
+            name = _dotted_name(name_node) if name_node else None
+            alias = _text(alias_node) if alias_node else None
+            if name:
+                info.imported_roots.add(_first_segment(name))
+            if name and alias:
+                info.alias_to_module[alias] = name
+
+
+def _record_from_import_statement(node: Node, info: ImportInfo) -> None:
+    module_node = node.child_by_field_name("module_name")
+    module_name = _dotted_name(module_node) if module_node else None
+    if module_name:
+        info.imported_roots.add(_first_segment(module_name))
+    for child in node.children_by_field_name("name"):
+        if child.type == "dotted_name":
+            leaf = _dotted_name(child)
+            if leaf:
+                info.imported_roots.add(_first_segment(leaf))
+        elif child.type == "aliased_import":
+            name_node = child.child_by_field_name("name")
+            alias_node = child.child_by_field_name("alias")
+            leaf = _dotted_name(name_node) if name_node else None
+            alias = _text(alias_node) if alias_node else None
+            if alias:
+                info.imported_roots.add(alias)
+                # Track the alias -> full qualified name (module.leaf).
+                if leaf and module_name:
+                    info.alias_to_module[alias] = f"{module_name}.{leaf}"
+            elif leaf:
+                info.imported_roots.add(leaf)
 
 
 def extract_from_diff(

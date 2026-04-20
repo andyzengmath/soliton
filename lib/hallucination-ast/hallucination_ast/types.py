@@ -78,6 +78,23 @@ class Report:
     )
 
 
+@dataclass
+class ImportInfo:
+    """Summary of top-level imports in one source file.
+
+    alias_to_module maps a local name back to the canonical module path so
+    check_source can rewrite `np.average` → `numpy.average` before handing
+    the reference to the KB.
+
+    imported_roots is the set of top-level names bound by any form of
+    import (including `from X import Y`'s `Y`), used by the
+    missing-import heuristic to decide whether a referenced module was
+    ever brought into scope.
+    """
+    alias_to_module: dict[str, str] = field(default_factory=dict)
+    imported_roots: set[str] = field(default_factory=set)
+
+
 _SNAKE_TO_CAMEL = {
     "arg_count": "argCount",
     "type_args": "typeArgs",

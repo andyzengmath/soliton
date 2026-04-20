@@ -74,11 +74,21 @@ class SitePackagesKB:
             return Resolution(found=True, known=True)
 
         obj: Any = mod
+        qualified = module
         for part in remainder.split("."):
-            if not hasattr(obj, part):
-                siblings = sorted(_public_names(obj))
-                return Resolution(found=False, known=True, siblings=siblings)
-            obj = getattr(obj, part)
+            qualified = f"{qualified}.{part}"
+            if hasattr(obj, part):
+                obj = getattr(obj, part)
+                continue
+            # Some packages don't eagerly expose submodules (e.g. matplotlib
+            # until you `import matplotlib.pyplot`). Try importing the full
+            # qualified path before declaring the symbol missing.
+            submod = self._get_cached(qualified)
+            if submod is not self._SENTINEL_MISSING and submod is not None:
+                obj = submod
+                continue
+            siblings = sorted(_public_names(obj))
+            return Resolution(found=False, known=True, siblings=siblings)
 
         # Leaf found. Try to read a signature; many C-extension callables
         # do not support inspect.signature — fall back to None.

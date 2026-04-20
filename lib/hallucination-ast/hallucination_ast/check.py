@@ -14,13 +14,33 @@ every rule must bail out rather than guess when its signal is weak:
 """
 from __future__ import annotations
 
+import dataclasses
 import inspect
+import sys
 import time
 from typing import Protocol
 
 from .resolve import KnowledgeBase, Resolution, resolve
 from .similarity import closest_match
-from .types import AstExtractedReference, Finding, Report, ReportStats
+from .types import (
+    AstExtractedReference,
+    Finding,
+    ImportInfo,
+    Report,
+    ReportStats,
+)
+
+
+_STDLIB_MODULES = frozenset(sys.stdlib_module_names)
+
+
+def _is_builtin_name(name: str) -> bool:
+    """Is `name` in the builtins namespace? Handles both dict and module
+    representations of __builtins__ (differs between main and imported)."""
+    b = __builtins__
+    if isinstance(b, dict):
+        return name in b
+    return hasattr(b, name)
 
 
 # --- per-reference rule application ---------------------------------------
@@ -231,6 +251,109 @@ def _accepted_kwarg_names(sig: inspect.Signature) -> set[str]:
 
 
 # --- orchestration --------------------------------------------------------
+
+
+def check_source(
+    source: str,
+    file_path: str,
+    kb: KnowledgeBase,
+) -> Report:
+    """High-level: extract refs + imports from a full Python source, rewrite
+    alias-qualified refs, flag references whose root module is never imported,
+    then run the standard resolve + check pipeline on the rest.
+    """
+    from .extract import extract_from_source, extract_imports_info
+
+    refs = extract_from_source(source, file_path)
+    imports = extract_imports_info(source)
+    rewritten, missing_findings = _apply_import_context(refs, imports)
+    report = check_all(rewritten, kb)
+    if missing_findings:
+        report.findings = missing_findings + report.findings
+    return report
+
+
+def _apply_import_context(
+    refs: list[AstExtractedReference],
+    imports: ImportInfo,
+) -> tuple[list[AstExtractedReference], list[Finding]]:
+    """Return (refs_with_aliases_rewritten, missing_import_findings).
+
+    Missing-import findings are emitted at most once per missing root so we
+    don't double-count when the same alias is used on many lines. The
+    corresponding references are dropped from the rewritten list — once a
+    module is known to be un-bound, KB lookup would be meaningless.
+    """
+    rewritten: list[AstExtractedReference] = []
+    missing_findings: list[Finding] = []
+    already_flagged: set[str] = set()
+
+    for ref in refs:
+        # Never rewrite or flag imports themselves — they're the source of truth.
+        if ref.kind == "import":
+            rewritten.append(ref)
+            continue
+
+        # Module-less bare calls: out of scope for import-context rules
+        # (covered by the future 'bare call without alias' follow-up).
+        if ref.module is None:
+            rewritten.append(ref)
+            continue
+
+        new_ref = _rewrite_alias(ref, imports.alias_to_module)
+        mod_root = new_ref.module.split(".", 1)[0]
+
+        if (
+            mod_root not in imports.imported_roots
+            and mod_root not in imports.alias_to_module
+            and mod_root not in _STDLIB_MODULES
+            and not _is_builtin_name(mod_root)
+        ):
+            if mod_root not in already_flagged:
+                already_flagged.add(mod_root)
+                missing_findings.append(Finding(
+                    rule="identifier_not_found",
+                    severity="critical",
+                    file=ref.file,
+                    line=ref.line,
+                    symbol=mod_root,
+                    message=(
+                        f"Name '{mod_root}' is used but never imported or "
+                        f"defined in this file."
+                    ),
+                    evidence=(
+                        f"No top-level `import {mod_root}` or "
+                        f"`import X as {mod_root}` statement found."
+                    ),
+                ))
+            # Drop the ref — KB lookup is pointless when the name is unbound.
+            continue
+
+        rewritten.append(new_ref)
+
+    return rewritten, missing_findings
+
+
+def _rewrite_alias(
+    ref: AstExtractedReference,
+    alias_to_module: dict[str, str],
+) -> AstExtractedReference:
+    """If ref.module starts with an alias, substitute the canonical module."""
+    if not ref.module:
+        return ref
+    root, sep, rest = ref.module.partition(".")
+    if root not in alias_to_module:
+        return ref
+    canonical = alias_to_module[root]
+    new_module = canonical + (("." + rest) if rest else "")
+
+    # Also rewrite the leading portion of the dotted symbol.
+    sym_root, sym_sep, sym_rest = ref.symbol.partition(".")
+    if sym_root == root:
+        new_symbol = canonical + (("." + sym_rest) if sym_sep else "")
+    else:
+        new_symbol = ref.symbol
+    return dataclasses.replace(ref, module=new_module, symbol=new_symbol)
 
 
 def check_all(
