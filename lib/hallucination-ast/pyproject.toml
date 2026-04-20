@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hallucination-ast"
+version = "0.1.0"
+description = "Khati-style deterministic AST hallucination pre-check for Soliton"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Soliton contributors" }]
+license = { text = "MIT" }
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+dependencies = [
+  "tree-sitter>=0.22",
+  "tree-sitter-python>=0.23",
+  "click>=8",
+  "unidiff>=0.7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7",
+  "pytest-cov>=4",
+]
+
+[project.scripts]
+hallucination-ast = "hallucination_ast.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["hallucination_ast*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers"
+
+[tool.coverage.run]
+branch = true
+source = ["hallucination_ast"]
