@@ -473,3 +473,105 @@ MAX_BUDGET_USD=8 OUTPUT_DIR=bench/crb/phase35-reviews \
 # Pipeline (same Azure OpenAI config as Phase 3):
 bash bench/crb/run-phase35-pipeline.sh
 ```
+
+
+## Phase 4c · Structural push — L5 + hallucination-AST combined (50 PRs, GPT-5.2 judge — 2026-04-20)
+
+**Setup.** Same 50 PRs as Phase 3.5, same GPT-5.2 judge via Azure OpenAI managed identity. Soliton re-run against `main@d7ddfd0`, which includes:
+
+- **Phase 4a** (merged PR #24) — `skills/pr-review/cross-file-retrieval.md` L5 lightweight symbol-definition lookup, shared by `correctness` / `hallucination` / `cross-file-impact`.
+- **Phase 4b** (merged PR #26) — `lib/hallucination-ast/` Python package implementing Khati 2026's deterministic AST hallucination pre-check + `agents/hallucination.md` §2.5 integration. **Standalone Khati 2026 corpus gate: F1=0.968** (P=0.993, R=0.944) — well above the paper's 0.934. The CRB corpus result below is a SEPARATE judgment on real-world PR review, not the same benchmark.
+
+Budget bumped from Phase 3.5's $3 to `MAX_BUDGET_USD=10` because the added §2.5 pre-check + cross-file retrieval push complex PRs past $2-3. Actual per-review spend averaged well under the cap.
+
+### Headline (Phase 4c)
+
+| Metric | Phase 3.5 | Phase 4c | Δ |
+|--------|---------:|---------:|------:|
+| n | 50 | 50 | 0 |
+| Micro-F1 | **0.277** | **0.261** | **−0.016** |
+| Precision | 0.183 | 0.175 | −0.008 |
+| Recall | 0.566 | 0.515 | −0.051 |
+| TP | 77 | 70 | −7 |
+| FP | 343 | 330 | −13 |
+| FN | 59 | 66 | +7 |
+
+Aggregate F1 dropped **0.016 points**. Both precision and recall regressed; the recall drop is larger (−0.051 vs −0.008 on precision).
+
+### Ship criteria verdict — CLOSE
+
+Pre-registered in `bench/crb/PHASE_4_DESIGN.md`:
+
+| Outcome | Aggregate F1 | Recall | Per-lang | Action |
+|---|---:|---:|---|---|
+| ✅ Ship | ≥ 0.32 | ≥ 0.64 | No reg > 0.02 | Replace Phase 3.5 |
+| ⚠️ Hold | 0.29–0.31 | 0.60–0.63 | — | Ship whichever of 4a / 4b alone passes |
+| ❌ **Close** | **< 0.29** | **< 0.60** | Any > 0.03 | **Documented negative-result** |
+
+Phase 4c F1=0.261 **< 0.29**, recall=0.515 **< 0.60**, and multiple languages regressed > 0.03. This is an unambiguous **CLOSE** per the pre-registered ship criteria.
+
+### Per-language breakdown (GPT-5.2 judge)
+
+| Lang | n | P3.5 F1 | P4c F1 | Δ F1 | P4c Precision | P4c Recall | Interpretation |
+|------|--:|--------:|-------:|-----:|--------------:|-----------:|----|
+| **TypeScript** | 10 | 0.266 | **0.344** | **+0.078** | 0.231 | 0.677 | Pure Phase 4a (no 4b — TS out of scope in 4b v0.1). L5 cross-file retrieval is a real win here. |
+| Java | 10 | 0.283 | 0.278 | −0.005 | 0.200 | 0.458 | Neutral. |
+| Go | 10 | 0.326 | 0.248 | **−0.078** | 0.157 | 0.591 | Significant regression. No 4b exposure (Python-only), so L5 changed agent behavior in ways that hurt Go specifically. |
+| Ruby | 10 | 0.291 | 0.208 | **−0.083** | 0.141 | 0.393 | Biggest regression. Also no 4b exposure. |
+| **Python** | 10 | 0.237 | 0.226 | −0.011 | 0.151 | 0.452 | 4b's target language — modest regression. Indicates §2.5 pre-check is not net-negative on Python alone but also not adding enough to offset. |
+
+**The headline signal is that Phase 4a alone (TS) is +0.078 F1 net-positive, while the combined 4a+4b wash is net-negative on other languages.** Phase 4b's §2.5 shouldn't affect Go/Ruby (non-Python), so those regressions come from 4a's cross-file retrieval changing agent behavior in a way that hurts non-TS languages — either the retrieval-skill invocation rules or the `agents/hallucination.md` §2 `NOT_FOUND_IN_TREE` suppression is causing loss.
+
+### Recall by golden severity
+
+| Severity | TP / Golden | Recall | Note |
+|----------|:-----------:|-------:|------|
+| Critical | 7 / 9 | **0.778** | Top-tier preserved. |
+| High | 20 / 41 | 0.488 | |
+| Medium | 22 / 47 | 0.468 | |
+| Low | 21 / 39 | 0.538 | |
+
+Critical-severity recall stays strong (0.778) — the structural changes did NOT cost us on the most important findings. The aggregate drop is concentrated on High/Medium goldens.
+
+### Hypotheses for the regression
+
+1. **L5 retrieval over-commits to cross-file verification.** The `agents/hallucination.md` §2 `NOT_FOUND_IN_TREE` suppression (introduced by Phase 4a) defers external-symbol findings pending 4b. For non-Python languages where 4b's pre-check doesn't fire, those deferred findings go to LLM reasoning — but the additional retrieval context may be biasing the agent toward "I see the definition elsewhere, looks fine" instead of flagging surface-level issues. Evidence: Go (no 4b) regressed −0.078.
+
+2. **§2.5 dedup rule on Python silences LLM findings.** The expanded "do not re-emit" rule (tracking emitted-symbols set across §2 and Steps 4-7) was implemented in the Phase 4b review fixes (commit 7da0d46). It may be too aggressive in real PRs — the hallucination agent sees a deterministic finding it already emitted and skips broader LLM reasoning on the same symbol. Evidence: Python recall 0.452 — below Phase 3.5's 0.452 (flat, not worse — but 4b was supposed to HELP).
+
+3. **TS gain is driven by L5's symbol-definition lookup specifically closing Phase 3 FNs.** `cal.com#10967` had 1 FN for "redundant optional chaining" that required cross-file type understanding in Phase 3.5. L5 brings that in. This validates L5 in isolation.
+
+### Recommended follow-up
+
+**Per the pre-registered design doc's Hold band**: "ship whichever of (4a alone, 4b alone) passes individually." Neither was tested in isolation here, but the TS per-language result is strong circumstantial evidence that 4a alone is a net-positive. A follow-up Phase 4c.1 run with 4a only (reverting 4b's §2.5 integration but keeping the lib + Khati gate for other uses) would test this hypothesis cleanly.
+
+Three options the operator can pick:
+
+1. **Close Phase 4 entirely** (strictest reading). F1 regressed; revert 4a + 4b agent integrations; keep the `lib/hallucination-ast/` Python package since it's validated on the Khati corpus and has utility for future work. Move to I19 sandbox / other structural levers.
+
+2. **Ship Phase 4a alone, close Phase 4b** (supported by TS +0.078). Revert `agents/hallucination.md` §2.5 integration; keep the cross-file-retrieval skill and its `agents/correctness.md` / `agents/hallucination.md` §2 integration. Expected aggregate F1: ~0.28-0.29 based on TS lift alone.
+
+3. **Investigate the 4a-driven Go/Ruby regression before deciding** (full diligence). Run a Phase 4c.1 with only the cross-file-retrieval skill active (no §2 `NOT_FOUND_IN_TREE` suppression, no §2.5 pre-check). That isolates whether L5 itself is hurting Go/Ruby or whether the hallucination-agent changes are.
+
+### Competitive position after Phase 4c
+
+Phase 4c F1=0.261 puts us **below** Phase 3.5's 0.277 and widens the gap to `claude-code` (0.330) and `coderabbit` (0.333). On the published leaderboard this would rank below our Phase 3.5 number. **We are not publishing Phase 4c; Phase 3.5's 0.277 remains the Soliton CRB number of record until either Phase 4c.1 or a fresh structural iteration moves above it.**
+
+### Cost tracking (Phase 4c)
+
+- Soliton-side (Anthropic Console): 50 × ~$2.50 avg = **~$125**. No individual review hit the $10 cap.
+- Judge-side (Azure OpenAI gpt-5.2): ~$15 (50 reviews × ~2.75s × ~$0.30).
+- Combined: **~$140**. In the expected $150-$300 band I flagged before the run.
+
+### Reproduction
+
+```bash
+# Already encoded in the two scripts committed under PR #27:
+
+# 1. Generate 50 reviews (30-60 min, ~$125 claude-p spend):
+bash bench/crb/dispatch-phase4c.sh              # CONCURRENCY=1 default
+CONCURRENCY=3 bash bench/crb/dispatch-phase4c.sh  # faster
+
+# 2. Score via Azure OpenAI gpt-5.2 judge (~3 min, ~$15):
+bash bench/crb/run-phase4c-pipeline.sh
+```

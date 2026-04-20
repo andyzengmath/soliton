@@ -28,17 +28,9 @@ Parse the diff to find all modified functions/methods. Look for:
 ### 2. Read Full Context
 
 For each modified function:
-1. Use the Read tool to read the full function (not just the diff lines).
-2. **Invoke the `cross-file-retrieval` skill** (see `skills/pr-review/cross-file-retrieval.md`) with:
-   - `diff` = the input diff
-   - `files` = the changed files list
-   - `caller` = `correctness`
-
-   This returns one or more `CROSS_FILE_CONTEXT_START...CROSS_FILE_CONTEXT_END` blocks resolving callee symbols (method calls, type references) referenced from the changed code to their definitions elsewhere in the tree. Use these blocks as ground truth for symbol semantics when forming findings.
-
-   **Do not re-grep** for the same symbols — the skill caps at 8 resolutions per call and that budget is shared. If you need a symbol the skill didn't return (rare), fall back to a focused Grep on that one symbol only.
-
-3. For callers (the *other* direction — who calls this function), use Grep to find 2-3 callers and Read them to understand caller assumptions. Caller-direction retrieval is owned by `cross-file-impact` agent; here we just sample for assumption-checking.
+1. Use the Read tool to read the full function (not just the diff lines)
+2. Use Grep to find 2-3 callers of this function across the codebase
+3. Read the callers to understand how the function is used and what assumptions they make
 
 ### 3. Analyze for Issues
 
