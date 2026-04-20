@@ -19,6 +19,7 @@ import time
 from typing import Protocol
 
 from .resolve import KnowledgeBase, Resolution, resolve
+from .similarity import closest_match
 from .types import AstExtractedReference, Finding, Report, ReportStats
 
 
@@ -61,10 +62,16 @@ def _identifier_not_found(
     ref: AstExtractedReference,
     resolution: Resolution,
 ) -> Finding:
+    # Compare the leaf (e.g. "gett") against the module's public names so
+    # the suggested fix is a bare identifier, not the full dotted path.
+    leaf = ref.symbol.rsplit(".", 1)[-1]
+    suggested = closest_match(leaf, resolution.siblings) if resolution.siblings else None
+
     siblings_hint = ""
     if resolution.siblings:
         preview = ", ".join(resolution.siblings[:8])
         siblings_hint = f" Known siblings in the module include: {preview}."
+    suggestion_hint = f" Did you mean '{suggested}'?" if suggested else ""
     return Finding(
         rule="identifier_not_found",
         severity="critical",
@@ -73,12 +80,13 @@ def _identifier_not_found(
         symbol=ref.symbol,
         message=(
             f"Symbol '{ref.symbol}' does not exist in module '{ref.module}'."
-            f"{siblings_hint}"
+            f"{suggestion_hint}{siblings_hint}"
         ),
         evidence=(
             f"Introspected module '{ref.module}' — dir() did not contain "
             f"the path '{ref.symbol}'."
         ),
+        suggested_fix=suggested,
     )
 
 
