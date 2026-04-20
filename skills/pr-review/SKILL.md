@@ -169,6 +169,7 @@ ReviewConfig {
   sensitivePaths: ['auth/', 'security/', 'payment/', '*.env', '*migration*', '*secret*', '*credential*', '*token*', '*.pem', '*.key']
   outputFormat: 'markdown'
   feedbackMode: false
+  nitpicksLanguages: ['typescript', 'javascript']  # v2.1: include Nitpicks section when primary language matches; see Step 6 Format A
 }
 ```
 
@@ -185,6 +186,7 @@ If it exists, read the file and parse its YAML frontmatter (the content between 
 - `sensitive_paths` -> `sensitivePaths`
 - `default_output` -> `outputFormat`
 - `feedback_mode` -> `feedbackMode`
+- `nitpicks_languages` -> `nitpicksLanguages` (list of language strings, or `"always"` / `"never"`)
 
 Override Layer 1 defaults with any values found in the frontmatter.
 
@@ -577,9 +579,46 @@ For each improvement finding:
 ```
 ```
 
-**Nitpicks section** — *v2 change (Phase 3.5): DROPPED from markdown body.* Nitpicks are still emitted in the JSON output (`--output json`) but are intentionally excluded from the markdown review. Rationale: CRB / leaderboard judge pipelines extract one candidate per finding from the markdown body; low-confidence nitpicks create disproportionate FP volume (25 % of Phase 3 FPs came from nits) without catching any Critical/High goldens. Developers running `soliton` interactively can pass `--output json` if they want the full nitpick set.
+**Nitpicks section** — *v2.1 change (Phase 3.5.1): per-language gate.*
 
-> If this feels wrong for a specific integration, revisit `v2.1` to consider re-adding nitpicks under an explicit `--include-nitpicks` flag. Measured impact of the change lives in `bench/crb/RESULTS.md` §"Phase 3.5".
+Compute the **primary language** of the diff from changed-file extensions:
+
+| Extension(s) | Language |
+|---|---|
+| `.ts`, `.tsx` | typescript |
+| `.js`, `.jsx`, `.mjs`, `.cjs` | javascript |
+| `.py` | python |
+| `.go` | go |
+| `.java` | java |
+| `.rb`, `.erb` | ruby |
+
+Primary language = the language with the most changed files. Ties break
+alphabetically for determinism.
+
+Gate rule:
+- If primary language ∈ {`typescript`, `javascript`} → **render the Nitpicks section** (keep nitpicks in markdown body).
+- Otherwise → **drop the Nitpicks section** from the markdown body (they still live in the JSON output via `--output json`).
+
+Rationale — Phase 3.5 measured a blanket nitpick drop as a precision win on Java/Python/Go/Ruby (25 % of FPs came from nits) but a recall regression on TypeScript (F1 0.325 → 0.266, R 0.839 → 0.613), because TS goldens contain a higher density of legitimately-Low-severity reviewer items that Soliton had been correctly catching. Per-language gating in v2.1 keeps the precision benefit on JVM/dynamic languages while restoring the TS recall that matters on `.ts`/`.tsx`-dominated PRs. Measured impact of the change lives in `bench/crb/RESULTS.md` §"Phase 3.5.1".
+
+Config override: operators can force the behavior in `.claude/soliton.local.md` frontmatter:
+
+```yaml
+nitpicks_languages: ["typescript", "javascript"]   # default (v2.1)
+# or "always" to render regardless of language, "never" to always drop.
+```
+
+**Render pattern** (when gate says include):
+
+```markdown
+## Nitpicks
+```
+
+For each nitpick finding:
+```markdown
+:white_circle: [<category>] <title> in <file>:<lineStart> (confidence: <confidence>)
+<description>
+```
 
 ### Finding-atomicity rule (applies to Critical and Improvements sections)
 
