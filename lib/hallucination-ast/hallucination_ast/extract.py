@@ -48,22 +48,37 @@ def extract_from_source(source: str, file_path: str) -> list[AstExtractedReferen
 
 
 def extract_imports_info(source: str) -> ImportInfo:
-    """Parse only top-level import statements and return alias/root info.
+    """Parse every import statement — at any scope — and return alias/root info.
 
-    Shares the tree-sitter parser but walks just the module-level import
-    constructs. Nested / conditional imports are intentionally ignored —
-    our heuristics only care whether a name was unconditionally bound.
+    We intentionally walk the whole tree (not just module-level) because
+    function-local and conditional imports are still real bindings that
+    prevent name-is-undefined false positives. E.g.
+
+        def foo():
+            import time
+            time.sleep(1)   # NOT a missing-import hallucination
+
+    Treating function-scope imports as bindings keeps our precision
+    honest on real codebases that `import` inside functions for lazy
+    loading or to avoid circular deps.
     """
     info = ImportInfo()
     if not source:
         return info
     tree = _PARSER.parse(source.encode("utf-8"))
-    for child in tree.root_node.children:
-        if child.type == "import_statement":
-            _record_import_statement(child, info)
-        elif child.type == "import_from_statement":
-            _record_from_import_statement(child, info)
+    for node in _iter_descendants(tree.root_node):
+        if node.type == "import_statement":
+            _record_import_statement(node, info)
+        elif node.type == "import_from_statement":
+            _record_from_import_statement(node, info)
     return info
+
+
+def _iter_descendants(node: Node):
+    """Yield every descendant of `node` (including itself)."""
+    yield node
+    for child in node.children:
+        yield from _iter_descendants(child)
 
 
 def _record_import_statement(node: Node, info: ImportInfo) -> None:

@@ -22,8 +22,7 @@ from pathlib import Path
 
 import click
 
-from .check import check_all
-from .extract import extract_from_diff
+from .check import check_diff
 from .resolve import SitePackagesKB
 from .types import report_to_json_dict
 
@@ -55,9 +54,8 @@ def main(diff_arg, repo_root: Path | None) -> None:
         click.echo(f"error: failed to read diff: {e}", err=True)
         sys.exit(2)
 
-    refs = extract_from_diff(diff_text, repo_root=repo_root)
     kb = SitePackagesKB()
-    report = check_all(refs, kb)
+    report = check_diff(diff_text, repo_root, kb)
 
     click.echo(json.dumps(report_to_json_dict(report), indent=2))
 

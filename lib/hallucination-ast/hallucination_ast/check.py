@@ -300,6 +300,96 @@ def _accepted_kwarg_names(sig: inspect.Signature) -> set[str]:
 # --- orchestration --------------------------------------------------------
 
 
+def check_diff(
+    diff_text: str,
+    repo_root,
+    kb: KnowledgeBase,
+) -> Report:
+    """Run the full pipeline on a unified diff and return one merged Report.
+
+    For each changed .py file we load the post-image (disk if available,
+    else synthesized from context + '+' lines), then run the same alias /
+    local-name / missing-import logic that check_source uses — but filtered
+    to references whose line is on an added ('+') line. Context-line refs
+    and refs in other files are ignored.
+    """
+    from .extract import (
+        _added_line_numbers,
+        _load_post_image,
+        extract_from_source,
+        extract_imports_info,
+    )
+    import unidiff
+
+    from pathlib import Path as _Path
+
+    start = time.perf_counter()
+
+    if not diff_text.strip():
+        wall_ms = int((time.perf_counter() - start) * 1000)
+        return Report(stats=ReportStats(0, 0, 0, 0, wall_ms))
+
+    try:
+        patch = unidiff.PatchSet(diff_text)
+    except Exception:
+        wall_ms = int((time.perf_counter() - start) * 1000)
+        return Report(stats=ReportStats(0, 0, 0, 0, wall_ms))
+
+    repo_root_path = _Path(repo_root) if repo_root is not None else None
+
+    all_findings: list[Finding] = []
+    all_unresolved: list[AstExtractedReference] = []
+    total_refs = resolved_ok = resolved_bad = unresolved_count = 0
+
+    for patched_file in patch:
+        target = patched_file.target_file or ""
+        if target.startswith("b/"):
+            target = target[2:]
+        if not target.endswith(".py"):
+            continue
+
+        post_image = _load_post_image(patched_file, target, repo_root_path)
+        if post_image is None:
+            continue
+
+        added_lines = _added_line_numbers(patched_file)
+        if not added_lines:
+            continue
+
+        refs = extract_from_source(post_image, target)
+        imports = extract_imports_info(post_image)
+        local_names = _locally_bound_names(post_image)
+
+        rewritten, missing = _apply_import_context(refs, imports, local_names)
+
+        added_rewritten = [r for r in rewritten if r.line in added_lines]
+        added_missing = [m for m in missing if m.line in added_lines]
+
+        subreport = check_all(added_rewritten, kb)
+        if added_missing:
+            subreport.findings = added_missing + subreport.findings
+
+        all_findings.extend(subreport.findings)
+        all_unresolved.extend(subreport.unresolved)
+        total_refs += subreport.stats.total_references + len(added_missing)
+        resolved_ok += subreport.stats.resolved_ok
+        resolved_bad += subreport.stats.resolved_bad + len(added_missing)
+        unresolved_count += subreport.stats.unresolved
+
+    wall_ms = int((time.perf_counter() - start) * 1000)
+    return Report(
+        findings=all_findings,
+        unresolved=all_unresolved,
+        stats=ReportStats(
+            total_references=total_refs,
+            resolved_ok=resolved_ok,
+            resolved_bad=resolved_bad,
+            unresolved=unresolved_count,
+            wall_ms=wall_ms,
+        ),
+    )
+
+
 def check_source(
     source: str,
     file_path: str,
@@ -353,16 +443,21 @@ def _apply_import_context(
         new_ref = _rewrite_alias(ref, imports.alias_to_module)
         mod_root = new_ref.module.split(".", 1)[0]
 
+        # Local-bound names (function params, assignments, for-vars, etc.)
+        # are definitely not modules — KB lookup against them is nonsense
+        # (e.g. local `numbers = set()` would resolve against the stdlib
+        # `numbers` module and flag `.add` as missing). Drop the ref.
+        if mod_root in locals_set:
+            continue
+
         # Only flag when the root name isn't any of:
         #   - an imported module (or aliased to one)
-        #   - a locally-bound name (function param, assignment, for-var, ...)
         #   - a Python builtin
         # Stdlib modules are NOT exempted: `json.dumps(x)` without `import json`
         # is a real runtime NameError per Khati 2026's methodology.
         if (
             mod_root not in imports.imported_roots
             and mod_root not in imports.alias_to_module
-            and mod_root not in locals_set
             and not _is_builtin_name(mod_root)
         ):
             if mod_root not in already_flagged:
