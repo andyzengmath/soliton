@@ -27,6 +27,26 @@ Require the corresponding feature flag enabled in `.claude/soliton.local.md`.
 
 Each v2 fixture's `expected.json` adds `tier0Verdict`, `llmSwarmSkipped`, `blockReason` (optional), `confidenceThresholdBumpedTo` (optional), or `wiringChecksFailed` (for spec-alignment) on top of the base fields.
 
+### Phase 4b fixtures (hallucination-AST pre-check)
+
+End-to-end tests for the `lib/hallucination-ast/` package integration via `agents/hallucination.md` §2.5. Each fixture's `expected.json` carries a `phase4bExpected` block with the exact rule + symbol + confidence the deterministic pre-check must emit.
+
+| Fixture | Target | Expected Rule | Category | Severity |
+|---------|--------|---------------|----------|----------|
+| hallucinated-import | Python `requests.gett(url)` typo | `identifier_not_found` with `suggestedFix: "get"` | hallucination | critical |
+| signature-mismatch | Python `os.makedirs(path, recursive=True)` — JS→Python cross-language hallucination | `signature_mismatch_keyword` for `recursive` | hallucination | improvement |
+
+Both fixtures are Python-only (v0.1 backend). Non-Python diffs skip the pre-check and fall through to the LLM pipeline.
+
+To validate manually:
+
+```bash
+python -m hallucination_ast --diff tests/fixtures/hallucinated-import/diff.patch | jq .findings
+python -m hallucination_ast --diff tests/fixtures/signature-mismatch/diff.patch | jq .findings
+```
+
+Each must produce exactly one finding matching the `phase4bExpected` block, at `confidence: 100`.
+
 ## Validation Process
 
 For each fixture directory in `tests/fixtures/`:

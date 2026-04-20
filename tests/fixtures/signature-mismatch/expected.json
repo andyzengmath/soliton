@@ -1,0 +1,14 @@
+{
+  "riskRange": [20, 70],
+  "expectedFindings": 1,
+  "expectedCategories": ["hallucination"],
+  "expectedSeverity": "improvement",
+  "description": "Python file calls os.makedirs(path, recursive=True). `recursive` is a Node.js fs.mkdir kwarg — Python's os.makedirs takes `(name, mode=511, exist_ok=False)` with no **kwargs sink. A classic LLM cross-language hallucination. Phase 4b pre-check must flag signature_mismatch_keyword at confidence 100.",
+  "phase4bExpected": {
+    "rule": "signature_mismatch_keyword",
+    "symbol": "os.makedirs",
+    "unknownKwarg": "recursive",
+    "confidence": 100,
+    "emittedByPreCheck": true
+  }
+}

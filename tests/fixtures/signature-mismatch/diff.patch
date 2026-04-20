@@ -1,0 +1,19 @@
+diff --git a/src/paths.py b/src/paths.py
+new file mode 100644
+index 0000000..abcdef0
+--- /dev/null
++++ b/src/paths.py
+@@ -0,0 +1,13 @@
++"""Directory bootstrap helpers."""
++import os
++
++
++def ensure_dir(path: str) -> str:
++    """Create a directory tree if it doesn't already exist.
++
++    Returns the path for chaining.
++    """
++    os.makedirs(path, recursive=True)
++    return path
++
++
