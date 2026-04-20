@@ -35,6 +35,12 @@ DISPATCH_LIST="$REPO_ROOT/bench/crb/phase3-dispatch-list.txt"
 OUTPUT_DIR="$REPO_ROOT/bench/crb/phase4c-reviews"
 CONCURRENCY="${CONCURRENCY:-1}"
 
+# Per-review budget: Phase 3.5 used $2, but the Phase 4b §2.5 pre-check
+# and 4a cross-file-retrieval skill add per-review overhead that pushed
+# the most complex PRs (e.g. sentry-93824) over $2. Default $4 gives a
+# ~2x safety margin; operators can override via MAX_BUDGET_USD.
+export MAX_BUDGET_USD="${MAX_BUDGET_USD:-4}"
+
 if [ ! -f "$DISPATCH_LIST" ]; then
   echo "error: dispatch list not found at $DISPATCH_LIST" >&2
   exit 1
