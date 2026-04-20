@@ -42,6 +42,107 @@ For each retrieved block:
 
 **Do not re-grep** for symbols the skill already attempted. The skill caps at 8 resolutions; if you need a 9th, fall back to a focused Grep on that one symbol only and document why in the finding's evidence.
 
+### 2.5. Run Hallucination-AST Pre-Check (Phase 4b)
+
+Before the LLM-based external-package verification in Step 3, run the
+**deterministic AST checker** at `lib/hallucination-ast/`. It reproduces Khati
+et al. 2026 (arXiv 2601.19106) with F1=0.968 on the paper's 200-sample Python
+corpus: 100% precision discipline, aggressive recall, zero LLM tokens.
+
+**Command** (shelled out via Bash — use the stdin-pipe form to avoid tempfile TOCTOU and shell-injection surface):
+
+```bash
+# REQUIRED: validate BASE/HEAD refs before invocation.
+# Reject anything that doesn't match the refname regex.
+echo "$BASE $HEAD" | grep -E '^[A-Za-z0-9._/-]+ [A-Za-z0-9._/-]+$' > /dev/null || exit 2
+
+# Pipe via stdin — no /tmp file, no shell-metachar interpolation in the pipeline.
+git -C "$REPO" diff --no-color "$BASE..$HEAD" \
+  | python -m hallucination_ast --diff - --repo-root "$REPO"
+```
+
+Do NOT substitute `<base>`, `<head>`, `<repo>` into a shell command string — PR branch names from forks can contain `;`, `$(...)`, backticks, `&&`, `|`, etc. The regex gate + quoted `"$VAR"` form above is the only safe pattern.
+
+The CLI reads the diff, introspects the target's installed packages, and
+emits a JSON `Report`:
+
+```json
+{
+  "findings": [
+    {
+      "rule": "identifier_not_found",
+      "severity": "critical",
+      "confidence": 100,
+      "file": "src/foo.py",
+      "line": 42,
+      "symbol": "requests.gett",
+      "message": "Symbol 'requests.gett' does not exist in module 'requests'. Did you mean 'get'?",
+      "evidence": "Introspected module 'requests' — dir() did not contain the path 'requests.gett'.",
+      "suggestedFix": "get"
+    }
+  ],
+  "unresolved": [ /* references the AST checker couldn't confirm either way */ ],
+  "stats": { "totalReferences": 12, "resolvedOk": 9, "resolvedBad": 1, "unresolved": 2, "wallMs": 87 }
+}
+```
+
+**How to use the output:**
+
+1. For each `finding` in the JSON, emit a FINDING_START block using the
+   Step 8 schema with this **exact field mapping** (do NOT re-reason;
+   copy values directly). The AST JSON schema and FINDING_START schema
+   differ in field names — follow the table verbatim:
+
+   | FINDING_START field | JSON source                                  |
+   |---------------------|----------------------------------------------|
+   | `agent`             | `hallucination` (literal)                    |
+   | `category`          | `hallucination` (literal)                    |
+   | `severity`          | `finding.severity`                           |
+   | `confidence`        | `finding.confidence` (always 100 here)       |
+   | `file`              | `finding.file`                               |
+   | `lineStart`         | `finding.line`                               |
+   | `lineEnd`           | `finding.line` (AST hits are single-line)    |
+   | `title`             | compose as: `Hallucination: <finding.symbol> (<finding.rule>)` |
+   | `description`       | `finding.message`                            |
+   | `suggestion`        | `finding.suggestedFix` if present, else null |
+   | `evidence`          | `finding.evidence`                           |
+
+   The four deterministic rules are:
+   - `identifier_not_found` (critical) — symbol doesn't exist in target module
+   - `signature_mismatch_arity` (critical) — wrong positional argument count
+   - `signature_mismatch_keyword` (improvement) — unknown kwarg passed
+   - `deprecated_identifier` (improvement) — PEP 702 `__deprecated__` set
+
+2. For each entry in `unresolved[]`, the AST checker couldn't introspect
+   the target module (not installed, import-time error, dynamic import,
+   attacker-name refused by the allowlist, or a locally-shadowed name).
+   **Treat unresolved as a forward, not a miss.** Continue with the full
+   remaining pipeline: Step 3 external-package verification if applicable,
+   then Steps 4–7 LLM reasoning, then Step 8 emission. Do NOT discard an
+   unresolved entry after Step 3 finds nothing — the LLM reasoning in
+   Steps 4+ may still catch it.
+
+3. Only Python is covered by this pre-check in v0.1. For TypeScript, Go,
+   Java, or Ruby diffs, the pre-check emits no findings and you proceed
+   directly to Step 3. TS/JS backends follow in 4b.1.
+
+4. Exit code of the CLI: 0 = no critical findings, 1 = at least one
+   critical finding, 2 = input error. Exit 1 does **not** block your
+   review; it's a signal that critical findings were emitted.
+
+**Do not re-emit** findings the AST pre-check already raised — that would
+cause duplicate critical findings at the synthesizer. Track the SET of
+symbols for which the pre-check emitted a finding. In Step 2
+(cross-file-retrieval) and Steps 4–7 (LLM reasoning), skip emitting a
+new finding whose `symbol` is already in that set, even if the LLM
+independently reaches the same conclusion. Vendored-dependency PRs (a
+`vendor/` directory containing Python packages) are the common scenario
+where both paths flag the same symbol.
+
+Only emit NEW findings on:
+- symbols in `unresolved[]` (per bullet 2);
+- any non-Python file in the diff.
+
 ### 3. Verify External Packages
 
 For each new call to an EXTERNAL package:

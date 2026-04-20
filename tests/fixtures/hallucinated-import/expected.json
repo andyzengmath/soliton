@@ -1,0 +1,14 @@
+{
+  "riskRange": [30, 80],
+  "expectedFindings": 1,
+  "expectedCategories": ["hallucination"],
+  "expectedSeverity": "critical",
+  "description": "Python file calls requests.gett() which does not exist. Phase 4b hallucination-AST pre-check must flag identifier_not_found at confidence 100 with suggestedFix='get'. The pre-check bypasses the Opus reasoning step for this case.",
+  "phase4bExpected": {
+    "rule": "identifier_not_found",
+    "symbol": "requests.gett",
+    "suggestedFix": "get",
+    "confidence": 100,
+    "emittedByPreCheck": true
+  }
+}
