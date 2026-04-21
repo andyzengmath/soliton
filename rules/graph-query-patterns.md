@@ -40,17 +40,38 @@ The primary contract above targets `graph-cli` from sibling `graph-code-indexing
 - **`code-review-graph`** by tirth8205 — Tree-sitter → SQLite, 23 languages, 28 MCP tools, `crg-daemon` for incremental updates, git-hook auto-refresh. MIT. `pip install code-review-graph && code-review-graph install` configures `~/.claude.json` automatically. Reports 8.2× avg token reduction on 6 OSS repos (reproducible via `code-review-graph eval --all`).
 - **`better-code-review-graph`** by n24q02m — fork of the above with (a) qualified-call resolution + bare-name fallback, (b) pagination (`max_results`, truncation flags) for unbounded outputs, (c) dual-mode embedding (local ONNX `qwen3-embed` ~200 MB + multi-provider cloud fallback). Closer to production-readiness; same MCP surface.
 
-### Adapter mapping (Soliton query → MCP tool)
+### Adapter mapping (Soliton query → MCP tool or backend CLI)
 
-| Soliton query | `graph-cli` command | MCP-backend tool(s) |
-|---|---|---|
-| `info` | `graph-cli info --graph <path>` | `list_graph_stats_tool` + `list_repos_tool` |
-| `blast-radius` | `graph-cli query --blast-radius <file>:<symbol> --depth 2` | `get_impact_radius_tool` |
-| `taint-paths` | `graph-cli query --taint-paths <source>` | `traverse_graph_tool` (with DATA_FLOW edge filter) |
-| `dependency-breaks` | `graph-cli diff --deps --base-graph --head-graph` | `detect_changes_tool` |
-| `co-change` | `graph-cli query --co-change <file>` | `get_affected_flows_tool` |
-| `feature-partition` | `graph-cli query --feature <file>` | `list_communities_tool` + `get_community_tool` |
-| `review-bundle` | (composed) | `get_review_context_tool` (composes blast-radius + flows + test-coverage) |
+Validation status against `code-review-graph` 2.3.2 (tested 2026-04-21 on this repo; 278-node graph built in 15.9 s). **CLI** column is the subcommand exposed by `code-review-graph`'s top-level binary; **MCP** column is the tool name exposed via `code-review-graph serve` (stdio).
+
+| Soliton query | `graph-cli` command | crg CLI | crg MCP tool | Validation |
+|---|---|---|---|---|
+| `info` | `graph-cli info --graph <path>` | `code-review-graph status` | `list_graph_stats_tool` + `list_repos_tool` | ✅ CLI tested: emits `Nodes/Edges/Files/Languages/Last updated/Built on branch/Built at commit` |
+| `blast-radius` | `graph-cli query --blast-radius <file>:<symbol> --depth 2` | — | `get_impact_radius_tool` | ⚠️ MCP-only; no CLI subcommand |
+| `taint-paths` | `graph-cli query --taint-paths <source>` | — | `traverse_graph_tool` (DATA_FLOW filter) | ⚠️ MCP-only |
+| `dependency-breaks` | `graph-cli diff --deps --base-graph --head-graph` | `code-review-graph detect-changes --base <rev>` | `detect_changes_tool` | ✅ CLI tested: emits `summary, risk_score, changed_functions, affected_flows, test_gaps, review_priorities` |
+| `co-change` | `graph-cli query --co-change <file>` | — | `get_affected_flows_tool` | ⚠️ MCP-only; no CLI flag |
+| `feature-partition` | `graph-cli query --feature <file>` | — | `list_communities_tool` + `get_community_tool` | ⚠️ MCP-only (community DB exists — migration v4 `communities` table — but no CLI subcommand reads it) |
+| `review-bundle` | (composed) | — | `get_review_context_tool` | ⚠️ MCP-only (composes blast-radius + flows + test-coverage) |
+
+**Honest read after validation:** 2 of 7 Soliton queries have direct CLI equivalents in `code-review-graph`; the other 5 are MCP-only. A full graph-signals dogfood against this backend therefore needs either:
+
+1. An MCP client shim inside Soliton (e.g., a Python `graph-cli` wrapper that connects to `code-review-graph serve` over stdio and exposes the 7 queries), or
+2. Degraded Step 2.8 signals — only `info` + `dependencyBreaks` flow through; the rest emit `partial: true`. Still useful (dependencyBreaks is what the `cross-file-impact` agent consumes).
+
+Partial-mode is the minimum viable integration. Full-mode is Phase 6 engineering.
+
+### Installation (tested 2026-04-21 on Python 3.14, Windows)
+
+```bash
+pip install code-review-graph
+cd <repo>
+code-review-graph build          # full parse; ~15-30 s on small repos, watch mode available
+code-review-graph status         # verify
+code-review-graph detect-changes --base HEAD~1 --brief
+```
+
+Optionally `code-review-graph install` auto-registers the MCP server in `~/.claude.json`; skipped for the validation above to avoid mutating global config.
 
 ### When to use MCP backend vs `graph-cli`
 
