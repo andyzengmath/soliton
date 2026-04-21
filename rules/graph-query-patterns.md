@@ -33,6 +33,41 @@ Name: `graph-cli`. Current implementation: Node.js wrapper shipped with
 | `--timeout-ms <n>` | Per-query timeout (default 500 ms) |
 | `--quiet` | Suppress progress output; only emit result JSON |
 
+## Alternative provider: MCP-server backends
+
+The primary contract above targets `graph-cli` from sibling `graph-code-indexing`. Until that CLI is packaged (`graph-code-indexing@>=0.2.0` release pending), Soliton's `skills/pr-review/graph-signals.md` can alternatively consume an MCP-server provider that exposes equivalent queries. Two OSS providers implement a compatible surface today:
+
+- **`code-review-graph`** by tirth8205 — Tree-sitter → SQLite, 23 languages, 28 MCP tools, `crg-daemon` for incremental updates, git-hook auto-refresh. MIT. `pip install code-review-graph && code-review-graph install` configures `~/.claude.json` automatically. Reports 8.2× avg token reduction on 6 OSS repos (reproducible via `code-review-graph eval --all`).
+- **`better-code-review-graph`** by n24q02m — fork of the above with (a) qualified-call resolution + bare-name fallback, (b) pagination (`max_results`, truncation flags) for unbounded outputs, (c) dual-mode embedding (local ONNX `qwen3-embed` ~200 MB + multi-provider cloud fallback). Closer to production-readiness; same MCP surface.
+
+### Adapter mapping (Soliton query → MCP tool)
+
+| Soliton query | `graph-cli` command | MCP-backend tool(s) |
+|---|---|---|
+| `info` | `graph-cli info --graph <path>` | `list_graph_stats_tool` + `list_repos_tool` |
+| `blast-radius` | `graph-cli query --blast-radius <file>:<symbol> --depth 2` | `get_impact_radius_tool` |
+| `taint-paths` | `graph-cli query --taint-paths <source>` | `traverse_graph_tool` (with DATA_FLOW edge filter) |
+| `dependency-breaks` | `graph-cli diff --deps --base-graph --head-graph` | `detect_changes_tool` |
+| `co-change` | `graph-cli query --co-change <file>` | `get_affected_flows_tool` |
+| `feature-partition` | `graph-cli query --feature <file>` | `list_communities_tool` + `get_community_tool` |
+| `review-bundle` | (composed) | `get_review_context_tool` (composes blast-radius + flows + test-coverage) |
+
+### When to use MCP backend vs `graph-cli`
+
+- **MCP backend**: prefer for interactive local dev, Claude Code native flows, rapid incremental updates, language coverage beyond what `graph-code-indexing` supports today (specifically Java/Ruby/Scala/Kotlin/Swift/C#).
+- **`graph-cli` contract**: prefer for CI/CD where a pre-built graph JSON ships as an artifact, for air-gapped / audit-friendly enterprises, and once the sibling repo lands Java + PPR centrality + co-change + feature-partition (`graph-code-indexing` gaps A1/A6/B4/B8).
+- **Both**: Step 2.8 can accept either; graceful fallback is `GRAPH_SIGNALS_UNAVAILABLE` when neither is present.
+
+### Bug-list absorbed from the fork
+
+These are pre-registered traps for any provider (MCP server or CLI) to avoid. Enforced in Soliton's adapter when it normalizes provider output:
+
+1. **Qualified-name resolution**: `callers_of(Foo)` must resolve against qualified identifiers (`pkg.Foo`, `module::Foo`) with bare-name fallback. Returning empty for a bare name that has qualified matches is a silent recall failure.
+2. **Pagination / bounded output**: any query that can return > 500 nodes/edges must expose `max_results` + a truncation flag; unbounded `list_*` tools have shipped multi-hundred-KB outputs into LLM context and blown latency budgets.
+3. **Embedding provider graceful fallback**: if semantic search depends on a cloud embedding provider, offer a local fallback (ONNX `qwen3-embed` pattern). Failing hard on network errors breaks every review.
+
+The Soliton adapter (in `skills/pr-review/graph-signals.md` when it lands for MCP) must wrap provider responses to enforce these contracts regardless of which backend is active.
+
 ## Queries — contract
 
 ### `info`
