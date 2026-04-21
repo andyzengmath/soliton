@@ -616,6 +616,8 @@ AI-Authored Likelihood: <aiAuthoredLikelihood>
 (<suppressed> additional findings below confidence threshold)
 ```
 
+Emit the count only. Do NOT list suppressed titles after the colon. Downstream candidate extractors (CRB step2, similar) re-extract titles from this line and re-inflate the FP denominator for findings Soliton explicitly suppressed.
+
 ### Format B: JSON (when `config.outputFormat` is `'json'` and `config.feedbackMode` is `false`)
 
 Output ONLY a valid JSON object with no surrounding text, no markdown, no emoji, and no progress indicators:
