@@ -27,6 +27,16 @@ You receive from `SKILL.md` Step 2.75:
 - `files` — list of changed files (paths + statuses)
 - `config.graph` — graph configuration (path, mode, timeout)
 
+## Backend detection
+
+Run these checks in order and pick the first that succeeds. Every subsequent query obeys the selected backend's contract; do not mix backends within a single review.
+
+1. **Full mode (`graph-cli`)** — `command -v graph-cli` succeeds AND `$GRAPH_PATH` (resolved per "Step 1 — locate the graph" below) points to a valid `.json` file.
+2. **Partial mode (`code-review-graph`)** — `command -v code-review-graph` succeeds AND `.code-review-graph/graph.db` exists under the repo root (or `$CRG_ROOT/graph.db` if `CRG_ROOT` env var set). Degrades gracefully: only `info` and `dependencyBreaks` signals populate; others emit with `partial: true`.
+3. **Unavailable** — neither backend available. Emit `GRAPH_SIGNALS_UNAVAILABLE` and STOP; downstream pipeline falls back to v1 grep-based heuristics.
+
+In the emitted signal block, set `mode` to `full | partial | unavailable` so downstream agents know how much to trust the absence of a signal.
+
 ## Graph interface (Mode B — CLI shell-out)
 
 Soliton v2 ships as `Mode B`: it shells out to a `graph-cli` binary exposed by
@@ -73,16 +83,79 @@ Every command must:
 - Emit JSON to stdout.
 - Complete within 500 ms (individual query); 3 s total budget for this skill.
 
+## Graph interface (partial mode — `code-review-graph`)
+
+When full mode is unavailable but `code-review-graph` is installed, use this contract. Only `info` and `dependency-breaks` map to CLI subcommands; everything else emits with `partial: true` and empty payload.
+
+```bash
+# 1. info  →  code-review-graph status
+code-review-graph status
+# Plain-text output; parse with:
+#   Nodes: N              -> nodeCount
+#   Edges: E              -> edgeCount
+#   Files: F              -> fileCount
+#   Built at commit: <sha>-> commitSha
+#   Last updated: ISO     -> builtAt
+# Wrap into: { "commitSha": "...", "nodeCount": N, "edgeCount": E, "builtAt": "..." }
+
+# 2. dependency-breaks  →  code-review-graph detect-changes --base $BASE_BRANCH
+code-review-graph detect-changes --base "$baseBranch" 2>/dev/null
+# Structured JSON:
+#   {
+#     "summary": "...",
+#     "risk_score": 0-1,
+#     "changed_functions": [{"name", "file", "reason"}...],
+#     "affected_flows": [...],
+#     "test_gaps": [...],
+#     "review_priorities": [{"file", "reason", "severity"}...]
+#   }
+# Map `changed_functions` + `review_priorities` to Soliton's `dependencyBreaks.brokenCallers`.
+# If result.risk_score > 0.5 OR any review_priorities[] has severity=="critical",
+# set dependencyBreaks[].severity = "critical"; else "improvement".
+```
+
+All other queries (`blast-radius`, `taint-paths`, `co-change`, `feature-partition`, `centrality`, `test-files-for`) are not available in partial mode. Emit these signals as:
+
+```yaml
+# In partial mode only — example for blastRadius
+blastRadius:
+  partial: true
+  reason: "code-review-graph backend — blast-radius MCP-only; run full mode for per-symbol signals"
+```
+
+**Latency budget for partial mode.** The `exit-0-JSON-500ms` contract above applies to full-mode `graph-cli`. The `code-review-graph` Python CLI has meaningfully higher per-call latency. Measured on this repo 2026-04-21:
+
+| Component | Steady-state | Notes |
+|---|---:|---|
+| Python interpreter startup | ~1.0 s | `python -c "pass"` |
+| Python + `code_review_graph` imports | ~1.1 s | Cold import |
+| `code-review-graph --help` (no graph access) | ~0.6 s | Baseline binary launch |
+| `code-review-graph status` (full query) | **~8–11 s** | Windows + OneDrive-synced `.code-review-graph/graph.db`; includes git freshness checks |
+
+Transient OneDrive sync bursts have been observed pushing `status` to ~70 s during heavy file-sync activity; this is an environment artifact, not a steady-state cost. For partial mode, relax the contract to:
+
+- Per-query timeout: **10 s** (instead of 500 ms).
+- Total skill budget: **20 s** (instead of 3 s).
+- If a query exceeds its timeout, mark the corresponding signal `partial: true` with `reason: "backend timeout"` and continue.
+
+This is an acknowledged cost of using a Python process-invocation backend vs the native `graph-cli` Node binary. Operators targeting Soliton's original 3 s total budget should prefer full mode or host `.code-review-graph/graph.db` outside a cloud-synced path. Partial mode is the pragmatic dogfood path while `graph-cli` matures in the sibling repo.
+
 ## Graph availability check
 
 ### Step 1 — locate the graph
 
-In priority order:
+In priority order, matching the selected backend from "Backend detection":
+
+**Full mode (`graph-cli`):**
 1. `config.graph.path` from `.claude/soliton.local.md`
 2. `SOLITON_GRAPH_PATH` env var
 3. `.soliton/graph.json` at repo root
 
-If none exist, emit `GRAPH_SIGNALS_UNAVAILABLE` and STOP.
+**Partial mode (`code-review-graph`):**
+1. `$CRG_ROOT/graph.db` if `CRG_ROOT` env var set
+2. `.code-review-graph/graph.db` at repo root (default `code-review-graph build` output)
+
+If neither backend has a graph at any of its candidate paths, emit `GRAPH_SIGNALS_UNAVAILABLE` and STOP.
 
 ### Step 2 — freshness check
 
@@ -221,6 +294,8 @@ Emit in this exact block format:
 ```
 GRAPH_SIGNALS_START
 graph:
+  mode: full|partial
+  backend: graph-cli|code-review-graph
   path: <path>
   commitSha: <sha>
   freshness: fresh|stale
