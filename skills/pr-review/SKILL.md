@@ -165,12 +165,14 @@ Resolve configuration by merging three layers (later layers override earlier):
 ReviewConfig {
   confidenceThreshold: 85
   agents: 'auto'
-  skipAgents: []
+  skipAgents: ['test-quality', 'consistency']
   sensitivePaths: ['auth/', 'security/', 'payment/', '*.env', '*migration*', '*secret*', '*credential*', '*token*', '*.pem', '*.key']
   outputFormat: 'markdown'
   feedbackMode: false
 }
 ```
+
+The `skipAgents` default excludes `test-quality` and `consistency` by the Phase 5 per-agent attribution data in `bench/crb/AUDIT_10PR.md` §Appendix A. Integrations that want those findings set `skip_agents: []` in `.claude/soliton.local.md`.
 
 ### Layer 2: Project Config File
 Check if `.claude/soliton.local.md` exists in the project root:
