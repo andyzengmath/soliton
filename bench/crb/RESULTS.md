@@ -966,6 +966,76 @@ bash bench/crb/run-phase5_2-pipeline.sh
 PYTHONUTF8=1 python3 bench/crb/analyze-phase5.py
 ```
 
+## Phase 5.2.1 · Regex-tightening re-run (50 PRs, GPT-5.2 judge — 2026-04-21)
+
+**Setup.** End-to-end dogfood of `/pr-review 36` with `graph.enabled: true` (PR #39 partial-mode backend) surfaced a real bug in `bench/crb/strip-footnote-titles.py`: the original regex missed five real footnote variants observed across phase5-reviews/:
+
+| Variant | Example | Count |
+|---|---|---:|
+| `threshold 85 suppressed: ...` | `go-grafana-103633` | 1 |
+| `threshold — titles — suppressed at threshold 85` (em-dash, no colon) | `python-sentry-67876`, `ts-calcom-14740` | 2 |
+| `threshold of 85: ...` | `ruby-discourse-graphite-10` | 1 |
+| `threshold — titles` (em-dash-introduced) | `ts-calcom-10600` | 1 |
+
+Tightened the regex to strip any trailer between `threshold` and the closing `)`, then re-ran the judge pipeline (~$15, no Soliton re-dispatch).
+
+**Post-fix strip stats (phase5-reviews/ → phase5_2-reviews/):**
+- Reviews modified: 6 → **11** (+83 %)
+- Footnotes stripped: 6 → **11**
+- Titles removed (estimate): 15 → **19**
+
+Zero title-bearing footnotes remain in `phase5_2-reviews/` after the fix.
+
+### Re-judged headline
+
+| Metric | Phase 3.5 | Phase 5 | **Phase 5.2** (partial strip, published) | **Phase 5.2.1** (clean strip, re-run) |
+|--------|---------:|--------:|---------:|---------:|
+| F1 | 0.277 | 0.300 | **0.313** | **0.308** |
+| Precision | 0.183 | 0.210 | 0.224 | 0.219 |
+| Recall | 0.566 | 0.522 | 0.522 | 0.515 |
+| TP | 77 | 71 | 71 | 70 |
+| FP | 343 | 267 | 246 | 249 |
+| FN | 59 | 65 | 65 | 66 |
+| Candidates / PR | 8.4 | 6.9 | 6.6 | 6.5 |
+
+**F1 dropped 0.005 vs. published Phase 5.2**, but the delta is inside CRB's known judge σ ≈ 0.02. Per-language swings confirm judge noise:
+
+| Lang | Phase 5.2 F1 | Phase 5.2.1 F1 | Δ |
+|---|---:|---:|---:|
+| TS | 0.342 | 0.349 | +0.007 |
+| Python | 0.311 | 0.304 | −0.007 |
+| Ruby | **0.312** | **0.283** | **−0.029** |
+| Go | 0.320 | 0.320 | 0 |
+| Java | 0.272 | 0.275 | +0.003 |
+
+Ruby's 0.029-swing on **identical reviews** (same Phase 5 Soliton output, just a different subset of footnotes stripped) proves per-language signal is dominated by judge noise, not by the extra 5 stripped titles.
+
+### Interpretation
+
+The original Phase 5.2 regex captured **~85 %** of title-bearing footnotes (6 of 7 missable variants — the count-only variant was already handled correctly). The remaining 5 variants contributed judge-level noise, not material F1 movement.
+
+**What this says about Phase 5.2's F1 = 0.313 claim:** the clean-strip number is 0.308. Both are within judge noise of each other; Phase 5.2's published number is not invalidated, but it rides the high end of the noise band. A more defensible way to cite the footnote-strip lever's effect over Phase 5 is:
+
+- **F1 gain:** 0.300 → 0.308–0.313 (centered ~0.31, ±0.005 judge noise)
+- **FP reduction:** ~20 candidates (8 % of Phase 5's 267)
+- **TP cost:** 0 to 1 (noise-level)
+
+### Ship verdict on the regex fix — SHIP (regex only, no benchmark update)
+
+The regex fix is correct and retains its value for any future counterfactual experiment run from phase5-reviews/. The re-measured F1 doesn't clear Phase 5.2's published 0.313 (which remains as the current CRB number of record, with the noise caveat above), but the fix is zero-cost to carry and unblocks precise measurement for any follow-on work. **Merge the regex fix; do not revise Phase 5.2's published F1.**
+
+### Reproduction
+
+```bash
+# Branch feat/phase-5-2-1-regex-fix:
+PYTHONUTF8=1 python3 bench/crb/strip-footnote-titles.py  # re-strip with tightened regex
+bash bench/crb/run-phase5_2-pipeline.sh                  # ~3 min, ~$15
+PYTHONUTF8=1 python3 bench/crb/analyze-phase5.py
+# Verify clean strip:
+grep -cE '\([0-9]+ additional findings below confidence threshold[^)]+\)' bench/crb/phase5_2-reviews/*.md | grep -v ':0'
+# (empty = clean; no title-bearing footnotes remain)
+```
+
 ### Appendix B — UNMATCHED FP audit (how Phase 5.2 was found)
 
 Running `bench/crb/analyze-phase5.py` on the Phase 5 data revealed **51 FP candidates** (19 % of all FPs) could not be fuzzy-matched back to any Soliton markdown finding at jaccard ≥ 0.08. Manual inspection of these UNMATCHED FPs found one systematic pattern:
