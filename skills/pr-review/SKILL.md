@@ -180,13 +180,39 @@ Check if `.claude/soliton.local.md` exists in the project root:
 test -f .claude/soliton.local.md && echo "exists"
 ```
 
-If it exists, read the file and parse its YAML frontmatter (the content between the opening `---` and closing `---`). Map frontmatter fields to config:
+If it exists, read the file and parse its YAML frontmatter (the content between the opening `---` and closing `---`). Map frontmatter fields to config.
+
+**Flat v1 fields:**
 - `threshold` -> `confidenceThreshold`
 - `agents` -> `agents`
 - `skip_agents` -> `skipAgents`
 - `sensitive_paths` -> `sensitivePaths`
 - `default_output` -> `outputFormat`
 - `feedback_mode` -> `feedbackMode`
+
+**Nested v2 feature-flag fields** (drive Steps 2.6/2.7/2.8 activation):
+- `tier0.enabled` -> `config.tier0.enabled` (boolean; enables Step 2.6 Tier-0 Deterministic Gate)
+- `tier0.skip_llm_on_clean` -> `config.tier0.skip_llm_on_clean` (boolean; when true + Tier-0 verdict `clean`, fast-path out of Step 3+)
+- `spec_alignment.enabled` -> `config.spec_alignment.enabled` (boolean; enables Step 2.7 Spec Alignment)
+- `graph.enabled` -> `config.graph.enabled` (boolean; enables Step 2.8 Graph Signals)
+- `graph.path` -> `config.graph.path` (string; path to pre-built graph — `.json` for full-mode `graph-cli`, `.code-review-graph/graph.db` for partial-mode `code-review-graph`)
+- `graph.timeout_ms` -> `config.graph.timeout_ms` (integer; per-query timeout for Step 2.8; default 500 full-mode, 10000 partial-mode)
+
+Each v2 feature-flag default is OFF at Layer 1 for backwards compatibility; integrations opt in per-repo via this local config. Example:
+
+```yaml
+---
+graph:
+  enabled: true
+  path: .code-review-graph/graph.db
+  timeout_ms: 20000
+tier0:
+  enabled: true
+  skip_llm_on_clean: true
+spec_alignment:
+  enabled: true
+---
+```
 
 Override Layer 1 defaults with any values found in the frontmatter.
 
