@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Soliton review
-        uses: anthropics/claude-code-action@38ec876110f9fbf8b950c79f534430740c3ac009 # v1
+        uses: anthropics/claude-code-action@567fe954a4527e81f132d87d1bdbcc94f7737434 # v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
