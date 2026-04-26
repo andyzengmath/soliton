@@ -1,7 +1,7 @@
 {
   "name": "soliton",
   "description": "Intelligent multi-agent PR review with adaptive risk-based dispatch",
-  "version": "0.0.2",
+  "version": "2.0.1",
   "author": {
     "name": "andyzengmath"
   },
@@ -26,6 +26,10 @@
     "./agents/consistency.md",
     "./agents/cross-file-impact.md",
     "./agents/historical-context.md",
+    "./agents/spec-alignment.md",
+    "./agents/silent-failure.md",
+    "./agents/comment-accuracy.md",
+    "./agents/realist-check.md",
     "./agents/synthesizer.md"
   ],
   "skills": [
