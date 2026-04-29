@@ -1,0 +1,42 @@
+==============================================================
+Phase 5 headline (agent-dispatch change)
+==============================================================
+  n = 50 PRs
+  candidates       : 314 (mean 6.3/PR vs P3.5 8.4)
+  TP =  71 | FP = 230 | FN =  65
+  Precision        : 0.236  (P3.5: 0.183, d +0.053)
+  Recall           : 0.522  (P3.5: 0.566, d -0.044)
+  F1               : 0.325  (P3.5: 0.277, d +0.048)
+
+Ship criteria verdict (from bench/crb/AUDIT_10PR.md §Appendix A):
+  verdict: ✅ SHIP candidate (pending per-language check below)
+
+Per-language breakdown
+  lang       n   TP   FP   FN      P      R     F1  P35 F1     dF1
+  Java      10   11   44   13  0.200  0.458  0.278   0.283  -0.005  
+  Python    10   14   49   17  0.222  0.452  0.298   0.237  +0.061 ✓
+  Go        10   12   36   10  0.250  0.545  0.343   0.326  +0.017 ✓
+  TS        10   19   48   12  0.284  0.613  0.388   0.266  +0.122 ✓
+  Ruby      10   15   53   13  0.221  0.536  0.312   0.291  +0.022 ✓
+
+Severity-stratified recall
+  Critical : 8/9 = 0.889
+  High     : 26/41 = 0.634
+  Medium   : 24/47 = 0.511
+  Low      : 13/39 = 0.333
+
+Per-agent attribution (fuzzy-match)
+  agent                    TP   FP      P
+  correctness              46  108  0.299
+  security                 11   44  0.200
+  cross-file-impact         3   29  0.094
+  UNMATCHED                 3   22  0.120
+  consistency               2   12  0.143
+  testing                   1    7  0.125
+  hallucination             1    4  0.200
+  observability             1    1  0.500
+  correctness, security, hallucination    1    1  0.500
+  historical-context        0    1  0.000
+  performance               0    1  0.000
+
+  ⚠️  Unexpected: 8 testing + 14 consistency findings still present
