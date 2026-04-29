@@ -65,5 +65,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
+      - name: Install fixture-runtime modules (introspected by AST resolver)
+        # The `hallucinated-import` fixture asserts the AST resolver flags
+        # `requests.gett` as a typo. The resolver does that by introspecting
+        # the actual `requests` module's __all__ — it can't operate on a
+        # module that's not installed. Bare CI Python doesn't have requests,
+        # so we install it here. (signature-mismatch uses `os` which is
+        # stdlib, no extra install needed.)
+        run: pip install "requests>=2"
+
       - name: Run fixture runner
         run: python tests/run_fixtures.py --mode all
