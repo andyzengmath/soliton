@@ -46,10 +46,10 @@ jobs:
           fetch-depth: 0
 
       - name: Clone Soliton plugin
-        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v2.0.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - name: Run Soliton review
-        uses: anthropics/claude-code-action@8a953dedac4f533f912f13656070914693ed0575 # v1
+        uses: anthropics/claude-code-action@38ec876110f9fbf8b950c79f534430740c3ac009 # v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -100,7 +100,7 @@ jobs:
           fetch-depth: 0
 
       - name: Clone Soliton plugin
-        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v2.0.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - name: Save comment to file
         run: printf '%s' "$COMMENT_BODY" > /tmp/user-comment.txt
@@ -108,7 +108,7 @@ jobs:
           COMMENT_BODY: ${{ github.event.comment.body }}
 
       - name: Run Soliton review (on-demand)
-        uses: anthropics/claude-code-action@8a953dedac4f533f912f13656070914693ed0575 # v1
+        uses: anthropics/claude-code-action@38ec876110f9fbf8b950c79f534430740c3ac009 # v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

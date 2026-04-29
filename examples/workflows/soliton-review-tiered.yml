@@ -280,12 +280,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone Soliton
-        # Pin to an immutable release tag to prevent supply-chain attacks. Update this line
-        # to a v2.x.y tag after the v2 scaffolding is released. Until then we use the
-        # current stable v0.0.2 tag which matches the pin policy of the sibling workflows.
-        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        # Pin to an immutable release tag to prevent supply-chain attacks. v2.0.1 is the
+        # current stable release with the v2 feature flags wired (Tier-0, Spec Alignment,
+        # Graph Signals partial mode, realist-check Step 5.5, silent-failure +
+        # comment-accuracy Step 4.1). Bump to v2.0.x as later releases ship.
+        run: git clone --depth 1 --branch v2.0.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
-      - uses: anthropics/claude-code-action@8a953dedac4f533f912f13656070914693ed0575 # v1
+      - uses: anthropics/claude-code-action@38ec876110f9fbf8b950c79f534430740c3ac009 # v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}

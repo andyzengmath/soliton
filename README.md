@@ -197,6 +197,8 @@ The score determines how many agents are dispatched:
 | HIGH | 61-80 | 6 (+hallucination, cross-file-impact) | ~45s |
 | CRITICAL | 81-100 | 7 (+historical-context) | ~60s |
 
+> **Note on default config:** the table shows what risk-scorer *recommends* before the skipAgents filter. The shipped default is `skipAgents: ['test-quality', 'consistency']` (per Phase 5 attribution data — those two agents collectively contributed 31% of CRB FPs at 2.5% combined precision). Effective default dispatch counts are LOW=1, MEDIUM=2, HIGH=4, CRITICAL=5. Set `skip_agents: []` in `.claude/soliton.local.md` to restore the table's full counts. v2 also content-triggers `silent-failure` (when diff touches error-handling code) and `comment-accuracy` (when diff modifies comments), each adding +1 to the dispatched count. Realist Check (Step 5.5) is a post-synthesis pass, not a finding-emitter; opt in via `synthesis.realist_check: true`.
+
 ### The 7 Review Agents
 
 | Agent | Model | What It Catches |
