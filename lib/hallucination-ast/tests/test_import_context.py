@@ -92,6 +92,7 @@ def test_check_source_clean_numpy_alias_no_findings():
 
 def test_check_source_typo_under_alias_flagged():
     """Khati id=3 hallucination: `pd.reda_csv('x.csv')`."""
+    pytest.importorskip("pandas")
     from hallucination_ast.check import check_source
     from hallucination_ast.resolve import SitePackagesKB
 

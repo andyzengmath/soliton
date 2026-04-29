@@ -62,6 +62,7 @@ def test_check_diff_respects_local_variable_names(tmp_path):
 
 def test_check_diff_flags_typo_method_only_on_added_lines(tmp_path):
     """Context-line references must not be flagged; added-line only."""
+    pytest.importorskip("requests")
     from hallucination_ast.check import check_diff
     from hallucination_ast.resolve import SitePackagesKB
 
@@ -117,6 +118,7 @@ def test_check_diff_non_python_file_skipped(tmp_path):
 
 def test_check_diff_merges_reports_across_multiple_files(tmp_path):
     """A diff touching two .py files yields findings from each, merged."""
+    pytest.importorskip("requests")
     from hallucination_ast.check import check_diff
     from hallucination_ast.resolve import SitePackagesKB
 
