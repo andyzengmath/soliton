@@ -192,7 +192,13 @@ def main():
         pc = tp_c/(tp_c+fp_c) if tp_c+fp_c else 0
         print(f'  {c:22s} {tp_c:>4d} {fp_c:>4d} {pc:>6.3f}')
 
-    # Note — testing + consistency should be ZERO after Phase 5 change
+    # Note — testing + consistency should be ZERO after Phase 5 change.
+    # Reminder: agent_tp / agent_fp are keyed by *category* tag (the [bracket]
+    # before each finding's title in the markdown), NOT by agent name. The
+    # `test-quality` agent emits findings with `category: testing`, so checking
+    # the 'testing' key is the right way to verify whether the agent was skipped.
+    # (This was flagged as a bug in the v2-flags dogfood on 2026-04-29 — false
+    # positive; the agent-name-vs-category distinction is intentional.)
     testing_total = agent_tp.get('testing', 0) + agent_fp.get('testing', 0)
     consistency_total = agent_tp.get('consistency', 0) + agent_fp.get('consistency', 0)
     print()

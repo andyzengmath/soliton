@@ -19,20 +19,26 @@ SRC = REPO / 'bench' / 'crb' / 'phase5-reviews'
 DST = REPO / 'bench' / 'crb' / 'phase5_2-reviews'
 DST.mkdir(exist_ok=True)
 
-# Phase 5.2.1: tightened to handle five observed footnote variants.
-# Everything between "threshold" and the matching close-paren is stripped;
-# the count in group 1 is preserved. Handles:
+# Phase 5.2.2: handles inner parens in footnote trailers. Phase 5.2.1's [^)]*
+# stopped at the first inner ) char, leaving footnotes like
+#   (N additional findings below confidence threshold ... (conf 65); ...; (conf 70))
+# half-stripped. Switching to [^\n]* with the closing \) anchored to end-of-line
+# lets the greedy match backtrack to the LAST ) on the line, which is the outer
+# closing paren of the footnote.
+#
+# Handles all observed variants:
 #   (N additional findings below confidence threshold)                            -> unchanged
-#   (N additional findings below confidence threshold: t1; t2)                   -> strip " : t1; t2"
-#   (N additional findings below confidence threshold 85 suppressed: t1; t2)     -> strip " 85 suppressed: t1; t2"
-#   (N additional findings below confidence threshold of 85: t1; t2)             -> strip " of 85: t1; t2"
-#   (N additional findings below confidence threshold — t1 — suppressed at 85)   -> strip everything after "threshold"
-#   (N additional findings below confidence threshold — t1; t2)                  -> strip em-dash-introduced titles
+#   (N additional findings below confidence threshold: t1; t2)                   -> strip
+#   (N additional findings below confidence threshold 85 suppressed: t1; t2)     -> strip
+#   (N additional findings below confidence threshold of 85: t1; t2)             -> strip
+#   (N additional findings below confidence threshold — t1 — suppressed at 85)   -> strip
+#   (N additional findings below confidence threshold — t1; t2)                  -> strip
+#   (N additional findings below confidence threshold ... (conf 65); ... (conf 70))  -> strip (NEW in 5.2.2)
+#   (N additional findings below confidence threshold: t [conf 78, correctness])  -> strip (NEW in 5.2.2)
 PATTERN = re.compile(
     r'\((\d+) additional findings below confidence threshold'
-    r'(?P<trailer>[^)]*)'
+    r'(?P<trailer>[^\n]*)'
     r'\)',
-    re.DOTALL,
 )
 
 n_total = 0
