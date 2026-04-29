@@ -190,13 +190,15 @@ If it exists, read the file and parse its YAML frontmatter (the content between 
 - `default_output` -> `outputFormat`
 - `feedback_mode` -> `feedbackMode`
 
-**Nested v2 feature-flag fields** (drive Steps 2.6/2.7/2.8/5.5 activation):
+**Nested v2 feature-flag fields** (drive Steps 2.6/2.7/2.8/4.1/5.5 activation):
 - `tier0.enabled` -> `config.tier0.enabled` (boolean; enables Step 2.6 Tier-0 Deterministic Gate)
 - `tier0.skip_llm_on_clean` -> `config.tier0.skip_llm_on_clean` (boolean; when true + Tier-0 verdict `clean`, fast-path out of Step 3+)
 - `spec_alignment.enabled` -> `config.spec_alignment.enabled` (boolean; enables Step 2.7 Spec Alignment)
 - `graph.enabled` -> `config.graph.enabled` (boolean; enables Step 2.8 Graph Signals)
 - `graph.path` -> `config.graph.path` (string; path to pre-built graph — `.json` for full-mode `graph-cli`, `.code-review-graph/graph.db` for partial-mode `code-review-graph`)
 - `graph.timeout_ms` -> `config.graph.timeout_ms` (integer; per-query timeout for Step 2.8; default 500 full-mode, 10000 partial-mode)
+- `agents.silent_failure.enabled` -> `config.agents.silent_failure.enabled` (boolean; default true; opt-out for Step 4.1 conditional dispatch of `agents/silent-failure.md` when diff touches error-handling code)
+- `agents.comment_accuracy.enabled` -> `config.agents.comment_accuracy.enabled` (boolean; default true; opt-out for Step 4.1 conditional dispatch of `agents/comment-accuracy.md` when diff modifies comment lines)
 - `synthesis.realist_check` -> `config.synthesis.realist_check` (boolean; enables Step 5.5 Realist Check post-synthesis pass via `agents/realist-check.md`)
 - `synthesis.realist_threshold` -> `config.synthesis.realist_threshold` (integer 0-100; confidence floor for CRITICALs the realist-check agent will pressure-test; default 85)
 
@@ -459,9 +461,19 @@ Proceed to **Step 4**.
    - Ignore the risk-scorer's `recommendedAgents`
 2. Else: use `recommendedAgents` from the RiskAssessment
 
-3. Remove any agents listed in `config.skipAgents` (from `--skip` flag)
+3. **Content-triggered v2 agent appends** (only when `config.agents == 'auto'`):
+   - Append `silent-failure` to the list when ALL of the following hold:
+     - `config.agents.silent_failure.enabled` (default true) is not explicitly set false; AND
+     - The diff contains any of: `try` / `catch` / `except` / `rescue` keyword additions or modifications, `.catch(` / `.then(` Promise constructs, optional-chaining/null-coalescing introductions (`?.` / `??`), return-null / return-empty / return-undefined patterns on error paths, or new mock / stub / fake imports in non-test files.
+   - Append `comment-accuracy` to the list when ALL of the following hold:
+     - `config.agents.comment_accuracy.enabled` (default true) is not explicitly set false; AND
+     - The diff contains added or modified lines starting (after the leading `+`) with comment markers: `//`, `#`, `/*`, ` *`, `"""`, `'''`, `///`, `--` (SQL), `%` (TeX/Matlab), or `;` (asm).
 
-4. Store final list as `dispatchList`.
+   These two agents are deliberately omitted from the risk-scorer's `recommendedAgents` table because their value is content-driven, not risk-level-driven. They only fire on diffs that actually touch the relevant patterns; on a PR with no try/catch and no comment edits, neither is dispatched.
+
+4. Remove any agents listed in `config.skipAgents` (from `--skip` flag).
+
+5. Store final list as `dispatchList`.
 
 Display to user:
 ```

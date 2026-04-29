@@ -3,11 +3,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)](https://github.com/andyzengmath/soliton)
 [![Cursor Marketplace](https://img.shields.io/badge/Cursor-Marketplace-orange)](https://cursor.com/marketplace)
-[![Agents](https://img.shields.io/badge/Review_Agents-7-brightgreen)](agents/)
+[![Agents](https://img.shields.io/badge/Review_Agents-9-brightgreen)](agents/)
 
 **Your AI coding agent writes code 10x faster than you can review it. Soliton reviews it for you.**
 
-A Claude Code & Cursor plugin that runs 2-7 specialized review agents **in parallel**, adapting to how risky the PR actually is. Low-risk README fix? Two quick agents, done in seconds. Critical auth refactor? Full 7-agent battery with security data-flow analysis and hallucination detection.
+A Claude Code & Cursor plugin that runs 2-9 specialized review agents **in parallel**, adapting to how risky the PR actually is. Low-risk README fix? Two quick agents, done in seconds. Critical auth refactor with error-handling and docstring changes? Full 9-agent battery with security data-flow analysis, hallucination detection, silent-failure scanning, and comment-rot checks.
 
 > **Assist Mode** — every review surfaces high-confidence findings organized by severity plus a risk score, but makes no automated merge/reject decisions. You stay in control.
 
