@@ -113,12 +113,28 @@ For the v2 fixtures, each must additionally pass:
 - v2 fixtures inherit the v1 `riskRange` assertion: actual risk score must fall within
   `riskRange[0]..riskRange[1]` inclusive.
 
+## Automated coverage (partial — POST_V2_FOLLOWUPS §G2)
+
+Two of the three runner modes are now wired. CI workflow at `.github/workflows/fixture-runner.yml` runs them on every PR / push that touches the fixtures, the runner script, or `lib/hallucination-ast/`:
+
+| Mode | Coverage | Auth needed? |
+|---|---|---|
+| `structural` | All 11 fixtures: validates `diff.patch` non-empty + `expected.json` schema (riskRange shape, expectedFindings type, severity allowed values, optional v2 fields). | None |
+| `phase4b` | The 2 phase4b fixtures (`hallucinated-import`, `signature-mismatch`): subprocesses `python -m hallucination_ast --diff <fixture>/diff.patch`, asserts the emitted finding matches `phase4bExpected.rule` + `.symbol` (+ `.suggestedFix` / `.confidence` when present). The CLI exits 1 on CRITICAL findings by design (fail-loud CI convention); the runner parses stdout regardless of exit code. | None — uses local CLI only |
+
+Run locally:
+
+```bash
+python tests/run_fixtures.py --mode all          # both modes (default)
+python tests/run_fixtures.py --mode structural   # quick file/schema check
+python tests/run_fixtures.py --mode phase4b      # exercise hallucination-ast CLI
+```
+
 ## Deferred
 
-The automated shell / CI runner that feeds each fixture's `diff.patch` through the
-orchestrator and asserts against `expected.json` is deferred to a follow-up PR. Until
-then, validation follows the manual steps above. Additional deferred items tracked for
-the same follow-up:
+The full /pr-review-driven runner — asserting risk ranges, finding counts, expected categories, and severity bands across all 11 fixtures — is still deferred. It requires Anthropic API auth in CI (same blocker as the Soliton-Review dogfood workflow). When `ANTHROPIC_API_KEY` (or the OAuth-token equivalent) lands in repo secrets, this runner can grow a `--mode pr-review` arm that subprocesses Claude Code with `--plugin-dir .` and parses the markdown output's emoji-prefixed finding lines.
+
+Additional deferred items tracked for the same follow-up:
 
 - `tier0-blocked-cve/` fixture (OSV-scanner critical CVE → `blockReason: cve_critical`)
 - `tier0-blocked-type-error/` fixture (tsc/mypy fatal type error → `blockReason: type_error_fatal`)
