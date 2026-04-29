@@ -1,0 +1,67 @@
+=============================================================
+Soliton × CRB · Phase 5.2 pipeline (footnote-title strip)
+  reviews found : 50
+  judge model   : gpt-5.2
+  baseline      : Phase 5 F1=0.300 (recall 0.522)
+=============================================================
+
+[1/4] build benchmark_data.json
+Loaded 50 golden comment entries
+
+Wrote C:\Users\andyzeng\OneDrive - Microsoft\Documents\GitHub\code-review-benchmark\offline\results\benchmark_data.json:
+  reviewed   : 50
+  missing    : 0
+  skipped    : 1
+
+[2/4] step2 extract candidates (soliton, gpt-5.2)
+Loaded 50 PRs
+[llm_client] Azure OpenAI endpoint=https://aoai-l-eastus2.openai.azure.com/ deployment=gpt-5.2
+Batch size: 50
+Candidates file: results\azure_gpt-5.2\candidates.json
+Cleared candidates for tool: soliton
+Reviews needing LLM extraction: 50
+Processing 50 extractions in batches of 50...
+  Saved progress: 50 successful, 0 errors
+
+Done!
+  Successful: 50
+  Errors: 0
+  Data saved to results\azure_gpt-5.2\candidates.json
+
+[3/4] step2.5 dedup candidates
+Loaded 50 existing entries from results\azure_gpt-5.2\dedup_groups.json
+Cleared existing groups for tool: soliton
+Output: results\azure_gpt-5.2\dedup_groups.json
+[llm_client] Azure OpenAI endpoint=https://aoai-l-eastus2.openai.azure.com/ deployment=gpt-5.2
+Reviews to deduplicate: 47
+
+Done!
+  Succeeded : 47
+  Fallbacks : 0  (all-singletons, no dedup applied)
+  Errors    : 0
+  Saved to  : results\azure_gpt-5.2\dedup_groups.json
+
+[4/4] step3 judge comments
+Loaded 50 PRs
+Model dir: results\azure_gpt-5.2
+Loaded candidates from results\azure_gpt-5.2\candidates.json
+Loaded dedup groups from results\azure_gpt-5.2\dedup_groups.json
+Cleared evaluations for soliton
+Resuming: 0 evaluations completed
+[llm_client] Azure OpenAI endpoint=https://aoai-l-eastus2.openai.azure.com/ deployment=gpt-5.2
+Judging:   0%|          | 0/50 [00:00<?, ?review/s]Judging:   0%|          | 0/50 [00:00<?, ?review/s, eval=0, skip=0, timeout=0, tool=soliton]Judging:   2%|▏         | 1/50 [01:18<1:03:52, 78.21s/review, eval=0, skip=0, timeout=0, tool=soliton]Judging:   2%|▏         | 1/50 [01:18<1:03:52, 78.21s/review, eval=1, skip=0, timeout=0, tool=soliton]Judging:   4%|▍         | 2/50 [01:24<28:37, 35.77s/review, eval=1, skip=0, timeout=0, tool=soliton]  Judging:   4%|▍         | 2/50 [01:24<28:37, 35.77s/review, eval=2, skip=0, timeout=0, tool=soliton]Judging:   6%|▌         | 3/50 [01:27<16:15, 20.76s/review, eval=2, skip=0, timeout=0, tool=soliton]Judging:   6%|▌         | 3/50 [01:27<16:15, 20.76s/review, eval=3, skip=0, timeout=0, tool=soliton]Judging:   8%|▊         | 4/50 [01:29<10:14, 13.36s/review, eval=3, skip=0, timeout=0, tool=soliton]Judging:   8%|▊         | 4/50 [01:29<10:14, 13.36s/review, eval=4, skip=0, timeout=0, tool=soliton]Judging:  10%|█         | 5/50 [01:32<07:17,  9.72s/review, eval=4, skip=0, timeout=0, tool=soliton]Judging:  10%|█         | 5/50 [01:32<07:17,  9.72s/review, eval=5, skip=0, timeout=0, tool=soliton]Judging:  12%|█▏        | 6/50 [01:35<05:23,  7.36s/review, eval=5, skip=0, timeout=0, tool=soliton]Judging:  12%|█▏        | 6/50 [01:35<05:23,  7.36s/review, eval=6, skip=0, timeout=0, tool=soliton]Judging:  14%|█▍        | 7/50 [01:37<04:04,  5.69s/review, eval=6, skip=0, timeout=0, tool=soliton]Judging:  14%|█▍        | 7/50 [01:37<04:04,  5.69s/review, eval=7, skip=0, timeout=0, tool=soliton]Judging:  16%|█▌        | 8/50 [01:39<03:07,  4.47s/review, eval=7, skip=0, timeout=0, tool=soliton]Judging:  16%|█▌        | 8/50 [01:39<03:07,  4.47s/review, eval=8, skip=0, timeout=0, tool=soliton]Judging:  18%|█▊        | 9/50 [01:41<02:34,  3.77s/review, eval=8, skip=0, timeout=0, tool=soliton]Judging:  18%|█▊        | 9/50 [01:41<02:34,  3.77s/review, eval=9, skip=0, timeout=0, tool=soliton]Judging:  20%|██        | 10/50 [01:44<02:15,  3.39s/review, eval=9, skip=0, timeout=0, tool=soliton]Judging:  20%|██        | 10/50 [01:44<02:15,  3.39s/review, eval=10, skip=0, timeout=0, tool=soliton]Judging:  22%|██▏       | 11/50 [01:46<02:00,  3.08s/review, eval=10, skip=0, timeout=0, tool=soliton]Judging:  22%|██▏       | 11/50 [01:46<02:00,  3.08s/review, eval=11, skip=0, timeout=0, tool=soliton]Judging:  24%|██▍       | 12/50 [01:48<01:49,  2.88s/review, eval=11, skip=0, timeout=0, tool=soliton]Judging:  24%|██▍       | 12/50 [01:48<01:49,  2.88s/review, eval=12, skip=0, timeout=0, tool=soliton]Judging:  26%|██▌       | 13/50 [01:51<01:43,  2.79s/review, eval=12, skip=0, timeout=0, tool=soliton]Judging:  26%|██▌       | 13/50 [01:51<01:43,  2.79s/review, eval=13, skip=0, timeout=0, tool=soliton]Judging:  28%|██▊       | 14/50 [01:53<01:32,  2.57s/review, eval=13, skip=0, timeout=0, tool=soliton]Judging:  28%|██▊       | 14/50 [01:53<01:32,  2.57s/review, eval=14, skip=0, timeout=0, tool=soliton]Judging:  28%|██▊       | 14/50 [01:53<01:32,  2.57s/review, eval=15, skip=0, timeout=0, tool=soliton]Judging:  32%|███▏      | 16/50 [01:55<01:04,  1.90s/review, eval=15, skip=0, timeout=0, tool=soliton]Judging:  32%|███▏      | 16/50 [01:55<01:04,  1.90s/review, eval=16, skip=0, timeout=0, tool=soliton]Judging:  34%|███▍      | 17/50 [01:58<01:10,  2.15s/review, eval=16, skip=0, timeout=0, tool=soliton]Judging:  34%|███▍      | 17/50 [01:58<01:10,  2.15s/review, eval=17, skip=0, timeout=0, tool=soliton]Judging:  36%|███▌      | 18/50 [02:02<01:22,  2.56s/review, eval=17, skip=0, timeout=0, tool=soliton]Judging:  36%|███▌      | 18/50 [02:02<01:22,  2.56s/review, eval=18, skip=0, timeout=0, tool=soliton]Judging:  38%|███▊      | 19/50 [02:05<01:23,  2.70s/review, eval=18, skip=0, timeout=0, tool=soliton]Judging:  38%|███▊      | 19/50 [02:05<01:23,  2.70s/review, eval=19, skip=0, timeout=0, tool=soliton]Judging:  40%|████      | 20/50 [02:07<01:17,  2.58s/review, eval=19, skip=0, timeout=0, tool=soliton]Judging:  40%|████      | 20/50 [02:07<01:17,  2.58s/review, eval=20, skip=0, timeout=0, tool=soliton]Judging:  42%|████▏     | 21/50 [02:10<01:15,  2.61s/review, eval=20, skip=0, timeout=0, tool=soliton]Judging:  42%|████▏     | 21/50 [02:10<01:15,  2.61s/review, eval=21, skip=0, timeout=0, tool=soliton]Judging:  44%|████▍     | 22/50 [02:14<01:25,  3.07s/review, eval=21, skip=0, timeout=0, tool=soliton]Judging:  44%|████▍     | 22/50 [02:14<01:25,  3.07s/review, eval=22, skip=0, timeout=0, tool=soliton]Judging:  46%|████▌     | 23/50 [02:16<01:15,  2.80s/review, eval=22, skip=0, timeout=0, tool=soliton]Judging:  46%|████▌     | 23/50 [02:16<01:15,  2.80s/review, eval=23, skip=0, timeout=0, tool=soliton]Judging:  48%|████▊     | 24/50 [02:18<01:08,  2.62s/review, eval=23, skip=0, timeout=0, tool=soliton]Judging:  48%|████▊     | 24/50 [02:18<01:08,  2.62s/review, eval=24, skip=0, timeout=0, tool=soliton]Judging:  50%|█████     | 25/50 [02:20<01:00,  2.41s/review, eval=24, skip=0, timeout=0, tool=soliton]Judging:  50%|█████     | 25/50 [02:20<01:00,  2.41s/review, eval=25, skip=0, timeout=0, tool=soliton]Judging:  52%|█████▏    | 26/50 [02:23<01:01,  2.55s/review, eval=25, skip=0, timeout=0, tool=soliton]Judging:  52%|█████▏    | 26/50 [02:23<01:01,  2.55s/review, eval=26, skip=0, timeout=0, tool=soliton]Judging:  54%|█████▍    | 27/50 [02:25<00:55,  2.42s/review, eval=26, skip=0, timeout=0, tool=soliton]Judging:  54%|█████▍    | 27/50 [02:25<00:55,  2.42s/review, eval=27, skip=0, timeout=0, tool=soliton]Judging:  54%|█████▍    | 27/50 [02:25<00:55,  2.42s/review, eval=28, skip=0, timeout=0, tool=soliton]Judging:  58%|█████▊    | 29/50 [02:28<00:40,  1.93s/review, eval=28, skip=0, timeout=0, tool=soliton]Judging:  58%|█████▊    | 29/50 [02:28<00:40,  1.93s/review, eval=29, skip=0, timeout=0, tool=soliton]Judging:  60%|██████    | 30/50 [02:31<00:41,  2.08s/review, eval=29, skip=0, timeout=0, tool=soliton]Judging:  60%|██████    | 30/50 [02:31<00:41,  2.08s/review, eval=30, skip=0, timeout=0, tool=soliton]Judging:  62%|██████▏   | 31/50 [02:33<00:39,  2.07s/review, eval=30, skip=0, timeout=0, tool=soliton]Judging:  62%|██████▏   | 31/50 [02:33<00:39,  2.07s/review, eval=31, skip=0, timeout=0, tool=soliton]Judging:  64%|██████▍   | 32/50 [02:39<00:59,  3.33s/review, eval=31, skip=0, timeout=0, tool=soliton]Judging:  64%|██████▍   | 32/50 [02:39<00:59,  3.33s/review, eval=32, skip=0, timeout=0, tool=soliton]Judging:  66%|██████▌   | 33/50 [02:42<00:55,  3.24s/review, eval=32, skip=0, timeout=0, tool=soliton]Judging:  66%|██████▌   | 33/50 [02:42<00:55,  3.24s/review, eval=33, skip=0, timeout=0, tool=soliton]Judging:  68%|██████▊   | 34/50 [02:45<00:48,  3.02s/review, eval=33, skip=0, timeout=0, tool=soliton]Judging:  68%|██████▊   | 34/50 [02:45<00:48,  3.02s/review, eval=34, skip=0, timeout=0, tool=soliton]Judging:  70%|███████   | 35/50 [02:47<00:41,  2.79s/review, eval=34, skip=0, timeout=0, tool=soliton]Judging:  70%|███████   | 35/50 [02:47<00:41,  2.79s/review, eval=35, skip=0, timeout=0, tool=soliton]Judging:  70%|███████   | 35/50 [02:47<00:41,  2.79s/review, eval=36, skip=0, timeout=0, tool=soliton]Judging:  74%|███████▍  | 37/50 [02:49<00:25,  1.97s/review, eval=36, skip=0, timeout=0, tool=soliton]Judging:  74%|███████▍  | 37/50 [02:49<00:25,  1.97s/review, eval=37, skip=0, timeout=0, tool=soliton]Judging:  76%|███████▌  | 38/50 [02:55<00:35,  2.92s/review, eval=37, skip=0, timeout=0, tool=soliton]Judging:  76%|███████▌  | 38/50 [02:55<00:35,  2.92s/review, eval=38, skip=0, timeout=0, tool=soliton]Judging:  78%|███████▊  | 39/50 [02:58<00:32,  2.97s/review, eval=38, skip=0, timeout=0, tool=soliton]Judging:  78%|███████▊  | 39/50 [02:58<00:32,  2.97s/review, eval=39, skip=0, timeout=0, tool=soliton]Judging:  80%|████████  | 40/50 [03:37<02:05, 12.57s/review, eval=39, skip=0, timeout=0, tool=soliton]Judging:  80%|████████  | 40/50 [03:37<02:05, 12.57s/review, eval=40, skip=0, timeout=0, tool=soliton]Judging:  82%|████████▏ | 41/50 [03:39<01:26,  9.66s/review, eval=40, skip=0, timeout=0, tool=soliton]Judging:  82%|████████▏ | 41/50 [03:39<01:26,  9.66s/review, eval=41, skip=0, timeout=0, tool=soliton]Judging:  84%|████████▍ | 42/50 [03:41<01:00,  7.57s/review, eval=41, skip=0, timeout=0, tool=soliton]Judging:  84%|████████▍ | 42/50 [03:41<01:00,  7.57s/review, eval=42, skip=0, timeout=0, tool=soliton]Judging:  86%|████████▌ | 43/50 [03:44<00:43,  6.19s/review, eval=42, skip=0, timeout=0, tool=soliton]Judging:  86%|████████▌ | 43/50 [03:44<00:43,  6.19s/review, eval=43, skip=0, timeout=0, tool=soliton]Judging:  88%|████████▊ | 44/50 [03:46<00:30,  5.01s/review, eval=43, skip=0, timeout=0, tool=soliton]Judging:  88%|████████▊ | 44/50 [03:46<00:30,  5.01s/review, eval=44, skip=0, timeout=0, tool=soliton]Judging:  90%|█████████ | 45/50 [03:53<00:28,  5.64s/review, eval=44, skip=0, timeout=0, tool=soliton]Judging:  90%|█████████ | 45/50 [03:53<00:28,  5.64s/review, eval=45, skip=0, timeout=0, tool=soliton]Judging:  92%|█████████▏| 46/50 [03:56<00:18,  4.75s/review, eval=45, skip=0, timeout=0, tool=soliton]Judging:  92%|█████████▏| 46/50 [03:56<00:18,  4.75s/review, eval=46, skip=0, timeout=0, tool=soliton]Judging:  94%|█████████▍| 47/50 [03:59<00:12,  4.27s/review, eval=46, skip=0, timeout=0, tool=soliton]Judging:  94%|█████████▍| 47/50 [03:59<00:12,  4.27s/review, eval=47, skip=0, timeout=0, tool=soliton]Judging:  96%|█████████▌| 48/50 [04:02<00:07,  3.81s/review, eval=47, skip=0, timeout=0, tool=soliton]Judging:  96%|█████████▌| 48/50 [04:02<00:07,  3.81s/review, eval=48, skip=0, timeout=0, tool=soliton]Judging:  98%|█████████▊| 49/50 [04:08<00:04,  4.63s/review, eval=48, skip=0, timeout=0, tool=soliton]Judging:  98%|█████████▊| 49/50 [04:08<00:04,  4.63s/review, eval=49, skip=0, timeout=0, tool=soliton]Judging: 100%|██████████| 50/50 [04:12<00:00,  4.26s/review, eval=49, skip=0, timeout=0, tool=soliton]Judging: 100%|██████████| 50/50 [04:12<00:00,  5.04s/review, eval=49, skip=0, timeout=0, tool=soliton]
+
+============================================================
+Evaluation complete!
+Results saved to: results\azure_gpt-5.2\evaluations.json
+
+Aggregate metrics by tool:
+Tool          Precision     Recall         F1  Reviews   Errors
+------------------------------------------------------------
+soliton           23.7%      52.2%      32.6%       50        0
+
+=============================================================
+Pipeline complete.
+  Evaluations: C:/Users/andyzeng/OneDrive - Microsoft/Documents/GitHub/code-review-benchmark/offline/results/azure_gpt-5.2/evaluations.json
+  Next: python3 bench/crb/analyze-phase5.py (compares vs Phase 3.5 — adjust mentally vs Phase 5)
+=============================================================

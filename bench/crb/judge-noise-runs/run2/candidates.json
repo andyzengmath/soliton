@@ -1,0 +1,2059 @@
+{
+  "https://github.com/keycloak/keycloak/pull/37429": {
+    "soliton": [
+      {
+        "text": "Regex character class `[a-zA-Z-_]` in locale-suffix stripping (`_[a-zA-Z-_]*\\.properties`) unintentionally creates a `Z-_` range, so matching may silently misbehave for certain characters or future locale formats (e.g., `zh-CN`) and point to the wrong English source file",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Locale-suffix stripping regex uses `*` instead of `+`, allowing a pathological filename like `_.properties` to match with an empty suffix",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Using `file.getAbsolutePath().replaceAll(\"resources-community\", \"resources\")` is a fragile substring replacement that can rewrite unintended parts of the path (not just the directory segment), causing incorrect `englishFile` resolution and build failures",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`verifySafeHtml()` catches `IOException` and rethrows `RuntimeException`, which is inconsistent with the caller\u2019s `MojoExecutionException` handling and results in unhelpful Maven error reporting",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Fields `POLICY_SOME_HTML`, `POLICY_NO_HTML`, and `HTML_TAGS` are named like constants but are non-static, non-final, and package-private, causing unnecessary per-instance rebuilding and inconsistent style vs existing `private static final` constants",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Method name `santizeAnchors` is misspelled and should be `sanitizeAnchors` (typo at both declaration and call site)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/37634": {
+    "soliton": [
+      {
+        "text": "AccessTokenContext constructor mistakenly calls Objects.requireNonNull(grantType, \"Null rawTokenId not allowed\") instead of validating rawTokenId, allowing null rawTokenId and producing token IDs like \"onrtac:null\" that collide/break downstream operations",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AssertEvents.isAccessTokenId test matcher uses wrong substring indices (substring(3,5) instead of (4,6)) so it reads across tokenType/grantType boundary and does not correctly extract the grant shortcut",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AssertEvents.isAccessTokenId test matcher has inverted boolean logic (returns false when the shortcut matches), causing grant-type assertions to be silently voided and tests to pass for wrong shortcuts/fail for correct ones",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "DefaultTokenContextEncoderProvider dereferences userSession without a null-check (clientSessionContext.getClientSession().getUserSession() may be null), leading to NPE/HTTP 500 in token issuance hot path",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "DefaultTokenContextEncoderProviderFactory duplicate grant-shortcut detection is broken because ConcurrentHashMap.put overwrites existing entries before size-based collision checks, allowing shortcut collisions to go undetected and causing decode failures later",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OAuth2GrantTypeFactory SPI adds getShortcut() as a new abstract method without a default implementation, creating a binary-incompatible change that can trigger AbstractMethodError at startup for third-party/out-of-tree grant plugins",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OAuth2GrantType.Context copy constructor (public Context(Context context)) was removed from public SPI without replacement, causing NoSuchMethodError/compile failures for external extensions that clone/wrap Context",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "DefaultTokenContextEncoderProvider token-id decoding handles legacy tokens gracefully but throws IllegalArgumentException for unknown encoded-prefix shortcuts, breaking rolling upgrades/heterogeneous clusters by turning unknown shortcuts into HTTP 500 instead of UNKNOWN context",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "DefaultTokenContextEncoderProvider.getTokenContextFromTokenId throws on attacker-controlled token IDs and includes the full raw token ID in exception messages, risking HTTP 500s and sensitive/log injection (CWE-209)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "DefaultTokenContextEncoderProviderFactory lazy shortcut-map refresh updates two ConcurrentHashMaps without synchronization, allowing races that break the bijection invariant between grantsByShortcuts and grantsToShortcuts and can miss duplicate shortcuts registered post-startup",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AbstractOIDCProtocolMapper changed getShouldUseLightweightToken from an instance method to public static, so subclass overrides are silently ignored (static hiding), causing behavioral regression without compile-time diagnostics",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/38446": {
+    "soliton": [
+      {
+        "text": "CredentialHelper.createRecoveryCodesCredential serializes and sends raw plaintext recovery codes to user-storage providers via updateCredential, exposing long-lived bearer secrets in cleartext",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "RecoveryAuthnCodeInputLoginBean calls Optional.get() without checking presence when no recovery credential exists, causing NoSuchElementException and a 500 during login form rendering",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "CredentialHelper stores a JSON array of raw List<String> as credentialData, but RecoveryAuthnCodesCredentialModel.createFromCredentialModel expects hashed RecoveryAuthnCodesCredentialData JSON, leading to deserialization/type mismatch and authentication failures/NPEs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "BackwardsCompatibilityUserStorage.isValid validates a recovery code but never removes/invalidates the used code, allowing infinite replay of one-time recovery codes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "CredentialHelper hard-codes the provider ID string \"keycloak-recovery-authn-codes\" instead of using RecoveryAuthnCodesCredentialProviderFactory.PROVIDER_ID, risking drift and null provider/NPE",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "CredentialHelper fallback logic misinterprets updateCredential\u2019s boolean return (handled vs not handled), which can cause double-writes, stale federated data taking precedence, or skipping creation of a properly formed local credential",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "RecoveryAuthnCodesUtils.getCredential prefers federated credentials over local without warning, so after adding/migrating to a federated provider a stale/absent federated credential can silently shadow a valid local credential and lock users out",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/36882": {
+    "soliton": [
+      {
+        "text": "Breaking change to CLI exit-code contract: RECREATE_UPGRADE_EXIT_CODE changed from 4 to 3 and exit code 4 is reused for FEATURE_DISABLED, which can silently break existing automation relying on exit code 4 for 'recreate required'",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "No deprecation/upgrade documentation for the exit-code contract change (missing upgrading-guide entry)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Test testFeatureNotEnabled only asserts the error message and does not assert the CLI exit code, leaving the numeric exit-code contract untested and prone to regression",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Custom-image Dockerfile hardcodes --features=rolling-updates into kc.sh build, which silently enables a preview feature for all derived images and may contradict the intended feature gating if the Dockerfile is user-facing or undocumented",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/36880": {
+    "soliton": [
+      {
+        "text": "ClientRemovedEvent cleanup path calls ClientPermissionsV2.setPermissionsEnabled(client, false), which unconditionally throws UnsupportedOperationException in V2 and can abort client deletion transactions",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AdminPermissions.registerListener wraps role/client/group removal cleanup in ADMIN_FINE_GRAINED_AUTHZ feature flag only, causing deployments using other fine-grained-authz flag variants to skip cleanup and leak orphan Resource/Policy records",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "ClientPermissionsV2.hasPermission(ClientModel, String) fallback uses AdminPermissionsSchema.getResourceTypeResource(...) without a null check and can throw NullPointerException when the wildcard Clients resource is missing",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "ClientPermissionsV2.getClientsWithPermission omits clients granted access via the wildcard Clients resource because it only iterates per-client resources returned by findByType, leading to under-reporting authorized clients",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "ClientPermissionsV2 canMapRoles/canMapCompositeRoles/canMapClientScopeRoles lack the MANAGE_CLIENTS admin-role fast-path present in V1, causing backwards-incompatible denials unless explicit MAP_ROLES policies exist",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "ClientPermissionsV2 canView(ClientScopeModel)/canManage(ClientScopeModel) reuse the Clients resource type instead of a dedicated ClientScopes resource type, unintentionally broadening client-scope visibility/manage permissions to anyone with client-wide grants",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/37038": {
+    "soliton": [
+      {
+        "text": "GroupPermissionsV2.canManage() incorrectly treats having only the VIEW scope on the all-groups resource as sufficient for MANAGE, enabling read-to-write privilege escalation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "getGroupIdsWithViewPermission adds authorization Resource UUIDs (groupResource.getId()) instead of group model IDs (resource name), causing per-group permission checks to miss and fall back to all-groups permissions",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "getGroupIdsWithViewPermission returns UUIDs that are later used as group model IDs (e.g., UsersResource.getUsersCount and session UserModel.GROUPS attribute), breaking group membership filtering and producing incorrect user results",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "UsersResource.searchForUser removed the per-user usersEvaluator.canView post-filter and relies only on an optional GROUPS store hint, allowing QUERY_USERS-only callers with no view permissions to enumerate all users when groupIds is empty",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "BruteForceUsersResource.searchForUser has the same missing canView post-filter pattern as UsersResource, creating the same user-enumeration authorization bypass risk",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "UserPermissionsV2 canView/canManage no longer short-circuit for AdminRoles.ADMIN, potentially denying access (403) to admins in realms where ADMIN is not composed to include manage-users/view-users or where fine-grained policies aren\u2019t configured",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AdminPermissions.registerListener now registers the listener only if the feature flag is enabled at registration time, so enabling the feature later (tests/profile reload/reconfig) would skip cleanup events and leave orphaned permission resources in the database",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Removal of public static ModelToRepresentation.searchGroupModelsByAttributes is a binary-incompatible API change for downstream extensions; should keep a deprecated delegate or document in migration notes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/33832": {
+    "soliton": [
+      {
+        "text": "Adding abstract method order() to public CryptoProvider SPI is source/binary incompatible and can break third-party implementations (compile failures or AbstractMethodError at runtime); should be a default method for backward compatibility",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AuthzClientCryptoProvider.getEcdsaCryptoProvider().concatenatedRSToASN1DER contains dead allocations: two ASN1Encoder instances write BigIntegers but their results are discarded, misleading and unnecessary",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "CryptoIntegration.detectProvider behavior changed from fail-fast on multiple CryptoProviders to silently selecting by highest order(), which can hide misconfiguration and lead to non-deterministic provider selection when orders tie; should throw on ties and/or log at warn",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "ASN1Decoder.readLength() returns -1 for indefinite-length (0x80) and callers pass it to new byte[length], causing NegativeArraySizeException instead of a clear IOException; DER forbids indefinite length so it should fail fast with IOException",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "ECDSAAlgorithmTest only tests happy-path roundtrips and lacks malformed-input/negative tests for the new hand-rolled ASN.1 parser (e.g., invalid tags, high-tag-form, indefinite/oversized lengths, wrong element count, length mismatches, truncation), risking untested failure modes in security-sensitive code",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/40940": {
+    "soliton": [
+      {
+        "text": "GroupAdapter.getSubGroupsCount() now returns null when modelSupplier.get() returns null, which can cause NullPointerException in callers that auto-unbox to primitive long or call longValue()",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "getSubGroupsCount() return value violates/changes the GroupModel.getSubGroupsCount() contract by introducing nullable semantics not documented, forcing callers to add unexpected null guards",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "GroupTest.java reader thread lacks a timeout/join, risking hanging/flaky tests",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1": {
+    "soliton": [
+      {
+        "text": "Possible compile error: UsernameForm.authenticate() calls isConditionalPasskeysEnabled() with zero arguments, but only a one-argument overload (isConditionalPasskeysEnabled(UserModel user)) is defined/visible in the PR; should likely pass context.getUser() or ensure a zero-arg overload exists in the superclass chain",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/getsentry/sentry/pull/93824": {
+    "soliton": [
+      {
+        "text": "Unused helper method `_create_process_for_shard(self, shard: int)` is defined but never called, risking drift and dead code",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Metric tag key is inconsistent for the same shard dimension (`shard` vs `shards`) across emitted metrics, fragmenting dashboards/alerts",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Metric tag value shape is inconsistent for the shard dimension (single-shard integer vs comma-joined multi-shard string), causing inconsistent aggregation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`SpanFlusher.__init__` accepts a caller-supplied `SpansBuffer` but effectively discards it (only reads `assigned_shards`), silently dropping any caller initialization/state",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Refactor creates multiple `SpansBuffer` instances per shard group (original caller buffer, parent-side buffer, and pickled child-process copy), multiplying Redis client instances/state unnecessarily",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1": {
+    "soliton": [
+      {
+        "text": "OptimizedCursorPaginator.get_result can slice a Django QuerySet with a negative start offset on backward pagination, triggering Django's guaranteed AssertionError for negative indexing and causing unhandled 500/DoS via attacker-controlled cursor.offset",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Inline comments in paginator.py incorrectly claim Django ORM handles negative slicing/boundary conditions automatically, contradicting Django docs and masking the crash risk",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OptimizedCursorPaginator.get_item_key applies math.floor/math.ceil to a datetime field (from order_by='-datetime'), raising TypeError and crashing audit log pagination during cursor construction",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "organization_auditlogs.py dereferences organization_context.member.has_global_access without checking for None, causing AttributeError for non-superusers without active org membership",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Authorization gate for the advanced/optimized audit log path uses member.has_global_access as a privilege check even though it is not a trust/role indicator, allowing ordinary members (e.g., open-membership orgs) to access the advanced path",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "BasePaginator.get_result clamps negative forward cursor offsets to 0, silently changing behavior from a loud failure to returning first-page results and potentially hiding cursor-corruption bugs (should be documented/logged)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Comments in cursors.py/paginator.py falsely claim negative offsets enable efficient reverse/bidirectional pagination; negative offsets crash and offset-based reverse pagination is not efficient for large datasets",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OptimizedCursorPaginator docstring falsely advertises streamlined boundary handling and an optimized query path despite being a near-copy with crashing branches and no real optimization, misleading maintainers",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/97529": {
+    "soliton": [
+      {
+        "text": "Lock narrowing in bleveBackend.BuildIndex introduces a TOCTOU race where concurrent calls for the same key can both build an index and the second overwrites/discards the first, potentially corrupting file-backed indexes and double-counting metrics",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In file-backed index builds (bleve.New with size > opts.FileThreshold), concurrent same-key builds target the same directory, so the second build may fail or open duplicate handles and leave orphaned/corrupted on-disk state",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "NewResourceServer now runs synchronous initialization/index building under the caller-provided context, so any deadline/cancellation on that context can abort startup and cause constructor failure",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Removing per-method lazy-init guards means callers that ignore NewResourceServer\u2019s error return or construct the server directly (e.g., in tests) lose the previous safety net and may use an uninitialized server",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/getsentry/sentry/pull/80168": {
+    "soliton": [
+      {
+        "text": "MetricAlertDetectorHandler now subclasses StatefulDetectorHandler but implements none of its required abstract methods (get_dedupe_value, get_group_key_values, build_occurrence_and_event_data), causing a TypeError on instantiation when metric-alert detectors access .detector_handler",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "process_detectors assumes handler.evaluate() returns a dict and calls .values(); any DetectorHandler subclass still returning a list will crash at runtime with AttributeError: 'list' object has no attribute 'values'",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/getsentry/sentry/pull/80528": {
+    "soliton": []
+  },
+  "https://github.com/getsentry/sentry/pull/77754": {
+    "soliton": [
+      {
+        "text": "Dataclass field `queued` uses `timezone.now()` as a bare default, so it is evaluated once at import time and shared across instances instead of being set per instance",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`to_dict()` returns a `datetime` in the payload, which is not JSON-serializable for Celery kwargs and can raise a `TypeError` or be coerced unexpectedly",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`from_dict()` can accept a serialized `queued` value as a string and construct an `AssignmentSource` where `queued` is a `str`, silently violating the intended `datetime` type contract",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Calling `installation.should_sync(\"outbound_assignee\", parsed_assignment_source)` with a new positional argument can break integration subclasses that still implement the old 1-parameter `should_sync(self, attribute)` signature, causing a `TypeError` at runtime",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/getsentry/sentry/pull/95633": {
+    "soliton": [
+      {
+        "text": "Uses Python 3.13-only APIs (`queue.ShutDown` exception and `Queue.shutdown(immediate=False)`) so on Python <=3.12 shutdown raises `AttributeError`, queues never close, and worker threads can block forever on `get()`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Shutdown joins worker threads with a timeout while workers are daemon threads, so timed-out joins can lead to threads being torn down mid-processing and in-flight work being dropped",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Graceful shutdown closes/cancels workers without draining already-submitted queue items, leaving offsets in `OffsetTracker.outstanding` and preventing the commit loop from advancing",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Because outstanding offsets aren\u2019t drained/committed on shutdown, restarts re-read and reprocess queued offsets, causing duplicate uptime incident/issue evaluations",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`wait_until_empty()` exists but is not called from `SimpleQueueProcessingStrategy.close()/terminate()` or `ResultsStrategyFactory.shutdown()`, so shutdown does not wait for queues to drain",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`OffsetTracker` dictionaries (`all_offsets`, `outstanding`, `last_committed`, `partition_locks`) never evict entries on partition revocation, causing unbounded growth/leaked locks and state across rebalances",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`FixedQueuePool.submit()` records an offset via `add_offset()` before the work item is safely enqueued; if `put()` or grouping/hash logic raises, offsets can become committable even though the work item was never processed (silent loss)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`_commit_loop` can exit on shutdown without performing a final `get_committable_offsets()`/commit pass, dropping the last chunk of commit progress due to a shutdown race",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/2": {
+    "soliton": [
+      {
+        "text": "OptimizedCursorPaginator uses a negative cursor.offset as the slice start in queryset[start_offset:stop], triggering Django AssertionError for negative indexing and crashing paginated requests",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "BasePaginator.get_result allows a negative offset to reach queryset slicing when cursor.is_prev is true (start_offset not clamped), enabling a trivially reachable DoS across paginated endpoints",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Lua add-buffer script uses ZUNIONSTORE without specifying AGGREGATE MAX (defaults to SUM), inflating scores for spans present in both sets and corrupting eviction ordering",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Cursor.__init__ no longer validates non-negative offsets, allowing attacker-controlled cursor strings to inject large negative offsets into pagination logic",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Unvalidated negative cursor offsets could cause incorrect behavior on non-QuerySet sequences (Python negative slicing semantics), potentially exposing unintended tail elements (cross-tenant/data window exposure risk)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Audit-log optimized pagination authorization gate is too permissive (allows has_global_access members), enabling non-staff users to trigger the advanced pagination path and associated risks",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Removal of max_segment_spans guard in _load_segment_data eliminates defense-in-depth/telemetry against oversized segments, allowing unbounded segment loads if Lua eviction is bypassed or legacy data exists",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3": {
+    "soliton": [
+      {
+        "text": "Git submodule `sentry-repo` is added as a gitlink but `.gitmodules` is not updated, so `git submodule update --init`/CI checkouts will fail to resolve it",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`_is_error_focused_query` uses a naive substring check (`\"event.type:error\" in query.lower()`), misclassifying negated/compound/quoted/unrelated queries as error-focused and incorrectly rewriting to `upsampled_count()`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "60-second allowlist eligibility cache can keep upsampling enabled for up to 60 seconds after a project is removed from the allowlist, and `invalidate_upsampling_cache` is not wired to any option-change path",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Cache key uses Python `hash(tuple(...))`, which is process-local/unstable for non-int tuple contents and can cause different workers to generate different keys (defeating caching) if `project_ids` ever include non-ints",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`_set_sample_rate_from_error_sampling` uses `except Exception: pass`, silently swallowing unexpected errors and potentially causing tests to skip setting `sample_rate` without noticing",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "An unrelated user-facing typo/message change is mixed into the feature PR, increasing diff noise and complicating reverts/review",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`transform_query_columns_for_error_upsampling` is redundantly called in multiple branches in `_get_event_stats`, risking future branch inconsistencies and unnecessary duplication",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`upsampled_count` (`toInt64(sum(sample_weight))`) assumes `sample_weight` is non-null for all rows; NULL `sample_weight` rows will be skipped by `sum`, causing silent undercounting unless handled (e.g., `ifNull`/`sumIf`) or enforced end-to-end",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/103633": {
+    "soliton": [
+      {
+        "text": "Denial-cache key construction in userPermDenialCacheKey uses '_' as a delimiter even though components may contain '_', causing cache-key collisions between different (action,name,parent) tuples and incorrect denied results",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Permission denial cache entries are never invalidated/purged when permissions are later granted, so previously denied users can remain blocked until shortCacheTTL expires",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "permissionCacheUsage(\"false\") metric is emitted for cache-hit-but-denied cases as well as true cache misses, silently changing metric semantics and inflating the 'false' counter",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Check treats any error from getCachedIdentityPermissions as a cache miss, swallowing real errors (e.g., GetUserIdentifiers failures/unsupported identity type), causing redundant failing lookups and misattributed metrics/logging",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/getsentry/sentry/pull/67876": {
+    "soliton": [
+      {
+        "text": "Uncaught HTTPError (e.g., 401 Unauthorized) from get_user_info() propagates and crashes the install flow with a 500 instead of rendering a graceful error page",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Unguarded access to integration.metadata[\"sender\"][\"login\"] can raise KeyError when metadata is missing or differently shaped, causing a 500 (and potential info disclosure)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Race condition: OAuth callback may execute before the installation webhook persists integration.metadata[\"sender\"][\"login\"], causing false \u201cInvalid installation request\u201d failures or KeyError crashes for legitimate installs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Removal of FORWARD_INSTALL_FOR constant from pipeline_advancer.py can break external/internal importers via ImportError at import time",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OAuth state uses pipeline.signature (not a fresh per-request nonce), enabling replay within the pipeline window and weakening CSRF protection",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OAuth state comparison uses plain != instead of constant-time comparison (e.g., hmac.compare_digest), creating a potential timing side-channel",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Test test_github_user_mismatch mutates the webhook payload but uses a hardcoded HMAC signature that won\u2019t match the mutated body, so webhook validation will fail and the test will break",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "installation_id can be overwritten on the OAuth callback leg (query param preferred over bound state), allowing mid-flow installation swap and undermining identity-binding checks",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Bare except Exception during OAuth token exchange parsing silently swallows real failures (network/parse/programming errors) without logging, hindering debugging and incident response",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/32918": {
+    "soliton": [
+      {
+        "text": "Test cleanup in OrganizationCacheTest registers literal \"alias\" instead of the loop alias variable, so created IDPs are never removed and tests can become flaky due to leaked realm state",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The later creation of \"idp-alias-20\" also lacks correct cleanup registration, further leaking an IDP across test runs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "InfinispanIdentityProviderStorageProvider.getForLogin() returns raw/unwrapped IdentityProviderModel instances on cache hits but returns OrganizationAwareIdentityProviderModel-wrapped instances on cache misses/fallback, causing inconsistent behavior depending on cache state",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Login cache invalidation is not triggered when an IDP\u2019s organization membership changes via OrganizationProvider addIdentityProvider/removeIdentityProvider (i.e., changes not going through IdentityProviderStorageProvider.update()), leaving stale cached login IDP sets",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "IdentityProviderStorageProvider.getLoginPredicate() dereferences idp.getConfig() without a null check, risking an NPE if getConfig() can be null on create/update/remove invalidation paths",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "getLoginPredicate() must remain aligned with JpaIdentityProviderStorageProvider.getForLogin() DB filtering; if they diverge, cache invalidation can miss relevant IDPs and allow stale entries to persist",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Test scenario 4 in OrganizationCacheTest conflates update() and addIdentityProvider(), so it cannot verify that addIdentityProvider() alone triggers cache invalidation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Tests lack coverage that removing a login-eligible IDP invalidates the login caches (current removal test uses a disabled/non-eligible IDP, so it doesn\u2019t assert the affirmative invalidation behavior)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/94942": {
+    "soliton": [
+      {
+        "text": "`enableSqlExpressions` always returns false because both branches return `false`, making the feature-flag lookup computed-and-discarded",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`enableSqlExpressions` assigns `enabled := !IsEnabledGlobally(FlagSqlExpressions)`, inverting the meaning of the variable name and risking future maintainers re-enabling/inverting behavior incorrectly",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "No comment or explicit documentation ties `enableSqlExpressions` being always-disabled to CVE-2024-9264, making the security intent implicit and easy to undo",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Missing regression test to ensure SQL expressions remain disabled even if `FlagSqlExpressions` is set true, allowing accidental re-enablement to slip through CI",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`pkg/expr/sql/parser.go` retains a vulnerable `fmt.Sprintf`-based SQL string interpolation pattern with naive quote escaping, which is unsafe for DuckDB and could reintroduce CVE-2024-9264 if execution is restored",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Because the DuckDB wrapper is stubbed today, the vulnerable SQL builder remains as a dormant gadget that could become exploitable if `NewInMemoryDB` is later pointed back to a real engine",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Error messages like `\"sqlExpressions is not implemented\"` / `\"not implemented\"` are misleading because the feature is intentionally disabled for CVE mitigation, not unimplemented",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Lack of logging/metrics when rejecting SQL expressions means operators may see silent parse failures and have no signal for attempted use or migration impact",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/90939": {
+    "soliton": [
+      {
+        "text": "Double-checked locking is incomplete: after acquiring the write lock, the code does not re-check whether another goroutine has already populated entryPointAssetsCache, causing redundant asset loads during cold-start bursts",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "On error, the code unconditionally assigns entryPointAssetsCache = result even when result is nil, which can overwrite and clear a previously valid cache entry and force repeated reloads on subsequent calls",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/80329": {
+    "soliton": [
+      {
+        "text": "Cleanup ticker interval changed from 10 minutes to 1 minute in pkg/services/cleanup/cleanup.go:77, likely an unintended debug leftover that increases cleanup frequency and can worsen DB lock contention/deadlocks",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Six routine cleanup progress logs are emitted at Error level on the happy path in pkg/services/annotations/annotationsimpl/xorm_store.go:239, polluting error logs and triggering false alerts; they should be Debug/Info",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "One of the happy-path Error logs includes an \"err\" field where err is guaranteed nil, creating misleading log output",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Happy-path logs include full ID slices (\"ids\", ids) for each batch, risking log flooding and increased ingestion costs on large annotation tables",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "SQLite >999-parameter branch builds the IN(...) list via repeated fmt.Sprintf string concatenation in a loop (O(n^2)) in pkg/services/annotations/annotationsimpl/xorm_store.go:323; should use strings.Builder or a more efficient approach",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Cleanup interval is hardcoded (no config/feature flag/comment) in pkg/services/cleanup/cleanup.go:77, removing an operator tuning knob; should be configurable and documented if changed intentionally",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/90045": {
+    "soliton": [
+      {
+        "text": "Async legacy write goroutines derive their context from the cancellable request context, so the context is canceled when the handler returns and legacy Create/Update/Delete/DeleteCollection writes are silently dropped",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Create error path records a legacy-duration/error metric even though the failure occurred in storage (should record storage duration)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Update error path records a legacy-duration/error metric even though the failure occurred in storage (should record storage duration)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Delete passes the object name as the Prometheus 'kind' label, creating unbounded/high-cardinality metrics and risking OOM/scrape failures",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "DeleteCollection async legacy goroutine records storage duration instead of legacy duration, double-counting storage and leaving legacy histogram unpopulated",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Update no longer wraps objInfo with an updateWrapper carrying the storage-persisted object, so Legacy recomputes the updated object from its own pre-image and can diverge from Storage",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Delete attaches the base logger (d.Log) to the context instead of the enriched per-call logger, so downstream klog.FromContext(ctx) misses name/kind/method fields",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Async goroutines lack panic recovery; a panic inside legacy driver/metrics code can crash the entire apiserver process",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Tests reference a bare 'p' prometheus registry whose declaration may be missing after Mode 1 changes, potentially breaking compilation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Sharing a package-level/mutable Prometheus registry across tests (especially parallel subtests) can cause duplicate collector registration panics",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/106778": {
+    "soliton": [
+      {
+        "text": "Federated rule detection was removed in useAllRulerRuleAbilities (isFederated hardcoded to false), causing federated Mimir rule groups to be treated as mutable and enabling actions (Edit/Delete/Pause/etc.) that will fail against the backend",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "React key prop was dropped when replacing GrafanaRuleLoader with GrafanaRuleListItem in FilterView\u2019s list rendering, leading to missing unique keys, runtime warnings, and unstable row identity/state across re-renders",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Grafana rule detail links no longer include the returnTo query parameter in GrafanaRuleListItem, so navigating to a rule loses the filtered-list context and the Back flow no longer returns users to the same list state",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/107534": {
+    "soliton": []
+  },
+  "https://github.com/grafana/grafana/pull/79265": {
+    "soliton": [
+      {
+        "text": "TOCTOU race in CreateOrUpdateDevice: CountDevices check and subsequent insert/upsert are separate SQL statements without transaction/locking, allowing concurrent requests to exceed device_limit",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Authenticate now calls TagDevice synchronously on the request context, so slow/stalled DB operations can block anonymous authentication indefinitely (or until DB timeout), increasing latency and enabling DoS amplification",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Using the request context for TagDevice means client disconnect cancels ctx mid INSERT/UPDATE, potentially leaving inconsistent writes and generating cancellation errors",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Removal of panic-recovery around TagDevice means a panic in the tagging path can crash the auth handler",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "updateDevice returns ErrDeviceLimitReached when rowsAffected==0, conflating device-not-found or stale-window update misses with actual device-limit enforcement, breaking error semantics/logging and auth-layer contract",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Duplicate anonymousDeviceExpiration constant defined in both anonstore and api packages, creating two sources of truth that can drift and cause inconsistent behavior",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When device_limit>0, CreateOrUpdateDevice performs an extra COUNT(*) round-trip on every anonymous request, adding high-RPS DB load and potential performance issues",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Frontend anonymousDeviceLimit is typed as number|undefined while backend always sends a numeric field (0 when disabled), causing feature-gating logic based on undefined to behave incorrectly",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9": {
+    "soliton": [
+      {
+        "text": "I18n.fallbacks.ensure_loaded! will raise NoMethodError at runtime if any environment file still sets config.i18n.fallbacks = true, because Rails after_initialize overwrites I18n.fallbacks with I18n::Locale::Fallbacks (which lacks ensure_loaded!)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Background jobs/rake tasks set I18n.locale without calling I18n.fallbacks.ensure_loaded!, so fallback locales are never loaded outside web requests and translations may not fall back correctly",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "FallbackLocaleList does not implement I18n::Locale::Fallbacks#defaults, so I18n::Backend::Fallbacks may call I18n.fallbacks.defaults and raise NoMethodError during fallback resolution",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "FallbackLocaleList#[] calls SiteSetting.default_locale.to_sym unconditionally, which will crash with NoMethodError when default_locale is nil (e.g., during boot/tests/settings unavailable)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/76186": {
+    "soliton": [
+      {
+        "text": "traceID is no longer included in the \"Plugin Request Completed\" log line after switching to ContextualLoggerMiddleware, potentially breaking trace correlation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "instrumentContext in ContextualLoggerMiddleware does not attach traceID to the context, so downstream logs may lose trace correlation unless infra logging adds it automatically",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "grafanaInfraLogWrapper.FromContext silently falls back to d.New() when the underlying logger type assertion fails, wiping all contextual attributes without any warning/metric",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "TestLogger.FromContext returns a new disconnected NewTestLogger() instance, so logs emitted via FromContext won\u2019t be captured by f.InfoLogs/f.ErrorLogs in tests",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "No tests were added for ContextualLoggerMiddleware to verify it instruments context (pluginId/endpoint/dsName/dsUID/uname) for each relevant endpoint wrapper, allowing regressions to slip through CI",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Test function name remains TestInstrumentationMiddleware after renaming the file to metrics_middleware_test.go, creating stale/inconsistent test naming",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/10": {
+    "soliton": [
+      {
+        "text": "SQL injection risk in migration db/migrate/20150818190757_create_embeddable_hosts.rb:18 due to interpolating admin-writable site_settings.value into raw INSERT statements",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Migration can break or be exploited when a host value contains a single quote because the raw SQL INSERT is built via string interpolation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "embeddable_hosts_controller uses EmbeddableHost.where(id: params[:id]).first and then calls destroy/save on possibly-nil records, causing NoMethodError/500 instead of returning 404 on invalid IDs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "embeddable_hosts_controller save_host reads params[:embeddable_host][:host] directly without strong parameters (require/permit) and without guarding when params[:embeddable_host] is missing, causing errors and unsafe mass assignment patterns",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Authorization may be insufficient for embeddable host allowlist management because before_filter :ensure_staff may allow non-admin staff to modify the allowlist",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "EmbeddableHost model before_validation calls self.host.sub! unconditionally, causing NoMethodError when host is nil during validation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Frontend store hydration in app/assets/javascripts/discourse/models/store.js.es6:197 calls self.pluralize(...) but pluralize is not defined/imported, causing runtime TypeError and breaking _ids hydration",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Frontend store hydration calls obj[k].map(...) without guarding against obj[k] being null/undefined, causing TypeError when server returns *_ids: null",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Migration uses create_table :embeddable_hosts, force: true which can drop the table and silently delete all embeddable_host records if the migration is re-run",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Fabricator definitions are in the wrong files: category_fabricator.rb contains :embeddable_host and embeddable_host_fabricator.rb contains category fabricators, creating a maintainability trap and potential duplicate-fabricator load errors",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "EmbeddableHost.record_for_host does not normalize hostname case (does not downcase URI(host).host) while querying with lower(host), causing allowlist mismatches for mixed/uppercase hosts",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "EmbeddableHost host validation regex caps TLD length at 5 characters, rejecting valid modern TLDs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "EmbeddableHost host validation regex permits path suffixes (/(\\/.*)?/), allowing stored host values with paths and increasing risk if reflected unsanitized",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "EmbeddableHost host validation regex does not reject '@' userinfo components in URLs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7": {
+    "soliton": [
+      {
+        "text": "In app/assets/stylesheets/desktop/topic-post.scss:291, the light-theme value for `.reply-count a` was incorrectly changed from `scale-color($primary, $lightness: 30%)` to `scale-color($primary, $lightness: 70%)`, unintentionally lightening the link color in light mode",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In app/assets/stylesheets/desktop/topic-post.scss:291, the dark-theme arm uses `scale-color($secondary, $lightness: 30%)` but should be the inverted value `70%` (100-30) to match the intended dark-theme mapping",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In app/assets/stylesheets/mobile/modal.scss:102, the `dark-light-choose` arguments for `.custom-message-length` are inverted, causing light mode to use `$primary` at 30% instead of the original 70% (making it too dark in light theme)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In app/assets/stylesheets/desktop/user.scss:523, the light-theme value for `.name` was incorrectly changed from `$primary` lightness 30% to 50%, removing the intended visual distinction from the `.title` element in light mode",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In app/assets/stylesheets/mobile/topic-post.scss:183, the light-theme value for `h3` was incorrectly changed from `$primary` lightness 20% to 50%, significantly lightening headings in light mode",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In app/assets/stylesheets/mobile/user.scss:498, the light-theme value for `.name` was incorrectly changed from `$primary` lightness 30% to 50%, making it visually identical to `.title` in light mode",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/8": {
+    "soliton": [
+      {
+        "text": "GroupsController#members uses an unbounded `limit` param, enabling clients to request extremely large pages and potentially cause a DoS via heavy serialization/memory use",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Admin GroupsController `add_members`/`remove_member` mutate membership rows before `group.save`, so a later save failure can return an error while the DB membership changes have already been committed (non-transactional write)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Admin UI `totalPages` calculation is off-by-one when `user_count` is an exact multiple of `limit`, causing an extra empty page and incorrect pagination UI",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`findMembers` returns `undefined` when group name is empty instead of a resolved promise/array, breaking callers that chain `.then(...)`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Group controller wire-format/param shape changes (create/update params and members response shape) are breaking and not versioned/deprecated, risking silent breakage for external consumers",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Removed `/admin/groups/:id/users` route may still be referenced by plugins/themes or other code, causing 404s without a deprecation path or compatibility alias",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Missing tests for new/changed behaviors: non-automatic group update with top-level params, add_members with nonexistent usernames, remove_member when user isn\u2019t a member, and members pagination metadata across pages",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Nitpick: `destroy` early-return uses `return };` (ASI-dependent stray semicolon/braces), inconsistent style; should be `return;`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3": {
+    "soliton": [
+      {
+        "text": "Non-atomic read-modify-write of BlockedEmail.match_count in should_block? can lose increments under concurrent requests (race condition)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "should_block? ignores the return value of record.save, potentially swallowing persistence failures",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "should_block? is called from EmailValidator#validate_each and can run multiple times per registration attempt (multiple valid? calls), causing match_count to be double-counted/inflated",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Email validation builds a regex from SiteSetting by escaping only '.', allowing unescaped metacharacters that can enable ReDoS via catastrophic backtracking on signup",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Email validation regex construction can raise RegexpError on misconfigured settings (e.g., '*.example.com'), causing signup to fail/DoS until fixed",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "create_account_controller pushes result.values.email without checking it exists, allowing undefined into rejectedEmails and causing spurious invalid state when accountEmail is undefined/empty",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5": {
+    "soliton": []
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6": {
+    "soliton": [
+      {
+        "text": "User profile template binds to model.website_name, but Discourse camelizes serializer fields to model.websiteName, causing website name to render empty/undefined",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "user_serializer.rb uses mutating concatenation (\".\" << website_host) on a string literal, which can raise FrozenError when frozen_string_literal is enabled and is semantically misleading for simple concatenation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "user_serializer.rb parses URI(website.to_s) multiple times per call and only the first parse/host access is rescue-guarded; later .path calls are unguarded and can raise on malformed URIs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Docstring in user.js.es6 changed from @property websiteName to @property profileBackground, potentially removing/misleading documentation for an existing websiteName computed property and obscuring whether it exists on the User model",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4": {
+    "soliton": [
+      {
+        "text": "SSRF and potential command execution risk from using Ruby open-uri/Kernel#open on untrusted URLs (e.g., open(SiteSetting.feed_polling_url), open(url).read), allowing access to internal hosts and pipe-prefixed command execution",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Anonymous users can influence @embed_url reaching TopicEmbed.import_remote via EmbedController#best \u2192 Jobs::RetrieveTopic \u2192 TopicRetriever#fetch_http, enabling untrusted URL fetching by visitors",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Stored XSS risk because TopicEmbed.import stores posts with cook_method raw_html and Post#cook returns raw content verbatim, bypassing PrettyText/Sanitize, and the view renders raw post.cooked",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "embed.html.erb uses parent.postMessage with targetOrigin set to request.referer (a full URL), which is not a valid origin and can break the handshake",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "request.referer is interpolated into a single-quoted JavaScript string without escaping in embed.html.erb, enabling JS injection via a crafted Referer containing a quote",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Parent-side postMessage origin validation in embed.js uses indexOf substring matching instead of strict origin equality, allowing spoofed origins to pass the check",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Embed access control relies on Referer host comparison in ensure_embeddable, which is suppressible/spoofable and not a reliable authorization mechanism",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Response sets X-Frame-Options: ALLOWALL, which is not a valid directive and won\u2019t reliably control framing behavior",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "poll_feed.rb calls i.content.scrub on RSS items that may not have <content>, causing NoMethodError and aborting processing; should fall back to description and coerce to string",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Redis throttling uses SETNX followed by a separate EXPIRE, which can leave a permanent key without TTL if a crash/failover occurs between commands",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Migration uses create_table ... force: true, which can drop existing data when migrations are replayed/reset; committed migrations should not be destructive on rerun",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Concurrent imports of the same embed_url can race: both workers may create TopicEmbed, the loser hits RecordNotUnique, causing a 500 and potentially leaving an orphan topic",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "app/views/embed/best.html.erb contains '<%- end if %>', which is a Ruby syntax error and prevents the template from rendering",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/1": {
+    "soliton": [
+      {
+        "text": "Duplicate OptimizedImage.downsize method definitions cause the second definition to silently override the legacy 4-argument signature, breaking existing callers and potentially crashing when opts is an Integer",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Server-side remote URL download limit is hardcoded to 10MB in uploads_controller.rb, bypassing admin-configured SiteSetting.max_image_size_kb and enabling larger-than-policy downloads",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Client-side upload size checks and 413 messaging are hardcoded to 10MB in utilities.js, ignoring admin max_<type>_size_kb/max_image_size_kb settings and ignoring the upload type",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "OptimizedImage.downsize now accepts an unvalidated dimensions string that flows into shell-executed ImageMagick commands, widening shell-injection/RCE risk if user-controlled input ever reaches it",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Downsize retry loop in uploads_controller.rb lacks convergence/failure checks (doesn\u2019t break on no progress or failed convert), potentially exhausting attempts and still uploading an oversized file",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Downsizing in-place by using the same tempfile.path for source and destination risks file corruption/0-byte output and stale size checks; should write to a separate temp file and replace atomically",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Invoking ImageMagick convert up to 5 times per upload increases resource-exhaustion and ImageTragick attack surface; should validate image safety (MIME/pixels) and enforce ImageMagick policy limits/disable risky coders",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/2": {
+    "soliton": [
+      {
+        "text": "Unsubscribe action uses TopicUser.find_by which can return nil, causing NoMethodError when accessing tu.notification_level and calling tu.save! for users without an existing TopicUser row",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Unsubscribe endpoint is a GET route that mutates server state (tu.save!), making it vulnerable to CSRF and accidental triggering by link previewers/URL scanners; should use confirmation GET + CSRF-protected POST and/or signed token",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Locale string requires %{unsubscribe_url} interpolation, but many mailers using add_unsubscribe_link: true do not pass unsubscribe_url, causing I18n::MissingInterpolationArgument and potentially dropping email deliveries",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "dropdown-button.js.es6 concatenates unescaped title into HTML (buffer.push with raw string), enabling stored XSS via user-controlled topic titles; other interpolated fields in renderString may also be unescaped",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "unsubscribe.hbs uses triple-brace {{{stopNotificiationsText}}} to render an I18n string that interpolates an unescaped topic title, enabling XSS; should avoid triple braces and move markup to template",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Adding render :show inside shared perform_show_response forces all callers to render the show template, creating confusing coupling and breaking future actions that reuse the helper",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Unsubscribe action does not check topic authorization (missing guardian.ensure_can_see!) and lacks a nil-guard for missing topics, enabling private-topic existence probing and undefined behavior for invalid topic_id",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/22532": {
+    "soliton": [
+      {
+        "text": "SelectedCalendarRepository.updateManyByCredentialId is called with empty data {}, making updateMany a no-op so Prisma @updatedAt never bumps and the cache-last-updated indicator never refreshes (packages/app-store/googlecalendar/lib/CalendarService.ts:1022)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "scripts/test-gcal-webhooks.sh uses BSD/macOS sed in-place syntax (sed -i '' -E) which fails on GNU sed/Linux, breaking the script in typical CI environments (scripts/test-gcal-webhooks.sh:67)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "connectedCalendars handler hardcodes new CalendarCacheRepository(), bypassing the feature-flagged CalendarCacheRepositoryMock and potentially hitting DB / causing runtime errors when calendar-cache is disabled (packages/trpc/server/routers/viewer/calendars/connectedCalendars.handler.ts:27)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "deleteCacheHandler authorization only checks credentialId + userId and does not account for team-shared or delegation credentials, enabling IDOR/broken access control where users can delete cache for shared/org credentials (packages/trpc/server/routers/viewer/calendars/deleteCache.handler.ts:12)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Using `cacheStatusMap.get(...) || null` can incorrectly coerce falsy values; should use nullish coalescing `?? null` for correctness/future-proofing (packages/trpc/server/routers/viewer/calendars/connectedCalendars.handler.ts:35)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/8330": {
+    "soliton": [
+      {
+        "text": "Working-hours boundary check computes both start and end from slotStartTime, never using slotEndTime, so slots that extend past workingHour.endTime can be incorrectly marked available",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Day-off override check compares two Dayjs instances with === (reference equality), so the branch never triggers and full-day unavailability overrides are ignored, leaving blocked days bookable",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "utcOffset is multiplied by -1, inverting the timezone shift direction and causing date-override matching to use the wrong local day/time",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "(Low confidence) DST boundary handling reuses the UTC offset sampled at override.start for override.end, which can be off by \u00b160 minutes across DST transitions",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/14943": {
+    "soliton": [
+      {
+        "text": "deleteMany cleanup predicate uses `retryCount > 1` without filtering `method: SMS`, so the SMS cron can delete EMAIL/WHATSAPP reminders from the shared `WorkflowReminder` table",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "If Twilio send succeeds but the subsequent Prisma update fails, the catch path increments `retryCount` without marking the reminder scheduled or saving the SID, causing the SMS to be resent (duplicate SMS) on the next cron tick",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The `await prisma.workflowReminder.update(...)` inside the catch block is unguarded; if it throws, it propagates out and aborts the remaining cron loop iterations and may prevent sending the HTTP response",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`retryCount` is incremented via non-atomic read-modify-write (`reminder.retryCount + 1`) based on a stale value from `findMany`, so concurrent cron runs can lose increments; should use Prisma atomic `increment`",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Retry deletion threshold `retryCount > 1` is an unclear/off-by-one magic number (ambiguous intended number of attempts); should use clearer predicate (`gte`/different threshold) and a named constant",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`retryCount` column is global on `WorkflowReminder` but only SMS handler uses it, creating method-specific semantics hidden in the schema and risking divergence/confusion with email/WhatsApp handlers",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Exhausted reminders are silently deleted with no logging/metrics, reducing observability into failed deliveries",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Logging raw Twilio error objects via `console.log` may leak sensitive data (e.g., phone numbers/message bodies) into logs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/22345": {
+    "soliton": [
+      {
+        "text": "Public InsightsBookingService.findMany() method was removed and replaced with getBaseConditions(), potentially breaking external callers and forcing them to reimplement where-composition around raw SQL without a documented migration/caller-graph update",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Constructor public options type allows scope:\"team\" without teamId, but the internal zod discriminated union requires teamId for team scope, causing runtime ZodError despite compiling",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Caching test suite (describe(\"Caching\" ...)) was deleted while caching fields/guards (cachedAuthConditions/cachedFilterConditions) remain in production code, reducing coverage and risking silent memoization regressions",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Tests assert expect(conditions).toEqual(Prisma.sql`...`) on freshly-built Prisma.Sql fragments, which is fragile because it depends on Prisma.Sql internal structure that may change across Prisma versions and may not reliably pass",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/11059": {
+    "soliton": [
+      {
+        "text": "Webhook handler trusts body-supplied userId, allowing any caller with the webhook secret to overwrite any user's stored OAuth credentials (IDOR/broken access control)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Encryption key is passed as process.env.CALCOM_APP_CREDENTIAL_ENCRYPTION_KEY || \"\", so an unset env var results in an empty-string crypto key and trivial/known-key decryption acceptance",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Webhook secret check can be bypassed when CALCOM_WEBHOOK_SECRET is unset because undefined header compared to undefined secret skips the 403 branch, allowing unauthenticated requests",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Webhook secret is compared with a non-constant-time string comparison, enabling timing attacks to recover the secret",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "No rate limiting on the credential-writing webhook, making timing attacks and request-flood DoS practical",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "No body-size cap on the webhook, allowing oversized payloads and increasing DoS risk",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "parseRefreshTokenResponse overwrites missing refresh_token with the literal string \"refresh_token\", poisoning stored credentials when providers omit refresh_token on refresh",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "refreshOAuthTokens sync branch returns a raw fetch Response instead of parsed JSON and does not check response.ok/content-type, causing parseRefreshTokenResponse to fail/crash or persist invalid data",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Webhook endpoint lacks an HTTP method guard, so non-POST methods can reach parsing/decrypt/upsert logic and may leak secrets via logs/caches",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "symmetricDecrypt and JSON.parse are unguarded; malformed ciphertext/non-JSON causes 500s with distinguishable errors, creating an oracle and leaking details via status/timing differences",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "refreshOAuthTokens fetches CALCOM_CREDENTIAL_SYNC_ENDPOINT without protocol/host validation, creating SSRF/misconfiguration risk and enabling attacker-controlled token responses to be persisted",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "When credential sync is enabled but userId is null, refreshOAuthTokens silently falls back to direct refresh with no logging, hiding sync bypass/failures",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "minimumTokenResponseSchema only defines access_token but code mutates/relies on refresh_token, making the returned type inaccurate and potentially breaking callers/type-safety",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/7232": {
+    "soliton": [
+      {
+        "text": "`deleteScheduledEmailReminder` with `immediateDelete` cancels the SendGrid scheduled send but returns without deleting/updating the corresponding `WorkflowReminder` DB row, orphaning stale reminders on reschedule",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `scheduleEmailReminders.ts`, a single failing `client.request` inside a loop-level try/catch aborts the entire cancellation loop, skipping remaining reminders and skipping the trailing `Promise.all` of DB deletes/updates, causing starvation/retries",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `handleCancelBooking.ts`, reminder-cancellation promises are started inside synchronous `.forEach` without `await`, so the handler can resolve before DB writes complete and errors can become unhandled rejections",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "The same fire-and-forget (dropped Promise) reminder-cancellation pattern exists in `packages/trpc/server/routers/viewer/bookings.tsx` and multiple call sites in `packages/trpc/server/routers/viewer/workflows.tsx`, losing `Promise.all` synchronization",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "In `handleNewBooking.ts`, wrapping `forEach(async ...)` in `try/catch` cannot catch async rejections, making the error handling ineffective and allowing unhandled rejections (outer catch is effectively dead code)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/14740": {
+    "soliton": [
+      {
+        "text": "Permission check incorrectly uses logical AND between isTeamAdmin and isTeamOwner, making the team admin/owner authorization branch unreachable",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Guest email blacklist check is case-sensitive, allowing blacklisted addresses to bypass via case variation",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Existing-attendee deduplication compares emails case-sensitively, allowing duplicate attendee rows when casing differs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Email fan-out passes raw guests list to sendAddGuestsEmails instead of filtered uniqueGuests, causing re-emailing of existing/filtered recipients and wrong email template selection",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "AddGuests input schema has no maximum guest count (and no rate limiting), enabling email-bombing/spam and resource exhaustion",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Email send failures are caught and logged with console.log without the error details and then swallowed, returning success even when notifications fail",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Organizer add-guests email subject uses calEvent.attendees[0].name, which may be empty because newly added guests have name set to \"\", producing blank names in the subject",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Authorization allows any attendee to add unlimited guests without organizer consent, enabling unauthorized guest additions and leakage of event/video-call details (including video-call password) to added recipients",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/10600": {
+    "soliton": [
+      {
+        "text": "Backup codes are stored using reversible symmetric encryption instead of being hashed (should store only KDF hashes like bcrypt/argon2/scrypt)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Backup-code consumption is not atomic (TOCTOU): concurrent login requests can reuse the same backup code before it is invalidated",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Backup-code verification uses non-constant-time comparison via Array.indexOf, leaking timing information about match position/prefix",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "React state for backupCodes is initialized with useState([]), inferred as never[], erasing type safety for string[] backup codes",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "resetState() does not clear sensitive React state (backupCodes, backupCodesUrl, dataUri, secret), leaving plaintext credentials in memory after modal close/cancel",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Blob URL created for downloading backup codes is not revoked on close/unmount, causing memory leak and prolonged exposure of plaintext backup codes via the object URL",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/10967": {
+    "soliton": [
+      {
+        "text": "EventManager dereferences mainHostDestinationCalendar.integration without guarding when evt.destinationCalendar is [] or null, causing a runtime TypeError crash",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "GoogleCalendarService updateEvent uses a tautological fallback find predicate comparing cal.externalId to a falsy externalCalendarId, so selectedCalendar becomes undefined and calendar.events.update is called with calendarId undefined",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "GoogleCalendarService deleteEvent repeats the same tautological fallback find predicate, so calendarId becomes undefined and calendar.events.delete is called with calendarId undefined (non-primary events not deleted)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "LarkCalendarService.createEvent signature is missing the new required credentialId parameter, violating the updated Calendar interface and preventing per-credential destinationCalendar selection",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Office365CalendarService.createEvent signature is missing the new required credentialId parameter, violating the updated Calendar interface and preventing per-credential destinationCalendar selection",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "BaseCalendarService.createEvent signature is missing the new required credentialId parameter, breaking subclasses (e.g., CalDAV/Apple) that inherit it and preventing per-credential destinationCalendar selection",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "handleNewBooking initializes evt.destinationCalendar to null in some cases; the COLLECTIVE branch then does evt.destinationCalendar?.push(...), which becomes a no-op and silently drops team destination calendars when organizer has no personal destinationCalendar",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "EventManager updateAllCalendarEvents can call updateEvent with an undefined credential after a DB refetch that doesn\u2019t populate credential when app.slug is missing/uninstalled, causing updates to silently no-op",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "handleCancelBooking credential DB refetch omits including app.slug and mapping to appName, so downstream code sees credential.appName undefined and breaks logs/emails/metrics keyed on appName",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "handleNewBooking loadUsers dynamic-user branch no longer selects organization.slug, causing downstream user.organization?.slug to be undefined for dynamic bookings",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "handleNewBooking loadUsers host branch can return undefined instead of an array when there are no hosts and eventType.users is undefined/null, leading to crashes in callers that assume an array (e.g., slice/push)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/8087": {
+    "soliton": [
+      {
+        "text": "Async callbacks passed to Array.prototype.forEach in the tRPC reschedule path (packages/trpc/server/routers/viewer/bookings.tsx:553) are not awaited, so calendar deletions can race/finish after the mutation returns and errors become unhandled promise rejections",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Async callbacks passed to Array.prototype.forEach in vital reschedule (packages/app-store/vital/lib/reschedule.ts:125) are not awaited, so deletions run fire-and-forget and errors bypass the enclosing try/catch",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Async callbacks passed to Array.prototype.forEach in wipemycalother reschedule (packages/app-store/wipemycalother/lib/reschedule.ts:125) are not awaited, so deletions run fire-and-forget and errors bypass the enclosing try/catch",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Recurring-event deletion in handleCancelBooking (packages/features/bookings/lib/handleCancelBooking.ts:460) uses forEach(async ...) over credentials, so recurring deletions are not awaited by the cancel response/Promise.all and failures are orphaned",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "getCalendarCredentials in packages/core/CalendarManager.ts:28 assigns calendar = getCalendar(credential) without awaiting, so the returned calendar field is a Promise<Calendar|null> that can be mistakenly treated as Calendar|null (truthy checks always pass, method calls break)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Dynamic import() calls stored directly in the app-store barrel object (packages/app-store/index.ts:1) execute eagerly at module initialization, defeating intended lazy loading and adding await overhead to lookups",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "getVideoAdapters in packages/core/videoClient.ts:21 now awaits appStore imports sequentially in a for...of loop, reducing parallelism and increasing latency compared to the prior parallel mapping approach",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/5": {
+    "soliton": [
+      {
+        "text": "fetch_error_details pairs error_ids with events.values() relying on dict ordering from nodestore.get_multi, which may reshuffle and associate wrong event data; existing test only covers single error and won\u2019t catch it",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Trace-item attribute keys query no longer sends environment filter (selection.environments), potentially merging keys across environments if backend previously narrowed results; backend behavior needs confirmation or documentation/update",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Detector validator sets owner_user_id/owner_team_id directly from request-resolved ActorField without explicit same-organization validation, risking cross-org actor reference/IDOR if ActorField isn\u2019t scoped",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "schedule_webhook_delivery uses a 30s processing_deadline_duration which may be too short for the scheduler pass under load compared to drain tasks, causing timeouts/pages; should be increased and measured",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Default project option sentry:autofix_automation_tuning changed from 'low' to 'off' without migration/release note/flag, potentially disabling autofix for projects that never set it (user-facing regression)",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "feedback_summaries.make_input_prompt changed from bulleted list to '------' delimiter, altering LLM prompt shape and risking delimiter collisions if user feedback contains '------'; should escape/choose safer delimiter and update evals/golden outputs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "PR description is 'Test 5', providing no intent/scope context for reviewers",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "PR mixes many unrelated subsystems with minimal replay-deletion changes, making review and rollback difficult; should be split into smaller PRs",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Migrations 0917 and 0920 are modified to early-return and reference 0921_convert_org_saved_searches_to_views_rerevised.py which is not in the diff; if not already on main, migration chain will be broken",
+        "path": null,
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  }
+}

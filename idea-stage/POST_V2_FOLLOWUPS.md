@@ -31,12 +31,16 @@ Entries reference `idea-stage/IDEA_REPORT.md` idea numbers (I1–I20) where appl
 **Why deprioritized this session:** user signaled "cost/latency is not priority at current stage."
 **Closes:** half of I1's empirical foundation.
 
-### A4 · Judge-noise envelope quantification
-**Status:** known finding from Phase 5.2.1 (Ruby +0.022 → −0.008 swing on identical Soliton reviews). Single data point. No formal noise envelope.
-**Why it matters:** every per-language conclusion at n=10 is currently noise-compatible. Affects Phase 4c regressions, Phase 5 TS/Python lifts, Phase 5.2 Ruby gain.
-**What it takes:** rerun the judge pipeline on the existing phase5_2-reviews/ 3–5 times. Measure σ per-language and aggregate. Establish a credible "swing < 2σ" rule before declaring per-language signals.
-**Cost:** ~$45–$75 (3–5 × $15 judge runs).
-**Strategic fit:** retroactively calibrates every prior phase's conclusions. High value, contained scope.
+### A4 · Judge-noise envelope quantification — **CLOSED 2026-04-29**
+**Status:** ✅ closed. N=3 judge re-runs (~$45) on `phase5_2-reviews/` plus the published 5.2.1 anchor → **σ_F1 aggregate = 0.0086, σ_F1 per-language max = 0.0179 (TS)**. Mean F1 across 4 runs = 0.321 (Phase 5.2's published 0.313 was on the low edge). Writeup at `bench/crb/judge-noise-envelope.md`; raw run data under `bench/crb/judge-noise-runs/run{0..3}/`. Aggregator `bench/crb/compute-noise-envelope.py`.
+**Retroactive verdicts:**
+- Phase 5.2 vs P3.5 (+0.036) = **4.16σ signal** ✓
+- Phase 5 vs P3.5 (+0.023) = **2.66σ signal** ✓
+- Phase 3.5.1 (−0.034) = **3.93σ regression** ✓
+- Phase 5.2 vs P5 (footnote strip alone, +0.013) = **1.5σ provisional** (was holding the 0.305 ship floor by 0.008 in the published number; mean is 0.321, but the isolated footnote-strip lever is below 2σ)
+- Phase 4c (−0.016) = 1.85σ provisional (close verdict was correct)
+- Phase 4c.1 (+0.001) = 0.12σ pure noise
+- Phase 5.2.1 re-run (−0.005) = 0.58σ noise (confirmed)
 
 ### A5 · Realist-check agent CRB measurement
 **Status:** `agents/realist-check.md` shipped as part of v2 synthesizer post-pass. Never measured at the CRB level.
@@ -148,8 +152,21 @@ These are I10–I20 from `idea-stage/IDEA_REPORT.md` § 5. None started. All exp
 
 ## F · Process notes
 
-### F1 · Judge variance discipline
-Going forward, **per-language conclusions at n=10 should require either σ-aware framing OR re-runs across multiple judges**. Phase 5.2.1's Ruby swing established the empirical noise floor; future writeups should cite ±0.02–0.03 noise band per language at this corpus size.
+### F1 · Judge variance discipline — **measured 2026-04-29 (was placeholder)**
+N=3 + 1 anchor judge re-runs of `phase5_2-reviews/` give:
+
+- **σ_F1 aggregate = 0.0086** (1σ; 2σ ≈ 0.017) — single-judge re-run noise on the same Soliton output, n=50 PRs.
+- **σ_F1 per-language max = 0.0179** (TS); per-language band is roughly 2× aggregate, consistent with √5 scaling from n=50 → n=10.
+- Variance is dominated by FP fluctuation (σ_FP ≈ 9.5 across runs); TPs and FNs are nearly stable. The judge's *recall* is reproducible; its *precision* classification is the noisy axis.
+
+**Updated discipline going forward:**
+
+1. **Aggregate F1 deltas < 0.009 (1σ) are noise**; 0.009–0.018 (1–2σ) are provisional; > 0.018 (2σ) clear signal.
+2. **Per-language deltas < 0.018 (1σ_lang) are noise**; > 0.036 (2σ_lang) clear signal at n=10.
+3. **Single-CRB-number reporting** should cite mean ± σ over N independent re-runs whenever feasible, not a point estimate.
+4. **Per-agent ablation deltas at N=1 are fine** for the high-volume agents; σ_TP ≤ 1.26 means TP deltas ≥ 3 (e.g. Phase 5's `test-quality`/`consistency` removal) clear 2σ comfortably.
+
+Full measurement, calibration table, methodology in `bench/crb/judge-noise-envelope.md`.
 
 ### F2 · IMPROVEMENTS.md calibration discount
 3–5× discount on napkin projections still holds (verified across Phase 3.5 / 3.6 / 3.7 / 5 / 5.2 / 5.2.1). Apply when proposing any new lever.
@@ -159,17 +176,19 @@ Pre-registered ship criteria like "F1 ≥ 0.30" should explicitly say "subject t
 
 ---
 
-## Ranked priorities (author's read, 2026-04-22)
+## Ranked priorities (author's read, updated 2026-04-29)
+
+A4 judge-noise envelope was closed in the 2026-04-29 session (~$45). Remaining ranked priorities:
 
 If picking just one:
 1. **C1 enterprise-rebuild dogfood** — closes the strategic moat gap; nothing else does.
 2. **A1 Tier-0 dogfood** — substantiates the cost-efficiency story which is half the v2 pitch.
-3. **A4 judge-noise envelope** — calibrates everything else; one-time cost.
+3. **A5 realist-check agent CRB** — only unmeasured v2 mechanism; now interpretable against measured σ_F1=0.0086.
 
 If picking three over the next month:
 1. C1 enterprise dogfood
-2. A1 + A2 + A5 — three v2 mechanisms with shipped code but zero validation
-3. A4 judge-noise quantification
+2. A1 + A2 + A5 — three v2 mechanisms with shipped code but zero CRB-level validation
+3. ~~A4 judge-noise quantification~~ — done.
 
 If $0 budget:
 1. A3 Tier-0 default-ON measurement (zero-cost subset of A1)
