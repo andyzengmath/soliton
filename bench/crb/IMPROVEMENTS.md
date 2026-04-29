@@ -1,6 +1,6 @@
 # Soliton × CRB Phase 3 — how to climb the F1 leaderboard
 
-> **⚠️ Calibration notice (added 2026-04-19 after Phase 3.5 / 3.6 / 3.7)**
+> **⚠️ Calibration notice (added 2026-04-19 after Phase 3.5 / 3.6 / 3.7; σ-floor added 2026-04-29 after PR #48)**
 >
 > **Every ΔF1 estimate in this doc was written BEFORE Phase 3.5 shipped.** Subsequent experiments showed the projections were **3–5× too optimistic**:
 > - Phase 3.5 (L4+L2+L1 stacked): projected **+0.20** → actual **+0.042**
@@ -8,6 +8,8 @@
 > - Phase 3.7 v2.3 synthesizer dedup widening: projected **+0.03** → actual **−0.022** (regression)
 >
 > **When reading this doc**: apply a **3–5× discount** to every per-lever ΔF1 estimate in §2 and §3. Realistic range for any remaining prompt-level lever here is **+0.01 to +0.03**, not the +0.05 to +0.10 shown.
+>
+> **σ-floor (added 2026-04-29):** measured σ_F1=0.0086 (`bench/crb/judge-noise-envelope.md`) gives a 2σ_Δ paired floor of 0.024. After the 3–5× discount, only levers with a *raw napkin* projection ≥ +0.07 (3× discount) or ≥ +0.12 (5× discount) survive the noise floor at N=1. **Smaller-projected levers should either be deferred or committed to N≥3 re-runs (~$420)** — at N=1 their realized lift is indistinguishable from judge variance.
 >
 > **Load-bearing update**: "aggressive precision" levers (L1 atomicity, v2.2 compression, v2.3 dedup widening) have consistently cut recall more than they help precision — the CRB step3 judge is recall-hungry. Any future lever that reduces matching surface area downstream should be treated with skepticism.
 >

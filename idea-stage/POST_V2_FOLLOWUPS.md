@@ -16,6 +16,7 @@ Entries reference `idea-stage/IDEA_REPORT.md` idea numbers (I1–I20) where appl
 **What it takes:** 10–20 real PRs reviewed twice (with `tier0.enabled: true` + `tier0.skip_llm_on_clean: true` vs. without), measure: (a) Tier-0 verdict distribution, (b) LLM-skip rate, (c) FP escape rate (real bugs Tier-0 missed that LLM caught).
 **Cost:** ~$5–$15 (LLM-skip path is cheap by definition). Engineering effort: 0.
 **Closes:** I1 ship-criterion of "> 40 % of PRs resolved by Tier-0 alone, < 2 % escape".
+**σ-aware ship criterion (revised 2026-04-29):** "< 2 % escape" needs n ≥ 50 to clear the σ_escape ≈ 1/√n ≈ 14 % per-PR floor at n=10. At n=20 the binomial Wilson CI is roughly ±10pp, so 0/20 escapes only proves escape rate < ~17 % at 95 % CI. Either expand to n=50 *or* re-state the criterion as "0 escapes observed at n=20" (which is informational, not a probabilistic guarantee).
 
 ### A2 · Spec Alignment (Step 2.7) end-to-end dogfood
 **Status:** code shipped (`agents/spec-alignment.md` + Step 2.7); activation path documented (PR #40); never empirically validated.
@@ -43,11 +44,20 @@ Entries reference `idea-stage/IDEA_REPORT.md` idea numbers (I1–I20) where appl
 - Phase 5.2.1 re-run (−0.005) = 0.58σ noise (confirmed)
 
 ### A5 · Realist-check agent CRB measurement
-**Status:** `agents/realist-check.md` shipped as part of v2 synthesizer post-pass. Never measured at the CRB level.
-**Why important:** intended to drop FP rate by requiring "Mitigated by:" citation for downgrades. If it works, F1 should clear 0.32+.
-**What it takes:** $140 50-PR run with `realist-check` enabled in synthesizer. Measure F1 vs Phase 5.2.
-**Cost:** $140.
-**Strategic fit:** the only built-in v2 lever that hasn't been benchmarked.
+**Status:** `agents/realist-check.md` shipped as part of v2 synthesizer post-pass. Never measured at the CRB level. **WIRING GAP discovered 2026-04-29:** the agent definition exists at `agents/realist-check.md` but is NOT referenced in `agents/synthesizer.md` or `skills/pr-review/SKILL.md`. Realist-check is currently dead code — never dispatched. Pre-step before any CRB measurement: wire it in as a Step 5.5 in SKILL.md, gated on `config.synthesis.realist_check`.
+**Why important:** intended to drop FP rate by requiring "Mitigated by:" citation for downgrades.
+**σ-aware revised pre-reg (2026-04-29):** the original "F1 should clear 0.32+" criterion was set before σ_F1=0.0086 was measured. 0.32 is only +0.007 above Phase 5.2's published 0.313, ≈ 0.8σ_aggregate or 0.6σ_Δ paired — would ship on noise. Revised criteria:
+- ✅ **Ship:** F1 ≥ 0.337 (= 0.313 + 2σ_Δ paired = 0.313 + 0.024) AND recall ≥ 0.50 AND no per-language reg > 0.036 (1σ_lang).
+- ⚠️ **Hold:** 0.325 ≤ F1 < 0.337 (within 2σ_Δ of Phase 5.2 published — provisional ship at single re-run).
+- ❌ **Close:** F1 < 0.313 (below Phase 5.2 baseline).
+
+Per-realist-check projection from `agents/realist-check.md`: expected FP-cut of ~10–20 candidates (out of ~250 in Phase 5.2's mean), worth ~+0.01 to +0.02 F1 napkin → discounted to +0.003 to +0.007 realized — **below the 2σ ship threshold of +0.024 even at the high end**. To get a clean signal, either:
+1. **Defer A5 indefinitely** as a likely-noise-level lever; or
+2. **Run A5 with N=2-3 re-runs** (~$280-$420 total) so the measurement's own σ_run drops below the expected lift's magnitude; or
+3. **Run A5 at N=1 with weaker pre-reg** ("any positive Δ ≥ 1σ_Δ = 0.012 is provisional ship") — informational, not signal-grade.
+**What it takes:** wire the agent first ($0 eng), then pick (1)/(2)/(3) per cost ladder.
+**Cost:** N=1 ~$140; N=3 ~$420.
+**Strategic fit:** the only built-in v2 lever that hasn't been benchmarked. But under measured σ, the expected lift is below the 2σ noise floor, so the rigor-vs-cost trade-off is real.
 
 ---
 
@@ -169,10 +179,27 @@ N=3 + 1 anchor judge re-runs of `phase5_2-reviews/` give:
 Full measurement, calibration table, methodology in `bench/crb/judge-noise-envelope.md`.
 
 ### F2 · IMPROVEMENTS.md calibration discount
-3–5× discount on napkin projections still holds (verified across Phase 3.5 / 3.6 / 3.7 / 5 / 5.2 / 5.2.1). Apply when proposing any new lever.
+3–5× discount on napkin projections still holds (verified across Phase 3.5 / 3.6 / 3.7 / 5 / 5.2 / 5.2.1). Apply when proposing any new lever. **2026-04-29 update:** under measured σ_F1=0.0086, the discount has a hard floor — *any* projected lift smaller than 2σ_Δ = 0.024 (after the 3–5× discount applied) is below the noise floor and cannot be signaled at N=1. Implication for IMPROVEMENTS.md's L1–L9 levers: post-discount, only levers with a napkin lift ≥ +0.07 (3× discount → +0.024) or ≥ +0.12 (5× discount → +0.024) clear the 2σ_Δ bar at N=1. For smaller-projected levers, either skip or commit to N≥3 re-runs.
 
-### F3 · Strict ship criteria — noise margin
-Pre-registered ship criteria like "F1 ≥ 0.30" should explicitly say "subject to ±σ judge-noise" once F2's σ is quantified. Current Phase 5 / 5.2 uses strict-floor + practical-rounding interpretation; that's a workaround, not a doctrine.
+### F3 · Strict ship criteria — measured noise margin (replaces 2026-04-22 placeholder)
+**Doctrine, post-A4:**
+1. **Aggregate F1 deltas vs. a fixed historical anchor:** ratio = |Δ| / σ_aggregate (= |Δ| / 0.0086). Ship at ≥ 2σ; provisional at 1–2σ; noise at < 1σ.
+2. **Aggregate F1 deltas between two independent phase results** (the strict difference-of-means case): ratio = |Δ| / σ_Δ_paired (= |Δ| / 0.0122 = |Δ| / (√2·σ_aggregate)). Ship at ≥ 2σ_Δ; provisional at 1–2σ_Δ; noise at < 1σ_Δ. **Use this when both endpoints are themselves measured F1 values, not a published anchor.**
+3. **Per-language F1 deltas at n=10:** ratio = |Δ_lang| / σ_lang (= |Δ_lang| / 0.018). Per-language conclusions at single-run n=10 require ≥ 2σ_lang = 0.036 to claim signal; |Δ_lang| < 0.018 is pure noise.
+4. **Per-agent ablation deltas at N=1:** σ_TP_max ≈ 1.26 (correctness); ablations producing TP_delta ≥ 3 are well above 2σ_TP and reportable from a single run. Smaller agent-level deltas need re-runs.
+5. **Single-CRB-number reporting:** prefer "F1 = X (±σ over N runs)" framing over "F1 = X" point estimates whenever feasible (N ≥ 2). The published 0.313 was on the low edge of the noise band; mean across N=4 was 0.321. Future writeups should report mean + σ + N.
+6. **Phase 5/5.2 published narrative is preserved:** the +0.036 cumulative lift is 2.96σ_Δ, clearly signal. Do not retroactively revise; just frame future deltas against this doctrine.
+
+Practical workflows must still apply pre-registration discipline (state criterion BEFORE the run, not after) — what changed is the *contents* of the criteria, not the discipline itself.
+
+### F4 · Doc-debt punch list (2026-04-29 audit)
+Stale pre-reg / projection language found across docs that pre-date the σ measurement:
+- `bench/crb/IMPROVEMENTS.md` § 1–9: every per-lever ΔF1 estimate lacks σ band (top-of-doc calibration notice covers the 3–5× discount but not the σ-floor implication; addressed in F2 update above + IMPROVEMENTS top-of-doc tightening in this PR).
+- `bench/crb/PHASE_4_DESIGN.md` § ship criteria: thresholds (0.32 / 0.29) pre-date σ measurement. Phase 4 already closed; revising historical pre-reg has no live impact, leave as-is for archaeology.
+- `bench/crb/AUDIT_10PR.md` § Candidate X.2: "Ship F1 ≥ 0.30" baseline now superseded by Phase 5.2 (0.313). Phase 5 already shipped; document is historical, leave as-is.
+- `bench/crb/RESULTS.md` § Phase 5 / 5.2: writeups already reference judge σ ≈ 0.02 cross-run (Phase 5 close-floor language); no live action needed.
+- `bench/crb/PHASE5_WRITEUP.md`: cumulative claim is correct (+0.036 = clear 2σ signal); could be more explicit about σ ratio but does not mislead — leave as-is.
+**Net live-impact change in this PR:** A1 and A5 in this file get σ-aware criteria; F.2 + F.3 codify doctrine; IMPROVEMENTS.md top-of-doc gets the σ-floor caveat. Everything else is historical archaeology — flagged but not edited.
 
 ---
 
