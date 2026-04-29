@@ -15,7 +15,15 @@ You receive:
 - `diff` — unified diff of all changes
 - `files` — list of changed files
 - `focusArea` — specific files and hints from the risk scorer
-- `graphSignals.dependencyBreaks[]` (v2, when graph backend is enabled) — pre-computed list of callers that import or invoke the changed exports. Each entry contains `{caller_file, caller_line, caller_symbol, changed_symbol, change_kind}`. **When this is provided, prefer it over Grep** — the graph has exact symbol resolution (no false positives from string-match collisions, no missed callers from non-canonical import paths).
+- `graphSignals.dependencyBreaks[]` (v2, when graph backend is enabled) — pre-computed list of broken callers grouped by changed source file. Each entry has shape:
+  ```
+  {
+    changedFile: <path of changed source file>,
+    brokenCallers: [{file, line, reason}, ...],
+    severity: "critical" | "improvement"
+  }
+  ```
+  (The Soliton-internal shape per `skills/pr-review/graph-signals.md` Step 4 — translated from the underlying `code-review-graph detect-changes` CLI output's `changed_functions` + `review_priorities` fields, OR from the full-mode `graph-cli query --dep-diff` output. The agent doesn't need to know which backend produced it.) **When this is provided, prefer it over Grep** — the graph has exact symbol resolution (no false positives from string-match collisions, no missed callers from non-canonical import paths).
 
 ## Review Process
 
@@ -39,10 +47,13 @@ For each, record:
 
 If `graphSignals.dependencyBreaks` is provided AND non-empty:
 
-1. Use it directly as the authoritative caller list — skip Step 2's Grep walk for the symbols it covers.
-2. For each entry, read the caller file at `caller_line` to understand how the export is used and run Step 3 (Check Compatibility) on that call site.
-3. If a changed export from Step 1 is NOT represented in `dependencyBreaks` (no entry with `changed_symbol` matching it), fall through to Step 2's Grep walk for THAT symbol only — graph coverage may be partial in some setups (e.g., partial-mode backend covers only Python + bash today).
-4. Treat `dependencyBreaks`-derived findings with `confidence: 90` as a default (graph evidence is deterministic) vs. Grep-derived findings at the existing `confidence: 60-80` band.
+1. Use it directly as the authoritative caller list — skip Step 2's Grep walk for the changed files it covers.
+2. For EACH entry `e` in `dependencyBreaks` and EACH `caller` in `e.brokenCallers`:
+   - Read the caller file at `caller.file:caller.line` to understand how the changed export is used.
+   - Run Step 3 (Check Compatibility) on that call site against `e.changedFile`.
+   - Use `caller.reason` as the starting hint for what changed (e.g., "signature changed: param added", "export removed").
+3. If a changed file from Step 1 (Identify Changed Exports) is NOT represented in `dependencyBreaks` (no entry with `changedFile` matching it), fall through to Step 2's Grep walk for THAT file only — graph coverage may be partial in some setups (e.g., partial-mode backend covers only Python + bash today).
+4. Initial severity for `dependencyBreaks`-derived findings: take from `e.severity` (`critical` for runtime-breaking signature changes, `improvement` otherwise). Confidence default `90` for graph-derived findings (graph evidence is deterministic) vs. `60-80` for Grep-derived.
 
 If `graphSignals.dependencyBreaks` is absent or empty, proceed to Step 2 as before — v1 Grep-based behavior preserved.
 
