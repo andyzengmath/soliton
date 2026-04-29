@@ -24,6 +24,17 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
+# Per-process scratch dir (avoids /tmp TOCTOU + multi-contributor races).
+# `mktemp -d` works on macOS / Linux / Git-Bash on Windows.
+SCRATCH="$(mktemp -d -t crg-smoke-XXXXXX)"
+trap 'rm -rf "$SCRATCH"' EXIT
+
+# Pick a Python interpreter portably. Prefer python3, fall back to python.
+PY=""
+if command -v python3 >/dev/null 2>&1; then PY="$(command -v python3)"
+elif command -v python >/dev/null 2>&1; then PY="$(command -v python)"
+fi
+
 red()    { printf '\e[31m%s\e[0m\n' "$*" >&2; }
 green()  { printf '\e[32m%s\e[0m\n' "$*"; }
 yellow() { printf '\e[33m%s\e[0m\n' "$*"; }
@@ -35,8 +46,8 @@ check_contract () {
   local name="$1" ; shift
   local budget_ms="$1" ; shift
   local start_ns=$(date +%s%N)
-  if ! "$@" > /tmp/crg-smoke-output 2> /tmp/crg-smoke-error; then
-    red "  [FAIL] ${name}: $(cat /tmp/crg-smoke-error)"
+  if ! "$@" > "$SCRATCH/output" 2> "$SCRATCH/error"; then
+    red "  [FAIL] ${name}: $(cat "$SCRATCH/error")"
     return 1
   fi
   local end_ns=$(date +%s%N)
@@ -46,7 +57,7 @@ check_contract () {
   else
     green "  [OK]   ${name} in ${elapsed_ms} ms"
   fi
-  cat /tmp/crg-smoke-output
+  cat "$SCRATCH/output"
   echo
 }
 
@@ -95,7 +106,11 @@ echo "[3/4] dependency-breaks query (code-review-graph detect-changes -> Soliton
 check_contract "detect-changes" "$PARTIAL_BUDGET_MS" code-review-graph detect-changes --base HEAD~1 --brief
 
 DC_JSON=$(code-review-graph detect-changes --base HEAD~1 2>&1)
-if ! echo "$DC_JSON" | PYTHONUTF8=1 PYTHONIOENCODING=utf-8 /c/Python314/python -c "
+if [ -z "$PY" ]; then
+  red "  [FAIL] no python3 / python on PATH; cannot validate JSON shape"
+  exit 1
+fi
+if ! echo "$DC_JSON" | PYTHONUTF8=1 PYTHONIOENCODING=utf-8 "$PY" -c "
 import sys, json
 d = json.load(sys.stdin)
 required = {'summary', 'risk_score', 'changed_functions', 'affected_flows', 'test_gaps', 'review_priorities'}
