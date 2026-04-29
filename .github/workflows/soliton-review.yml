@@ -1,24 +1,46 @@
-# Soliton PR Review — dogfooding soliton on itself
+# Soliton PR Review — dogfooding soliton on itself, via Microsoft Foundry.
 #
-# Runs a risk-adaptive multi-agent code review on every pull request.
+# Runs a risk-adaptive multi-agent code review on every pull request, using
+# claude-code-action's Microsoft Foundry provider so the workflow does NOT
+# require ANTHROPIC_API_KEY (which Anthropic Console users in restricted
+# orgs cannot provision). Auth is OIDC + Azure AD federated identity, the
+# same pattern Soliton's CRB judge already uses for Azure GPT-5.2.
 #
-# REQUIRED secrets (set via repo Settings → Secrets and variables → Actions):
-#   ANTHROPIC_API_KEY        — direct API key from console.anthropic.com
-#                              (NOT available to Anthropic Console users — see below)
+# REQUIRED setup (one-time, in Azure + GitHub):
 #
-# Without ANTHROPIC_API_KEY (or the equivalent claude-code-action-supported
-# CLAUDE_CODE_OAUTH_TOKEN) this workflow fails with:
-#     "Either ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN is required when
-#      using direct Anthropic API."
-# A preflight step below short-circuits with a clearer error before the action
-# is invoked, so maintainers see the actionable message instead of the action's
-# internal env-validation error.
+#   1. Provision an Azure AI Foundry resource that hosts Claude (e.g.
+#      claude-sonnet-4-5 deployment). Note its endpoint URL — looks like
+#      https://<resource-name>.services.ai.azure.com.
 #
-# Console users currently cannot generate ANTHROPIC_API_KEY (per
-# reference_claude_code_action_auth.md memory). The workaround is the
-# claude-code-action OAuth-token flow; tracking in
-# idea-stage/POST_V2_FOLLOWUPS.md §B3 (Martian CRB upstream submission, blocked
-# on the same auth chain).
+#   2. Create an Azure AD app registration with a federated credential
+#      pinned to this repo:
+#        Issuer:   https://token.actions.githubusercontent.com
+#        Subject:  repo:<org>/<repo>:ref:refs/heads/main
+#        (and a second entry for pull_request events:
+#         repo:<org>/<repo>:pull_request)
+#
+#   3. Grant the AD app the Cognitive Services User (or equivalent
+#      inference-call) role on the Foundry resource.
+#
+#   4. Set repo secrets at Settings → Secrets and variables → Actions:
+#        AZURE_CLIENT_ID         — AD app client (application) ID
+#        AZURE_TENANT_ID         — your Azure tenant ID
+#        AZURE_SUBSCRIPTION_ID   — subscription hosting the Foundry resource
+#        FOUNDRY_BASE_URL        — Foundry endpoint URL from step 1
+#                                  (e.g. https://soliton-foundry.services.ai.azure.com)
+#
+# The preflight step below short-circuits with a clear error if any secret
+# is missing, instead of failing 12 lines into claude-code-action's
+# internal env-validation.
+#
+# To switch back to direct ANTHROPIC_API_KEY auth (for non-Microsoft users),
+# replace the Foundry stanza with:
+#   - uses: anthropics/claude-code-action@<sha>
+#     with:
+#       anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+#       claude_args: --plugin-dir .
+#       prompt: ...
+# and drop the Azure login step + Foundry env var.
 
 name: Soliton PR Review
 
@@ -34,7 +56,7 @@ concurrency:
   group: soliton-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-# Default to zero permissions; each job opts in explicitly.
+# Default to zero permissions; the review job opts in explicitly.
 permissions: {}
 
 jobs:
@@ -45,38 +67,56 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-      # anthropics/claude-code-action@v1 requires an OIDC token for attribution;
-      # without this the action fails with "Could not fetch an OIDC token".
+      # OIDC token is required by both azure/login (for federated auth)
+      # AND claude-code-action (for attribution). Single id-token: write
+      # covers both consumers.
       id-token: write
 
     steps:
-      - name: Preflight — verify ANTHROPIC_API_KEY is configured
+      - name: Preflight — verify Foundry secrets are configured
         # Replaces claude-code-action's cryptic "Environment variable validation
-        # failed: Either ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN is required"
-        # with an actionable error pointing at the repo Settings page. The secret
-        # value itself never enters the bash environment — only a binary indicator.
+        # failed" error with an actionable message pointing at the docs above.
+        # Secret values never enter the bash environment — only binary indicators.
         env:
-          HAS_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' && '1' || '' }}
+          HAS_CLIENT: ${{ secrets.AZURE_CLIENT_ID != '' && '1' || '' }}
+          HAS_TENANT: ${{ secrets.AZURE_TENANT_ID != '' && '1' || '' }}
+          HAS_SUB: ${{ secrets.AZURE_SUBSCRIPTION_ID != '' && '1' || '' }}
+          HAS_URL: ${{ secrets.FOUNDRY_BASE_URL != '' && '1' || '' }}
         run: |
-          if [ -z "$HAS_API_KEY" ]; then
-            echo "::error title=Soliton-Review missing required secret::ANTHROPIC_API_KEY is not configured for this repo. Add it via Settings → Secrets and variables → Actions. Console users without API access: see reference_claude_code_action_auth.md or POST_V2_FOLLOWUPS §B3 for the OAuth-token workaround."
+          missing=()
+          [ -z "$HAS_CLIENT" ] && missing+=("AZURE_CLIENT_ID")
+          [ -z "$HAS_TENANT" ] && missing+=("AZURE_TENANT_ID")
+          [ -z "$HAS_SUB" ] && missing+=("AZURE_SUBSCRIPTION_ID")
+          [ -z "$HAS_URL" ] && missing+=("FOUNDRY_BASE_URL")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error title=Soliton-Review missing required Foundry secrets::Missing: ${missing[*]}. See setup steps in this workflow's top-of-file comment, or the cloud-providers docs at github.com/anthropics/claude-code-action/blob/main/docs/cloud-providers.md."
             exit 1
           fi
-          echo "ANTHROPIC_API_KEY present — proceeding with review."
+          echo "All Foundry secrets present — proceeding."
+
+      - name: Authenticate to Azure (OIDC, federated identity)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
-      - name: Run Soliton review
+      - name: Run Soliton review (via Microsoft Foundry)
         uses: anthropics/claude-code-action@38ec876110f9fbf8b950c79f534430740c3ac009 # v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          ANTHROPIC_FOUNDRY_BASE_URL: ${{ secrets.FOUNDRY_BASE_URL }}
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: --plugin-dir .
+          use_foundry: "true"
+          claude_args: |
+            --plugin-dir .
+            --model claude-sonnet-4-5
           prompt: |
             Run /pr-review $PR_NUMBER
 
