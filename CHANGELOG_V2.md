@@ -3,6 +3,77 @@
 This changelog documents the v2 changes generated during `/research-pipeline` Stage 2
 execution on 2026-04-18. All files are additive markdown/YAML — no runtime/build changes.
 
+---
+
+## v2.1.0 — 2026-04-29
+
+Minor release. Adds v2-promised wirings that were previously dead code (3 agents),
+codifies σ-aware pre-registration doctrine for CRB experiments, and adds two CI
+workflows (hallucination-ast pytest gate + fixture-runner partial). 18 commits
+since v2.0.1, 6 follow-up gaps closed (A4, A5 wiring, I7 wiring, D2, G1, G2-partial).
+
+### New behavior (default ON)
+
+These three agents were registered in `plugin.json` since v2.0.0 but had no dispatch
+path, so they never actually ran. v2.1.0 wires them in:
+
+- **`agents/realist-check.md`** (PR #50) — post-synthesis pressure-test pass for
+  CRITICAL findings, gated on `synthesis.realist_check` (default OFF for cost
+  control). Wired as Step 5.5 in SKILL.md.
+- **`agents/silent-failure.md`** (PR #51) — content-triggered dispatch when diff
+  contains try/catch/Promise/optional-chaining patterns. Default ON via
+  `agents.silent_failure.enabled: true`.
+- **`agents/comment-accuracy.md`** (PR #51) — content-triggered dispatch when diff
+  modifies comment-marker lines. Default ON via `agents.comment_accuracy.enabled:
+  true`.
+
+The two content-triggered agents only fire on diffs that actually touch the
+relevant patterns; PRs without try/catch or comment edits dispatch zero additional
+agents. The README badge bumped from `Review_Agents-7` → `9` to reflect the new
+max-dispatch count.
+
+### New behavior (opt-in via graph signals)
+
+- **`agents/cross-file-impact.md`** (PR #61) — when `graphSignals.dependencyBreaks[]`
+  is present from Step 2.8, the agent now consumes graph-derived caller lists
+  (confidence 90, deterministic) instead of Grep-walking the codebase. Falls
+  through to v1 Grep behavior when graph absent.
+
+### Measurement: judge-noise envelope
+
+- **PR #48** measured GPT-5.2 judge variance: σ_F1 aggregate = 0.0086 across 4
+  independent re-runs of `phase5_2-reviews/`. Mean F1 = 0.321; published v2.0.1
+  number 0.313 was on the LOW edge. Documented in `bench/crb/judge-noise-envelope.md`.
+- **PR #49** codified σ-aware pre-registration doctrine across `POST_V2_FOLLOWUPS.md`
+  and `IMPROVEMENTS.md`. Future ship criteria require ≥ 2σ_Δ separation
+  (= 0.024 aggregate, 0.036 per-language at n=10).
+
+### CI infrastructure
+
+- **`.github/workflows/hallucination-ast-tests.yml`** (PRs #55, #56, #58) — pytest
+  gate on every PR touching `lib/hallucination-ast/`. 130 tests pass, 84% coverage.
+- **`.github/workflows/fixture-runner.yml`** (PRs #59, #60) — fixture-runner
+  partial automation. Two of three modes wired: structural validation (11 fixtures)
+  + phase4b CLI assertion (2 fixtures). Full `/pr-review` mode remains auth-gated.
+- **PR #57** — actionable preflight error in `soliton-review.yml` for missing
+  ANTHROPIC_API_KEY. Either `claude_code_oauth_token` (PR #65) or Foundry-OIDC
+  (closed PR #64 draft) are recommended substitute auth paths for Console-only orgs.
+
+### Documentation
+
+- `idea-stage/POST_V2_FOLLOWUPS.md` — added §A6 (combined Phase 5.3 CRB) and
+  §G1/G2/G3 register; refreshed ranked priorities; closed entries for A4 / A5
+  wiring / I7 wiring / D2 / G1 / G2-partial.
+- `bench/crb/judge-noise-envelope.md` — full writeup of the σ measurement.
+- `tests/run-fixtures.md` — § Automated coverage table; full `/pr-review` arm
+  marked deferred pending auth.
+
+### Cost
+
+~$45 of measurement spend (Goal B / PR #48 only). All other PRs were $0 API
+(docs, wirings, CI infra).
+
+
 ## What v2 adds
 
 ### New skill files (orchestration)
