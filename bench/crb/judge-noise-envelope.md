@@ -98,19 +98,21 @@ For per-agent ablation experiments (the Phase 5 lineage), conclusions need a TP 
 
 Given σ_F1 aggregate = 0.0086 (1σ); 2σ = 0.0173.
 
-| Comparison | Δ F1 | \|Δ\|/σ | Verdict |
-|---|---:|---:|:---|
-| Phase 4c vs P3.5 | −0.0160 | 1.85 | **1–2σ provisional** |
-| Phase 4c.1 vs P3.5 | +0.0010 | 0.12 | **< 1σ noise** |
-| Phase 3.5.1 vs P3.5 | −0.0340 | 3.93 | **> 2σ signal** |
-| Phase 5 vs P3.5 | +0.0230 | 2.66 | **> 2σ signal** |
-| Phase 5.2 vs P3.5 | +0.0360 | 4.16 | **> 2σ signal** |
-| Phase 5.2 vs P5 | +0.0130 | 1.50 | **1–2σ provisional** |
-| Phase 5.2.1 re-run vs P5.2 | −0.0050 | 0.58 | **< 1σ noise** |
+> **Two framings reported.** Ratios use `|Δ| / σ_aggregate` (single-σ — common convention; appropriate when comparing one new measurement to a fixed historical anchor). The strict standard error of the *difference* between two independent phase results is σ_Δ = √2·σ_aggregate ≈ 0.0122. The paired-σ framing is the textbook-correct test for "is Δ between two means significant"; the single-σ framing slightly overstates confidence. Both reported below; verdict drift only affects Phase 5 vs P3.5.
+
+| Comparison | Δ F1 | \|Δ\|/σ_single | \|Δ\|/σ_Δ paired | Verdict (paired) |
+|---|---:|---:|---:|:---|
+| Phase 4c vs P3.5 | −0.0160 | 1.85 | 1.32 | **1–2σ provisional** |
+| Phase 4c.1 vs P3.5 | +0.0010 | 0.12 | 0.08 | **< 1σ noise** |
+| Phase 3.5.1 vs P3.5 | −0.0340 | 3.93 | 2.80 | **> 2σ signal** |
+| Phase 5 vs P3.5 | +0.0230 | 2.66 | 1.89 | **1–2σ provisional** ← drifts from signal under paired |
+| Phase 5.2 vs P3.5 | +0.0360 | 4.16 | 2.96 | **> 2σ signal** |
+| Phase 5.2 vs P5 | +0.0130 | 1.50 | 1.07 | **1–2σ provisional** |
+| Phase 5.2.1 re-run vs P5.2 | −0.0050 | 0.58 | 0.41 | **< 1σ noise** |
 
 ### Implications retroactively applied to prior writeups
 
-1. **Phase 5 + Phase 5.2 stack vs Phase 3.5 (+0.036) is a real, ~4σ signal.** The cumulative jump from 0.277 to 0.313/0.321 is not noise. The published narrative holds.
+1. **Phase 5 + Phase 5.2 stack vs Phase 3.5 (+0.036) is a real signal** (4.16σ_single, 2.96σ_Δ paired). The cumulative jump from 0.277 to 0.313/0.321 is not noise under either framing. The published narrative holds. **Phase 5 alone (+0.023) drops from "signal" to "provisional" under the paired framing** — defensible at 1.89σ_Δ given the run0 anchor sits at the LOW edge of its noise band, but the strongest claim is the cumulative 5+5.2 stack, not Phase 5 in isolation.
 
 2. **Phase 5.2's +0.013 lift over Phase 5 (footnote strip alone) is provisional at 1.5σ.** The lever might be real, might be partly judge variance — within the noise band, indistinguishable. Saying "+0.013 from footnote strip" is overclaiming; saying "+0.013 within ±0.009 noise" is honest. The prior writeup acknowledged this with the Phase 5.2.1 re-run; this calibration confirms the caution was warranted.
 
