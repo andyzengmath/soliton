@@ -513,6 +513,17 @@ Agent tool (for each agent):
     If no issues found, output: FINDINGS_NONE
 ```
 
+**v2 graph-signal pass-through** (only when `graphSignals` is present from Step 2.8):
+
+For the `cross-file-impact` agent specifically, append the relevant graph-signal slice to its prompt before the closing trailer:
+
+```
+    Pre-computed graph signals (v2):
+    graphSignals.dependencyBreaks: <paste graphSignals.dependencyBreaks JSON>
+```
+
+If `graphSignals.dependencyBreaks` is empty or absent, omit this block entirely so the agent falls through to its v1 Grep-based caller discovery. Other agents (correctness, security, hallucination, etc.) do not currently consume graphSignals — leave their prompts unchanged.
+
 Set a 60-second timeout for each agent.
 
 ### 4.3: Collect Results
