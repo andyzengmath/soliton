@@ -150,10 +150,11 @@ of post-generator filter (ModernBERT actionability pass). Realist Check is the L
 cheaper than a ModernBERT classifier to operate, tunable via prompt, and uses the same
 context the synthesizer already has.
 
-## Integration with SKILL.md Step 5
+## Integration with SKILL.md Step 5.5
 
-After the existing synthesizer emits its `SYNTHESIS_START..SYNTHESIS_END` block, dispatch this
-agent:
+After the existing synthesizer (Step 5) emits its `SYNTHESIS_START..SYNTHESIS_END` block,
+the orchestrator runs Step 5.5 (Realist Check) when `config.synthesis.realist_check == true`,
+dispatching this agent:
 
 ```
 Agent tool:
