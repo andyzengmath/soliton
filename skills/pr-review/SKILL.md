@@ -190,13 +190,15 @@ If it exists, read the file and parse its YAML frontmatter (the content between 
 - `default_output` -> `outputFormat`
 - `feedback_mode` -> `feedbackMode`
 
-**Nested v2 feature-flag fields** (drive Steps 2.6/2.7/2.8 activation):
+**Nested v2 feature-flag fields** (drive Steps 2.6/2.7/2.8/5.5 activation):
 - `tier0.enabled` -> `config.tier0.enabled` (boolean; enables Step 2.6 Tier-0 Deterministic Gate)
 - `tier0.skip_llm_on_clean` -> `config.tier0.skip_llm_on_clean` (boolean; when true + Tier-0 verdict `clean`, fast-path out of Step 3+)
 - `spec_alignment.enabled` -> `config.spec_alignment.enabled` (boolean; enables Step 2.7 Spec Alignment)
 - `graph.enabled` -> `config.graph.enabled` (boolean; enables Step 2.8 Graph Signals)
 - `graph.path` -> `config.graph.path` (string; path to pre-built graph — `.json` for full-mode `graph-cli`, `.code-review-graph/graph.db` for partial-mode `code-review-graph`)
 - `graph.timeout_ms` -> `config.graph.timeout_ms` (integer; per-query timeout for Step 2.8; default 500 full-mode, 10000 partial-mode)
+- `synthesis.realist_check` -> `config.synthesis.realist_check` (boolean; enables Step 5.5 Realist Check post-synthesis pass via `agents/realist-check.md`)
+- `synthesis.realist_threshold` -> `config.synthesis.realist_threshold` (integer 0-100; confidence floor for CRITICALs the realist-check agent will pressure-test; default 85)
 
 Each v2 feature-flag default is OFF at Layer 1 for backwards compatibility; integrations opt in per-repo via this local config. Example:
 
@@ -549,6 +551,51 @@ Agent tool:
 ```
 
 Wait for the response and parse the `SYNTHESIS_START...SYNTHESIS_END` block.
+
+Proceed to **Step 5.5**.
+
+## Step 5.5: Realist Check (v2, feature-flagged)
+
+**Enabled when** `config.synthesis.realist_check == true`.
+**Disabled**: skip to **Step 6**. v1 behavior preserved (no severity adjustments after synthesis).
+
+**Cost-saving guard**: skip even when enabled if the synthesised review has 0 CRITICAL findings AND 0 high-confidence (`>= config.synthesis.realist_threshold`, default 85) IMPROVEMENT findings — there is nothing for the agent to pressure-test.
+
+Dispatch the `realist-check` agent (`agents/realist-check.md`, model Sonnet):
+
+```
+Agent tool:
+  subagent_type: "soliton:realist-check"
+  prompt: |
+    Pressure-test the following synthesised review. Follow your agent instructions.
+
+    Findings:
+    <paste SYNTHESIS_START..SYNTHESIS_END from Step 5>
+
+    Risk:
+    <paste RISK_ASSESSMENT_START..RISK_ASSESSMENT_END from Step 3>
+
+    Tier 0 summary (if present): <paste TIER_ZERO_START..TIER_ZERO_END from Step 2.6>
+    Graph signals (if present): <paste GRAPH_SIGNALS_START..GRAPH_SIGNALS_END from Step 2.8>
+
+    Confidence threshold for pressure-testing IMPROVEMENTS: <config.synthesis.realist_threshold>
+
+    Output REALIST_CHECK_START..REALIST_CHECK_END.
+```
+
+Set a 60-second timeout for the agent.
+
+Parse the response:
+- If timeout / error / `REALIST_CHECK_START` block missing, log a warning and proceed to Step 6 with the original synthesised findings unchanged. Do not fail the review.
+- Otherwise, parse `REALIST_CHECK_START..END` for the `adjustments` list and `openQuestions` list.
+
+**Apply adjustments to the findings list**:
+- For each entry in `adjustments`, find the matching finding (by `findingId` or by `(file, lineStart, title)` triple) and update its `severity` to `newSeverity`. Append the `mitigation` text to the finding's `description` as a parenthetical "(Mitigated by: <text>)" so reviewers see why severity was downgraded.
+- For each entry in `openQuestions`, leave the finding at its original severity but tag it for the synthesizer's "Conflicts" / "Open Questions" section in Step 6 output (renderer should surface these prominently when present).
+- **Never accept a downgrade adjustment** that lacks a concrete `mitigation` field with at least one `<file>:<line>` citation; reject and keep the finding at original severity (defensive guard against the agent skipping its own rule).
+- **Never accept a downgrade for a Tier-0-derived finding** (those have `agent: tier0`); deterministic findings cannot be LLM-overridden in this pipeline.
+
+Stash the `REALIST_CHECK_START..END` block as `realistCheckSummary{}` for the output metadata. Stash the `openQuestions` list as `openQuestions[]` for Step 6 to render.
 
 Proceed to **Step 6**.
 
