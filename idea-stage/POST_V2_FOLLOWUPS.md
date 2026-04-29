@@ -158,6 +158,32 @@ Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
 
 ---
 
+## G · Test / CI / engineering gaps (NEW 2026-04-29 audit)
+
+Surfaced by the parallel audit-team pass after PR #51 (judge-noise + 3 wiring PRs). All HIGH severity per the audit, all infrastructural rather than feature-shipping.
+
+### G1 · `lib/hallucination-ast/` tests not wired into CI
+**Status:** 2,382 lines of pytest unit tests (9 test files, 149 test cases + Khati corpus validation) exist locally; **never executed in CI**. Only existing `.github/workflows/` workflow is the soliton-review dogfooding job — no separate hallucination-ast pytest job. README §"Shipping gate" documents F1=0.968 reproducibility via `pytest tests/test_khati_corpus.py` but that's manual, not automated.
+**Why it matters:** the hallucination-AST library is the empirically strongest piece of v2 (F1=0.968, beats Khati paper's 0.934). Regressions from a future refactor would land silently without CI enforcement.
+**What it takes:** add a `test-hallucination-ast` job to `.github/workflows/`, `pip install -e lib/hallucination-ast/[dev]`, run `pytest lib/hallucination-ast/tests/` with a coverage threshold (≥ 90 % to match current).
+**Cost:** $0 (CI minutes only). Engineering effort: small (~30 min).
+
+### G2 · Fixture-based integration test runner is deferred
+**Status:** `tests/run-fixtures.md` describes an automated runner that would feed each `tests/fixtures/<name>/diff.patch` through `/pr-review` and assert against `expected.json` (verdict, finding count, agent set). The 11 fixtures (cross-file-break, sql-injection, hallucinated-api, tier0-clean, tier0-blocked-secret, spec-alignment-unmet-checklist, etc.) exist and have well-formed `expected.json` files; the runner itself is **explicitly deferred** ("automated shell / CI runner that feeds each fixture's diff.patch through the orchestrator and asserts against expected.json is deferred to a follow-up PR").
+**Why it matters:** any regression on risk-scoring, agent dispatch, or v2 step activation goes undetected until post-merge. PRs #50 and #51 (realist-check + silent-failure/comment-accuracy wiring) have **zero executable test coverage** today; the wiring is text in SKILL.md with no integration assertion.
+**What it takes:** Python orchestrator (~200 lines) that reads each fixture, invokes `/pr-review` with controlled env, parses output, asserts risk range + finding counts + categories against `expected.json`, emits JUnit for CI. Recommended fixture additions: `realist-check-downgrade-rejected` (verifies the no-mitigation-cited guard), `silent-failure-fires-on-trycatch`, `comment-accuracy-fires-on-comment-edit`.
+**Cost:** ~$0 API + medium engineering (1-2 days for runner + fixtures).
+
+### G3 · I8 stack-awareness flag parsed but orchestrator logic missing
+**Status:** SKILL.md § "Supported Flags" documents `--parent <PR#>`, `--parent-sha <SHA>`, `--stack-auto` as v2 flags. The flags are **parsed** in Step 1 (Mode A / Mode B) but **no orchestrator logic computes the stacked-PR delta**. A user who runs `/pr-review --parent 42` thinks they're getting "review delta vs parent PR's head" but actually gets the same v1 base-vs-head diff.
+**Why it matters:** UX-misleading (silent flag rejection); strategic-fit blocker for enterprise rebuild (per IDEA_REPORT § I8, feature-chain PRs in legacy Java/COBOL rebuilds are inherently stacked). Not currently a runtime crash, just a no-op.
+**What it takes:** edit Step 1 (Input Normalization) to compute `git diff parent_pr_sha...HEAD` instead of `baseBranch...HEAD` when `--parent` set. Mode A (local branch) needs git fetch logic to resolve parent PR head. Mode B (PR number) needs to chain `gh pr view <parent> --json headRefOid` before fetching the diff. Maybe ~1 week engineering including tests.
+**Cost:** $0 API + ~1 week engineering.
+
+**Net G-section recommendation:** address G1 first (small, $0, blocks regression), then G2 (medium, structural ROI), then G3 (week-scale; tied to C1 enterprise dogfood validation since stacked-PR review is the critical path for that use case).
+
+---
+
 ## E · Secondary ideas (Phase 6+)
 
 These are I10–I20 from `idea-stage/IDEA_REPORT.md` § 5. None started. All explicitly Phase 2+.
