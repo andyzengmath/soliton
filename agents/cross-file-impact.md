@@ -15,6 +15,7 @@ You receive:
 - `diff` — unified diff of all changes
 - `files` — list of changed files
 - `focusArea` — specific files and hints from the risk scorer
+- `graphSignals.dependencyBreaks[]` (v2, when graph backend is enabled) — pre-computed list of callers that import or invoke the changed exports. Each entry contains `{caller_file, caller_line, caller_symbol, changed_symbol, change_kind}`. **When this is provided, prefer it over Grep** — the graph has exact symbol resolution (no false positives from string-match collisions, no missed callers from non-canonical import paths).
 
 ## Review Process
 
@@ -34,7 +35,18 @@ For each, record:
 - The file path
 - What changed (old signature vs new signature)
 
-### 2. Find Callers
+### 1.5 Use graphSignals.dependencyBreaks when available (v2 path)
+
+If `graphSignals.dependencyBreaks` is provided AND non-empty:
+
+1. Use it directly as the authoritative caller list — skip Step 2's Grep walk for the symbols it covers.
+2. For each entry, read the caller file at `caller_line` to understand how the export is used and run Step 3 (Check Compatibility) on that call site.
+3. If a changed export from Step 1 is NOT represented in `dependencyBreaks` (no entry with `changed_symbol` matching it), fall through to Step 2's Grep walk for THAT symbol only — graph coverage may be partial in some setups (e.g., partial-mode backend covers only Python + bash today).
+4. Treat `dependencyBreaks`-derived findings with `confidence: 90` as a default (graph evidence is deterministic) vs. Grep-derived findings at the existing `confidence: 60-80` band.
+
+If `graphSignals.dependencyBreaks` is absent or empty, proceed to Step 2 as before — v1 Grep-based behavior preserved.
+
+### 2. Find Callers (v1 fallback when graphSignals not available)
 
 For each changed export:
 
