@@ -147,10 +147,8 @@ Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
 **Status:** lives at `bench/crb/strip-footnote-titles.py`; v2.0.1 shipped a tightened version (Phase 5.2.1). The SKILL.md fix from Phase 5.2 prevents the leak prospectively, so this script only matters for retroactive counterfactuals.
 **What it takes:** decision call. Keep (as archaeology / future-counterfactual support) vs. retire (commits noise, confuses maintainers). Author leans **keep** — zero maintenance cost; clearly Phase-specific filename.
 
-### D2 · `agents/cross-file-impact.md` caller-direction refactor (deferred from Phase 4a)
-**Status:** noted in MEMORY.md as "deferred from Phase 4a MVP". The cross-file-impact agent currently looks at downstream effects of changes; a true caller-direction view (what calls the changed thing?) is what `dependencyBreaks` should drive.
-**What it takes:** edit `agents/cross-file-impact.md` to consume `graphSignals.dependencyBreaks` for caller-direction; keep its existing forward-direction logic. ~2 hours engineering.
-**Cost:** $0.
+### D2 · `agents/cross-file-impact.md` caller-direction refactor — **CLOSED 2026-04-29 via PR #61**
+**Status:** ✅ closed. Agent now reads `graphSignals.dependencyBreaks[]` from input and runs Step 1.5 graph-driven path when signals are present (confidence 90 for graph-derived findings). Falls through to v1 Grep-based caller discovery when graphSignals absent — no behavior change for users who haven't enabled the v2 graph flag. SKILL.md Step 4.2 now passes `dependencyBreaks` to the cross-file-impact agent specifically. CRB measurement folded into §A6 combined Phase 5.3 run (no separate spend).
 
 ### D3 · Step 4.1 deterministic skipAgents enforcement (Phase 5.1 follow-up)
 **Status:** Phase 5.1 counterfactual ruled this out (lost 3 real Low/Medium TPs for +0.002 F1). Decision was "leave LLM-soft-enforcement; accept ~6 % leak". File for completeness.
@@ -162,17 +160,20 @@ Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
 
 Surfaced by the parallel audit-team pass after PR #51 (judge-noise + 3 wiring PRs). All HIGH severity per the audit, all infrastructural rather than feature-shipping.
 
-### G1 · `lib/hallucination-ast/` tests not wired into CI
-**Status:** 2,382 lines of pytest unit tests (9 test files, 149 test cases + Khati corpus validation) exist locally; **never executed in CI**. Only existing `.github/workflows/` workflow is the soliton-review dogfooding job — no separate hallucination-ast pytest job. README §"Shipping gate" documents F1=0.968 reproducibility via `pytest tests/test_khati_corpus.py` but that's manual, not automated.
-**Why it matters:** the hallucination-AST library is the empirically strongest piece of v2 (F1=0.968, beats Khati paper's 0.934). Regressions from a future refactor would land silently without CI enforcement.
-**What it takes:** add a `test-hallucination-ast` job to `.github/workflows/`, `pip install -e lib/hallucination-ast/[dev]`, run `pytest lib/hallucination-ast/tests/` with a coverage threshold (≥ 90 % to match current).
-**Cost:** $0 (CI minutes only). Engineering effort: small (~30 min).
+### G1 · `lib/hallucination-ast/` tests not wired into CI — **CLOSED 2026-04-29 via PRs #55, #56, #58**
+**Status:** ✅ closed. `.github/workflows/hallucination-ast-tests.yml` runs `pytest lib/hallucination-ast/tests/` with 80% coverage gate on every PR or push that touches the package. PR #56 fixed three pre-existing test-harness bugs (missing `pytest.importorskip("requests"|"pandas")`) surfaced by the CI dogfood. PR #58 SHA-pinned the workflow's actions/checkout + actions/setup-python per repo policy. **Current state on main: 130 tests pass, 11 skipped (8 optional-dep skips + 3 fixed in #56), 84% coverage.**
 
-### G2 · Fixture-based integration test runner is deferred
-**Status:** `tests/run-fixtures.md` describes an automated runner that would feed each `tests/fixtures/<name>/diff.patch` through `/pr-review` and assert against `expected.json` (verdict, finding count, agent set). The 11 fixtures (cross-file-break, sql-injection, hallucinated-api, tier0-clean, tier0-blocked-secret, spec-alignment-unmet-checklist, etc.) exist and have well-formed `expected.json` files; the runner itself is **explicitly deferred** ("automated shell / CI runner that feeds each fixture's diff.patch through the orchestrator and asserts against expected.json is deferred to a follow-up PR").
-**Why it matters:** any regression on risk-scoring, agent dispatch, or v2 step activation goes undetected until post-merge. PRs #50 and #51 (realist-check + silent-failure/comment-accuracy wiring) have **zero executable test coverage** today; the wiring is text in SKILL.md with no integration assertion.
-**What it takes:** Python orchestrator (~200 lines) that reads each fixture, invokes `/pr-review` with controlled env, parses output, asserts risk range + finding counts + categories against `expected.json`, emits JUnit for CI. Recommended fixture additions: `realist-check-downgrade-rejected` (verifies the no-mitigation-cited guard), `silent-failure-fires-on-trycatch`, `comment-accuracy-fires-on-comment-edit`.
-**Cost:** ~$0 API + medium engineering (1-2 days for runner + fixtures).
+### G2 · Fixture-based integration test runner — **PARTIAL CLOSURE 2026-04-29 via PRs #59, #60**
+**Status:** 🟡 two of three runner modes wired; the auth-blocked third mode remains deferred.
+
+**Closed**: `tests/run_fixtures.py` + `.github/workflows/fixture-runner.yml` cover:
+- **`--mode structural`**: schema validation across all 11 fixtures (riskRange shape, expectedFindings type, severity allowed values, optional v2 fields). 11/11 PASS.
+- **`--mode phase4b`**: subprocesses `python -m hallucination_ast --diff <fixture>` for the 2 phase4b fixtures (`hallucinated-import`, `signature-mismatch`), parses stdout JSON, asserts emitted finding matches `phase4bExpected.{rule, symbol, suggestedFix?, confidence?}`. 2/2 PASS. PR #60 followed up with a `pip install requests` step so `hallucinated-import`'s AST resolver can introspect the requests module.
+
+**Still open**: `--mode pr-review` arm — full integration runner that subprocesses Claude Code with `--plugin-dir .` and asserts `riskRange` / `expectedFindings` / `expectedCategories` / `expectedSeverity` across all 11 fixtures. **Auth-blocked** on `ANTHROPIC_API_KEY` (or OAuth-token equivalent) in repo secrets — same blocker as the Soliton-Review dogfood workflow + §B3 Martian CRB upstream.
+
+Recommended new fixtures for the auth-blocked phase: `realist-check-downgrade-rejected` (verifies the no-mitigation-cited guard from PR #50's Step 5.5), `silent-failure-fires-on-trycatch` (PR #51 wiring), `comment-accuracy-fires-on-comment-edit` (PR #51 wiring).
+**Cost to fully close:** ~$0 API once secret is set + small engineering (~half-day to extend runner with `--mode pr-review`).
 
 ### G3 · I8 stack-awareness flag parsed but orchestrator logic missing
 **Status:** SKILL.md § "Supported Flags" documents `--parent <PR#>`, `--parent-sha <SHA>`, `--stack-auto` as v2 flags. The flags are **parsed** in Step 1 (Mode A / Mode B) but **no orchestrator logic computes the stacked-PR delta**. A user who runs `/pr-review --parent 42` thinks they're getting "review delta vs parent PR's head" but actually gets the same v1 base-vs-head diff.
