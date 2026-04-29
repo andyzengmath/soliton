@@ -1,6 +1,24 @@
 # Soliton PR Review — dogfooding soliton on itself
 #
 # Runs a risk-adaptive multi-agent code review on every pull request.
+#
+# REQUIRED secrets (set via repo Settings → Secrets and variables → Actions):
+#   ANTHROPIC_API_KEY        — direct API key from console.anthropic.com
+#                              (NOT available to Anthropic Console users — see below)
+#
+# Without ANTHROPIC_API_KEY (or the equivalent claude-code-action-supported
+# CLAUDE_CODE_OAUTH_TOKEN) this workflow fails with:
+#     "Either ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN is required when
+#      using direct Anthropic API."
+# A preflight step below short-circuits with a clearer error before the action
+# is invoked, so maintainers see the actionable message instead of the action's
+# internal env-validation error.
+#
+# Console users currently cannot generate ANTHROPIC_API_KEY (per
+# reference_claude_code_action_auth.md memory). The workaround is the
+# claude-code-action OAuth-token flow; tracking in
+# idea-stage/POST_V2_FOLLOWUPS.md §B3 (Martian CRB upstream submission, blocked
+# on the same auth chain).
 
 name: Soliton PR Review
 
@@ -32,6 +50,20 @@ jobs:
       id-token: write
 
     steps:
+      - name: Preflight — verify ANTHROPIC_API_KEY is configured
+        # Replaces claude-code-action's cryptic "Environment variable validation
+        # failed: Either ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN is required"
+        # with an actionable error pointing at the repo Settings page. The secret
+        # value itself never enters the bash environment — only a binary indicator.
+        env:
+          HAS_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' && '1' || '' }}
+        run: |
+          if [ -z "$HAS_API_KEY" ]; then
+            echo "::error title=Soliton-Review missing required secret::ANTHROPIC_API_KEY is not configured for this repo. Add it via Settings → Secrets and variables → Actions. Console users without API access: see reference_claude_code_action_auth.md or POST_V2_FOLLOWUPS §B3 for the OAuth-token workaround."
+            exit 1
+          fi
+          echo "ANTHROPIC_API_KEY present — proceeding with review."
+
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
