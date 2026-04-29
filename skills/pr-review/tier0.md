@@ -163,7 +163,13 @@ Soliton run on a new repo from drowning the reviewer in backlog.
   LLM swarm will be **skipped**; output is the Tier-0 findings only; CI fails.
 
 - **`clean`** — zero findings across all tools AND `diff` has ≤ 50 meaningful lines (excluding
-  whitespace and comment-only changes) AND no file matches `config.sensitivePaths`.
+  whitespace and comment-only changes) AND no file matches `config.sensitivePaths` AND
+  `tools_ran.length >= 1` (i.e. at least one tool actually executed against the diff and
+  produced verifiable output — `not_applicable` / `not_installed` / `no_files_in_diff` skips
+  do NOT count toward this floor). This guards against vacuous "clean" verdicts on diffs
+  that no tool can scan (pure JSON manifests, image-only PRs, doc-only PRs with linters
+  missing). When zero tools run and the other predicates would otherwise pass, fall through
+  to `advisory_only` instead, so the LLM swarm runs at the higher confidence threshold.
 
 - **`needs_llm`** — the default. Tier 0 found some findings or the diff is non-trivial.
   LLM swarm runs, but Tier-0 findings are passed through so the swarm can avoid re-discovering
