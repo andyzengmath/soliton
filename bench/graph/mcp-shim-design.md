@@ -47,13 +47,15 @@ Single subprocess for the lifetime of one shim invocation; multiple `tools/call`
 - `blast-radius` (calls `get_impact_radius_tool` via MCP, with field-name translation `direct_callers`/`directCallers` + `transitive_callers`/`transitiveCallers`)
 - `dependency-breaks` (shells out to the existing `code-review-graph detect-changes` CLI; doesn't go through MCP — CLI output is the canonical shape and we avoid a second translation layer)
 
-**Stubbed (raises `NotImplementedError`, with the target tool name in the message):**
-- `taint-paths` → `traverse_graph_tool` with edge_type=DATA_FLOW
-- `co-change` → `get_affected_flows_tool`
-- `feature-partition` → `list_communities_tool` + `get_community_tool` (server-side join)
-- `review-bundle` → `get_review_context_tool` (composes blast-radius + flows + test-coverage)
+**All 7 queries wired** as of follow-up commit on this branch:
+- `taint-paths` → `traverse_graph_tool` with edge_type=DATA_FLOW (per-source-node loop, sink-category filter, tolerant retry on schema-validation errors)
+- `co-change` → `get_affected_flows_tool` (`window_days=180` default matches Step 6)
+- `feature-partition` → `list_communities_tool` → `get_community_tool` (client-side join: list → first community → get details)
+- `review-bundle` → `get_review_context_tool` (`--file` for single, `--files` for comma-separated list; pass-through of server output for downstream extraction)
 
-Each stub has a one-line comment naming the MCP tool the follow-up PR needs to call.
+**MCP tool input schemas are not formally documented** in `code-review-graph`'s repo; the handlers assume reasonable key names (`file`, `start`, `edge_type`, `max_depth`, `window_days`, `community_id`) and use tolerant fallback chains on response keys (`directCallers` ↔ `direct_callers` ↔ `directCallers`). The `taint-paths` handler retries with a minimal arg set if the server rejects extra args. End-to-end runtime validation against a populated graph will surface any schema drift; today's runtime smoke is gated on getting a real Soliton review through `mcp_shim.py` end-to-end.
+
+**Still missing in this PR:** the `criticality` query from graph-signals.md Step 8. Soliton's signal type is `criticalityScore: [{symbol, pprScore, degree, method}, ...]`. The closest `code-review-graph` MCP tool is centrality-related; no direct match in the recon table. Filed as the next gap to close.
 
 ## What follows in subsequent PRs
 

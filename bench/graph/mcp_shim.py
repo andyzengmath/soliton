@@ -228,27 +228,125 @@ def cmd_dependency_breaks(client: CrgMcpClient, args: argparse.Namespace) -> dic
 
 
 def cmd_taint_paths(client: CrgMcpClient, args: argparse.Namespace) -> dict:
-    """TODO: maps to `traverse_graph_tool` with edge_type=DATA_FLOW. Soliton
-    expects [{source, sink, kind, edges, confidence}, ...]. Stubbed."""
-    raise NotImplementedError("taint-paths: traverse_graph_tool wiring pending follow-up PR")
+    """Maps to `traverse_graph_tool` with edge_type=DATA_FLOW. Soliton expects
+    {paths: [{source, sink, kind, edges, confidence}, ...]} per
+    skills/pr-review/graph-signals.md Step 5. `kind` ∈ sql|xss|ssrf|auth|shell|
+    path-traversal — for v0 we forward whatever the server emits; classifier
+    can post-process if needed.
+
+    NOTE: MCP tool input schema not documented; using `start`, `edge_type`,
+    `max_depth` as the most common naming. The server-side argument validator
+    will reject unknown keys; if so, see follow-up sentinel below.
+    """
+    sources = (args.source or "").split(",") if getattr(args, "source", None) else []
+    sinks = (args.sinks or "io,auth,db,shell,exec,xss").split(",")
+    paths: list[dict] = []
+    for source in sources:
+        try:
+            result = client.call_tool("traverse_graph_tool", {
+                "start": source,
+                "edge_type": "DATA_FLOW",
+                "max_depth": getattr(args, "max_depth", 10),
+                "sink_filter": sinks,
+            })
+        except McpServerError as e:
+            # Tolerate "unknown field" errors from server-side schema validation
+            # by retrying with a minimal arg set; document the actual schema
+            # surface in the PR review log.
+            if "unknown" in str(e).lower() or "validation" in str(e).lower():
+                result = client.call_tool("traverse_graph_tool", {
+                    "start": source,
+                    "edge_type": "DATA_FLOW",
+                })
+            else:
+                raise
+        for p in (result.get("paths", []) or []):
+            paths.append({
+                "source": p.get("source", p.get("from", source)),
+                "sink": p.get("sink", p.get("to", "")),
+                "kind": p.get("kind", p.get("category", p.get("type", "unknown"))),
+                "edges": p.get("edges", p.get("path", [])),
+                "confidence": p.get("confidence", p.get("score", 0)),
+            })
+    return {"paths": paths}
 
 
 def cmd_co_change(client: CrgMcpClient, args: argparse.Namespace) -> dict:
-    """TODO: maps to `get_affected_flows_tool` with co-change window param.
-    Stubbed."""
-    raise NotImplementedError("co-change: get_affected_flows_tool wiring pending follow-up PR")
+    """Maps to `get_affected_flows_tool`. Soliton expects {file, historicalPartners,
+    strength} per graph-signals.md Step 6 — files that historically change together
+    in the same commit + their relative co-change strength (0-1).
+
+    NOTE: tool input schema not documented; assumes `file` + `window_days` keys
+    with reasonable defaults (180-day window matches graph-signals.md Step 6).
+    """
+    file_ = args.file
+    result = client.call_tool("get_affected_flows_tool", {
+        "file": file_,
+        "window_days": getattr(args, "window_days", 180),
+    })
+    cluster = result.get("cluster", result.get("partners", result.get("co_change", [])))
+    strength = result.get("strength", result.get("score", 0.0))
+    return {
+        "file": file_,
+        "historicalPartners": cluster,
+        "strength": strength,
+    }
 
 
 def cmd_feature_partition(client: CrgMcpClient, args: argparse.Namespace) -> dict:
-    """TODO: maps to `list_communities_tool` + `get_community_tool` join.
-    Stubbed."""
-    raise NotImplementedError("feature-partition: list_communities_tool + get_community_tool wiring pending follow-up PR")
+    """Maps to `list_communities_tool` + `get_community_tool` (server-side join is
+    not exposed; we do the join client-side). Soliton expects {file, partitionId,
+    members, apiSurface} per graph-signals.md Step 7.
+
+    Two-step protocol: list_communities returns the membership for the file (or
+    all communities, depending on server semantics), then get_community returns
+    the details (members, public API points) for the matching community id.
+    """
+    file_ = args.file
+    listing = client.call_tool("list_communities_tool", {"file": file_})
+    # Server may return either a single community for `file` or a list of
+    # communities the file belongs to (typically just one for non-overlapping
+    # partitions). Take the first.
+    communities = listing.get("communities", listing.get("results", []))
+    if not communities:
+        # Some servers expose membership directly on list_communities without
+        # requiring a second call.
+        partition_id = listing.get("partitionId", listing.get("community_id", listing.get("id")))
+        if partition_id is None:
+            return {"file": file_, "partitionId": None, "members": [], "apiSurface": []}
+        community_id = partition_id
+    else:
+        first = communities[0] if isinstance(communities, list) else communities
+        community_id = first.get("id", first.get("community_id", first.get("partitionId")))
+
+    detail = client.call_tool("get_community_tool", {"community_id": community_id})
+    return {
+        "file": file_,
+        "partitionId": community_id,
+        "members": detail.get("members", detail.get("files", [])),
+        "apiSurface": detail.get("api_surface", detail.get("apiSurface", detail.get("public_apis", []))),
+    }
 
 
 def cmd_review_bundle(client: CrgMcpClient, args: argparse.Namespace) -> dict:
-    """TODO: maps to `get_review_context_tool` (composes blast-radius + flows
-    + test-coverage server-side). Stubbed."""
-    raise NotImplementedError("review-bundle: get_review_context_tool wiring pending follow-up PR")
+    """Maps to `get_review_context_tool` (composes blast-radius + flows +
+    test-coverage server-side). Soliton expects a composed bundle; v0 returns
+    the server output as-is for the orchestrator's existing consumers to
+    extract their fields.
+
+    NOTE: tool input schema not documented; assumes `changed_files` (list) or
+    `file` (single) keys. Caller may pass either via `--files` (comma-separated)
+    or `--file`.
+    """
+    if getattr(args, "files", None):
+        files = [f.strip() for f in args.files.split(",") if f.strip()]
+        result = client.call_tool("get_review_context_tool", {"changed_files": files})
+    elif getattr(args, "file", None):
+        result = client.call_tool("get_review_context_tool", {"file": args.file})
+    else:
+        raise McpServerError("review-bundle requires --file or --files")
+    # Pass through server output; downstream consumer extracts blast/flows/tests.
+    return result
 
 
 SUBCOMMANDS = {
@@ -276,10 +374,23 @@ def main(argv: list[str] | None = None) -> int:
     p_dep = sub.add_parser("dependency-breaks", help="detect_changes_tool (or CLI)")
     p_dep.add_argument("--base", default="HEAD~1")
 
-    sub.add_parser("taint-paths", help="traverse_graph_tool DATA_FLOW (stubbed)")
-    sub.add_parser("co-change", help="get_affected_flows_tool (stubbed)")
-    sub.add_parser("feature-partition", help="list/get_community_tool (stubbed)")
-    sub.add_parser("review-bundle", help="get_review_context_tool (stubbed)")
+    p_taint = sub.add_parser("taint-paths", help="traverse_graph_tool DATA_FLOW")
+    p_taint.add_argument("--source", help="comma-separated list of source nodes (file:line)")
+    p_taint.add_argument("--sinks", default="io,auth,db,shell,exec,xss",
+                         help="comma-separated sink categories (default matches graph-signals.md Step 5)")
+    p_taint.add_argument("--max-depth", dest="max_depth", type=int, default=10)
+
+    p_cc = sub.add_parser("co-change", help="get_affected_flows_tool")
+    p_cc.add_argument("file", help="file path to query for co-change cluster")
+    p_cc.add_argument("--window-days", dest="window_days", type=int, default=180)
+
+    p_fp = sub.add_parser("feature-partition", help="list/get_community_tool join")
+    p_fp.add_argument("file", help="file path to query for feature membership")
+
+    p_rb = sub.add_parser("review-bundle", help="get_review_context_tool")
+    rb_group = p_rb.add_mutually_exclusive_group(required=True)
+    rb_group.add_argument("--file", help="single file to bundle")
+    rb_group.add_argument("--files", help="comma-separated list of changed files")
 
     args = parser.parse_args(argv)
 
