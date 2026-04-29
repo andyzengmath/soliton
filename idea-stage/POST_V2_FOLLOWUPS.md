@@ -44,7 +44,7 @@ Entries reference `idea-stage/IDEA_REPORT.md` idea numbers (I1–I20) where appl
 - Phase 5.2.1 re-run (−0.005) = 0.58σ noise (confirmed)
 
 ### A5 · Realist-check agent CRB measurement
-**Status:** `agents/realist-check.md` shipped as part of v2 synthesizer post-pass. Never measured at the CRB level. **WIRING GAP discovered 2026-04-29:** the agent definition exists at `agents/realist-check.md` but is NOT referenced in `agents/synthesizer.md` or `skills/pr-review/SKILL.md`. Realist-check is currently dead code — never dispatched. Pre-step before any CRB measurement: wire it in as a Step 5.5 in SKILL.md, gated on `config.synthesis.realist_check`.
+**Status:** `agents/realist-check.md` shipped as part of v2 synthesizer post-pass. Never measured at the CRB level. ~~**WIRING GAP discovered 2026-04-29:** the agent definition exists at `agents/realist-check.md` but is NOT referenced in `agents/synthesizer.md` or `skills/pr-review/SKILL.md`. Realist-check is currently dead code — never dispatched. Pre-step before any CRB measurement: wire it in as a Step 5.5 in SKILL.md, gated on `config.synthesis.realist_check`.~~ **Wiring CLOSED 2026-04-29 via PR #50** — Step 5.5 added, default OFF. CRB measurement remains open.
 **Why important:** intended to drop FP rate by requiring "Mitigated by:" citation for downgrades.
 **σ-aware revised pre-reg (2026-04-29):** the original "F1 should clear 0.32+" criterion was set before σ_F1=0.0086 was measured. 0.32 is only +0.007 above Phase 5.2's published 0.313, ≈ 0.8σ_aggregate or 0.6σ_Δ paired — would ship on noise. Revised criteria:
 - ✅ **Ship:** F1 ≥ 0.337 (= 0.313 + 2σ_Δ paired = 0.313 + 0.024) AND recall ≥ 0.50 AND no per-language reg > 0.036 (1σ_lang).
@@ -58,6 +58,24 @@ Per-realist-check projection from `agents/realist-check.md`: expected FP-cut of 
 **What it takes:** wire the agent first ($0 eng), then pick (1)/(2)/(3) per cost ladder.
 **Cost:** N=1 ~$140; N=3 ~$420.
 **Strategic fit:** the only built-in v2 lever that hasn't been benchmarked. But under measured σ, the expected lift is below the 2σ noise floor, so the rigor-vs-cost trade-off is real.
+
+### A6 · silent-failure + comment-accuracy CRB measurement (NEW 2026-04-29)
+**Status:** `agents/silent-failure.md` and `agents/comment-accuracy.md` were dead code since v2.0.0 (defined + registered in `plugin.json` but never dispatched by SKILL.md). **Wiring CLOSED 2026-04-29 via PR #51** — Step 4.1 sub-step 3 added with content-trigger conditions matching the agents' own dispatch-rule sections. Defaults flipped to `true` in CHANGELOG_V2.md to match the "available in v2.0" advertisement. README badge bumped 7 → 9.
+
+**CRB measurement remains open.** With realist-check (PR #50) + silent-failure + comment-accuracy (PR #51) all newly wired, a single Phase 5.3 CRB run could measure all three at once for ~$140 (N=1) or ~$420 (N=3).
+
+**σ-aware pre-reg (combined three-agent run):**
+- ✅ **Ship:** F1 ≥ 0.337 (Phase 5.2 published 0.313 + 2σ_Δ paired = 0.024) AND recall ≥ 0.50 AND no per-language reg > 0.036.
+- ⚠️ **Hold:** 0.325 ≤ F1 < 0.337 (within 2σ_Δ — provisional ship at single re-run).
+- ❌ **Close:** F1 < 0.313.
+
+Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
+- realist-check: ~+0.003 to +0.007 realized (post-discount)
+- silent-failure: ~+0.005 to +0.010 (specialist findings on AI-authored PRs)
+- comment-accuracy: ~+0.002 to +0.005 (mostly catches comment-rot the existing 7 agents miss)
+- **Combined: ~+0.010 to +0.022 realized**, sitting near the 2σ_Δ ship threshold of +0.024.
+
+**Recommended next step:** run the Phase 5.3 measurement at N=1 ($140) accepting the borderline-signal risk; if F1 lands in the hold band (0.325–0.337), expand to N=3 (additional $280) to resolve. If F1 lands < 0.325 (clearly below ship band), the result is informational and the wiring still has product value (specialist findings ≠ benchmark F1).
 
 ---
 
@@ -203,19 +221,29 @@ Stale pre-reg / projection language found across docs that pre-date the σ measu
 
 ---
 
-## Ranked priorities (author's read, updated 2026-04-29)
+## Ranked priorities (author's read, updated 2026-04-29 evening — post PRs #48–#51)
 
-A4 judge-noise envelope was closed in the 2026-04-29 session (~$45). Remaining ranked priorities:
+Closed in the 2026-04-29 session (~$45 spend, 4 PRs):
+- A4 judge-noise envelope: σ_F1 = 0.0086 measured (PR #48).
+- σ-aware pre-reg doctrine codified (PR #49).
+- realist-check Step 5.5 wiring (PR #50).
+- silent-failure + comment-accuracy Step 4.1 wiring (PR #51).
+
+Remaining ranked priorities:
 
 If picking just one:
 1. **C1 enterprise-rebuild dogfood** — closes the strategic moat gap; nothing else does.
-2. **A1 Tier-0 dogfood** — substantiates the cost-efficiency story which is half the v2 pitch.
-3. **A5 realist-check agent CRB** — only unmeasured v2 mechanism; now interpretable against measured σ_F1=0.0086.
+2. **A6 combined Phase 5.3 CRB run** — measures all three newly wired agents (realist-check + silent-failure + comment-accuracy) in one shot. Combined napkin lift +0.010 to +0.022 sits near the ship threshold; informational at minimum, signal-grade if it clears 0.337.
+3. **A1 Tier-0 dogfood** — substantiates the cost-efficiency story which is half the v2 pitch.
 
 If picking three over the next month:
 1. C1 enterprise dogfood
-2. A1 + A2 + A5 — three v2 mechanisms with shipped code but zero CRB-level validation
-3. ~~A4 judge-noise quantification~~ — done.
+2. A6 combined Phase 5.3 CRB run (N=1 → conditional N=3 expansion if Hold band)
+3. A1 + A2 — Tier-0 + Spec Alignment dogfood (~$10 combined; finishes the v2 mechanism validation)
+
+Now retired:
+- ~~A4 judge-noise quantification~~ — done (PR #48)
+- ~~A5 realist-check WIRING~~ — done (PR #50). A5 CRB measurement folded into A6.
 
 If $0 budget:
 1. A3 Tier-0 default-ON measurement (zero-cost subset of A1)
