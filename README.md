@@ -258,7 +258,7 @@ jobs:
           fetch-depth: 0
 
       - name: Clone Soliton
-        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - uses: anthropics/claude-code-action@v1
         env:
