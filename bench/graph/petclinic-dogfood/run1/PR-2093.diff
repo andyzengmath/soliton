@@ -1,0 +1,388 @@
+diff --git a/.gitattributes b/.gitattributes
+index 31f1bf50bd9..8a09fad07f2 100644
+--- a/.gitattributes
++++ b/.gitattributes
+@@ -1,4 +1,5 @@
+-mvnw            text eol=lf
++/mvnw           text eol=lf
++*.cmd           text eol=crlf
+ *.java          text eol=lf
+ 
+ /gradlew        text eol=lf
+diff --git a/.mvn/wrapper/maven-wrapper.properties b/.mvn/wrapper/maven-wrapper.properties
+index 4bc659978eb..c0bcafe984f 100644
+--- a/.mvn/wrapper/maven-wrapper.properties
++++ b/.mvn/wrapper/maven-wrapper.properties
+@@ -1,19 +1,3 @@
+-# Licensed to the Apache Software Foundation (ASF) under one
+-# or more contributor license agreements.  See the NOTICE file
+-# distributed with this work for additional information
+-# regarding copyright ownership.  The ASF licenses this file
+-# to you under the Apache License, Version 2.0 (the
+-# "License"); you may not use this file except in compliance
+-# with the License.  You may obtain a copy of the License at
+-#
+-#   https://www.apache.org/licenses/LICENSE-2.0
+-#
+-# Unless required by applicable law or agreed to in writing,
+-# software distributed under the License is distributed on an
+-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+-# KIND, either express or implied.  See the License for the
+-# specific language governing permissions and limitations
+-# under the License.
+-wrapperVersion=3.3.2
++wrapperVersion=3.3.4
+ distributionType=only-script
+-distributionUrl=https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.10/apache-maven-3.9.10-bin.zip
++distributionUrl=https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.11/apache-maven-3.9.11-bin.zip
+diff --git a/README.md b/README.md
+index 1f865c56f2d..c860ee0f217 100644
+--- a/README.md
++++ b/README.md
+@@ -60,7 +60,7 @@ docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PAS
+ or
+ 
+ ```bash
+-docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:17.5
++docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.0
+ ```
+ 
+ Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
+diff --git a/build.gradle b/build.gradle
+index d0cd5f58751..401094108a3 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,11 +1,11 @@
+ plugins {
+   id 'java'
+   id 'checkstyle'
+-  id 'org.springframework.boot' version '3.5.0'
++  id 'org.springframework.boot' version '3.5.6'
+   id 'io.spring.dependency-management' version '1.1.7'
+-  id 'org.graalvm.buildtools.native' version '0.10.6'
+-  id 'org.cyclonedx.bom' version '2.3.1'
+-  id 'io.spring.javaformat' version '0.0.46'
++  id 'org.graalvm.buildtools.native' version '0.11.1'
++  id 'org.cyclonedx.bom' version '3.0.0'
++  id 'io.spring.javaformat' version '0.0.47'
+   id "io.spring.nohttp" version "0.0.11"
+ }
+ 
+@@ -24,11 +24,11 @@ repositories {
+   mavenCentral()
+ }
+ 
+-ext.checkstyleVersion = "10.25.0"
+-ext.springJavaformatCheckstyleVersion = "0.0.46"
+-ext.webjarsLocatorLiteVersion = "1.1.0"
++ext.checkstyleVersion = "11.1.0"
++ext.springJavaformatCheckstyleVersion = "0.0.47"
++ext.webjarsLocatorLiteVersion = "1.1.1"
+ ext.webjarsFontawesomeVersion = "4.7.0"
+-ext.webjarsBootstrapVersion = "5.3.6"
++ext.webjarsBootstrapVersion = "5.3.8"
+ 
+ dependencies {
+   implementation 'org.springframework.boot:spring-boot-starter-cache'
+diff --git a/docker-compose.yml b/docker-compose.yml
+index e066d123770..50c731a9159 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -12,7 +12,7 @@ services:
+     volumes:
+       - "./conf.d:/etc/mysql/conf.d:ro"
+   postgres:
+-    image: postgres:17.5
++    image: postgres:18.0
+     ports:
+       - "5432:5432"
+     environment:
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+index dbc089ed3d7..d4081da476b 100644
+--- a/gradle/wrapper/gradle-wrapper.properties
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -1,7 +1,6 @@
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+-distributionSha256Sum=ed1a8d686605fd7c23bdf62c7fc7add1c5b23b2bbc3721e661934ef4a4911d7c
+-distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.3-all.zip
++distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+ networkTimeout=10000
+ validateDistributionUrl=true
+ zipStoreBase=GRADLE_USER_HOME
+diff --git a/k8s/db.yml b/k8s/db.yml
+index 29d5ea4f868..c2c63037afd 100644
+--- a/k8s/db.yml
++++ b/k8s/db.yml
+@@ -41,7 +41,7 @@ spec:
+         app: demo-db
+     spec:
+       containers:
+-        - image: postgres:17.5
++        - image: postgres:18.0
+           name: postgresql
+           env:
+             - name: POSTGRES_USER
+diff --git a/mvnw b/mvnw
+index d7c358e5a2a..885f4714348 100755
+--- a/mvnw
++++ b/mvnw
+@@ -19,7 +19,7 @@
+ # ----------------------------------------------------------------------------
+ 
+ # ----------------------------------------------------------------------------
+-# Apache Maven Wrapper startup batch script, version 3.3.2
++# Apache Maven Wrapper startup batch script, version 3.3.4
+ #
+ # Optional ENV vars
+ # -----------------
+@@ -105,14 +105,17 @@ trim() {
+   printf "%s" "${1}" | tr -d '[:space:]'
+ }
+ 
++scriptDir="$(dirname "$0")"
++scriptName="$(basename "$0")"
++
+ # parse distributionUrl and optional distributionSha256Sum, requires .mvn/wrapper/maven-wrapper.properties
+ while IFS="=" read -r key value; do
+   case "${key-}" in
+   distributionUrl) distributionUrl=$(trim "${value-}") ;;
+   distributionSha256Sum) distributionSha256Sum=$(trim "${value-}") ;;
+   esac
+-done <"${0%/*}/.mvn/wrapper/maven-wrapper.properties"
+-[ -n "${distributionUrl-}" ] || die "cannot read distributionUrl property in ${0%/*}/.mvn/wrapper/maven-wrapper.properties"
++done <"$scriptDir/.mvn/wrapper/maven-wrapper.properties"
++[ -n "${distributionUrl-}" ] || die "cannot read distributionUrl property in $scriptDir/.mvn/wrapper/maven-wrapper.properties"
+ 
+ case "${distributionUrl##*/}" in
+ maven-mvnd-*bin.*)
+@@ -130,7 +133,7 @@ maven-mvnd-*bin.*)
+   distributionUrl="${distributionUrl%-bin.*}-$distributionPlatform.zip"
+   ;;
+ maven-mvnd-*) MVN_CMD=mvnd.sh _MVNW_REPO_PATTERN=/maven/mvnd/ ;;
+-*) MVN_CMD="mvn${0##*/mvnw}" _MVNW_REPO_PATTERN=/org/apache/maven/ ;;
++*) MVN_CMD="mvn${scriptName#mvnw}" _MVNW_REPO_PATTERN=/org/apache/maven/ ;;
+ esac
+ 
+ # apply MVNW_REPOURL and calculate MAVEN_HOME
+@@ -182,7 +185,7 @@ fi
+ __MVNW_QUIET_WGET=--quiet __MVNW_QUIET_CURL=--silent __MVNW_QUIET_UNZIP=-q __MVNW_QUIET_TAR=''
+ [ "${MVNW_VERBOSE-}" != true ] || __MVNW_QUIET_WGET='' __MVNW_QUIET_CURL='' __MVNW_QUIET_UNZIP='' __MVNW_QUIET_TAR=v
+ 
+-# normalize http auth
++# normalize https auth
+ case "${MVNW_PASSWORD:+has-password}" in
+ '') MVNW_USERNAME='' MVNW_PASSWORD='' ;;
+ has-password) [ -n "${MVNW_USERNAME-}" ] || MVNW_USERNAME='' MVNW_PASSWORD='' ;;
+@@ -227,7 +230,7 @@ if [ -n "${distributionSha256Sum-}" ]; then
+     echo "Please disable validation by removing 'distributionSha256Sum' from your maven-wrapper.properties." >&2
+     exit 1
+   elif command -v sha256sum >/dev/null; then
+-    if echo "$distributionSha256Sum  $TMP_DOWNLOAD_DIR/$distributionUrlName" | sha256sum -c >/dev/null 2>&1; then
++    if echo "$distributionSha256Sum  $TMP_DOWNLOAD_DIR/$distributionUrlName" | sha256sum -c - >/dev/null 2>&1; then
+       distributionSha256Result=true
+     fi
+   elif command -v shasum >/dev/null; then
+@@ -252,8 +255,41 @@ if command -v unzip >/dev/null; then
+ else
+   tar xzf${__MVNW_QUIET_TAR:+"$__MVNW_QUIET_TAR"} "$TMP_DOWNLOAD_DIR/$distributionUrlName" -C "$TMP_DOWNLOAD_DIR" || die "failed to untar"
+ fi
+-printf %s\\n "$distributionUrl" >"$TMP_DOWNLOAD_DIR/$distributionUrlNameMain/mvnw.url"
+-mv -- "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain" "$MAVEN_HOME" || [ -d "$MAVEN_HOME" ] || die "fail to move MAVEN_HOME"
++
++# Find the actual extracted directory name (handles snapshots where filename != directory name)
++actualDistributionDir=""
++
++# First try the expected directory name (for regular distributions)
++if [ -d "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain" ]; then
++  if [ -f "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain/bin/$MVN_CMD" ]; then
++    actualDistributionDir="$distributionUrlNameMain"
++  fi
++fi
++
++# If not found, search for any directory with the Maven executable (for snapshots)
++if [ -z "$actualDistributionDir" ]; then
++  # enable globbing to iterate over items
++  set +f
++  for dir in "$TMP_DOWNLOAD_DIR"/*; do
++    if [ -d "$dir" ]; then
++      if [ -f "$dir/bin/$MVN_CMD" ]; then
++        actualDistributionDir="$(basename "$dir")"
++        break
++      fi
++    fi
++  done
++  set -f
++fi
++
++if [ -z "$actualDistributionDir" ]; then
++  verbose "Contents of $TMP_DOWNLOAD_DIR:"
++  verbose "$(ls -la "$TMP_DOWNLOAD_DIR")"
++  die "Could not find Maven distribution directory in extracted archive"
++fi
++
++verbose "Found extracted Maven distribution directory: $actualDistributionDir"
++printf %s\\n "$distributionUrl" >"$TMP_DOWNLOAD_DIR/$actualDistributionDir/mvnw.url"
++mv -- "$TMP_DOWNLOAD_DIR/$actualDistributionDir" "$MAVEN_HOME" || [ -d "$MAVEN_HOME" ] || die "fail to move MAVEN_HOME"
+ 
+ clean || :
+ exec_maven "$@"
+diff --git a/mvnw.cmd b/mvnw.cmd
+index 6f779cff205..bba35af2267 100644
+--- a/mvnw.cmd
++++ b/mvnw.cmd
+@@ -19,7 +19,7 @@
+ @REM ----------------------------------------------------------------------------
+ 
+ @REM ----------------------------------------------------------------------------
+-@REM Apache Maven Wrapper startup batch script, version 3.3.2
++@REM Apache Maven Wrapper startup batch script, version 3.3.4
+ @REM
+ @REM Optional ENV vars
+ @REM   MVNW_REPOURL - repo url base for downloading maven distribution
+@@ -40,7 +40,7 @@
+ @SET __MVNW_ARG0_NAME__=
+ @SET MVNW_USERNAME=
+ @SET MVNW_PASSWORD=
+-@IF NOT "%__MVNW_CMD__%"=="" (%__MVNW_CMD__% %*)
++@IF NOT "%__MVNW_CMD__%"=="" ("%__MVNW_CMD__%" %*)
+ @echo Cannot start maven from wrapper >&2 && exit /b 1
+ @GOTO :EOF
+ : end batch / begin powershell #>
+@@ -73,16 +73,30 @@ switch -wildcard -casesensitive ( $($distributionUrl -replace '^.*/','') ) {
+ # apply MVNW_REPOURL and calculate MAVEN_HOME
+ # maven home pattern: ~/.m2/wrapper/dists/{apache-maven-<version>,maven-mvnd-<version>-<platform>}/<hash>
+ if ($env:MVNW_REPOURL) {
+-  $MVNW_REPO_PATTERN = if ($USE_MVND) { "/org/apache/maven/" } else { "/maven/mvnd/" }
+-  $distributionUrl = "$env:MVNW_REPOURL$MVNW_REPO_PATTERN$($distributionUrl -replace '^.*'+$MVNW_REPO_PATTERN,'')"
++  $MVNW_REPO_PATTERN = if ($USE_MVND -eq $False) { "/org/apache/maven/" } else { "/maven/mvnd/" }
++  $distributionUrl = "$env:MVNW_REPOURL$MVNW_REPO_PATTERN$($distributionUrl -replace "^.*$MVNW_REPO_PATTERN",'')"
+ }
+ $distributionUrlName = $distributionUrl -replace '^.*/',''
+ $distributionUrlNameMain = $distributionUrlName -replace '\.[^.]*$','' -replace '-bin$',''
+-$MAVEN_HOME_PARENT = "$HOME/.m2/wrapper/dists/$distributionUrlNameMain"
++
++$MAVEN_M2_PATH = "$HOME/.m2"
+ if ($env:MAVEN_USER_HOME) {
+-  $MAVEN_HOME_PARENT = "$env:MAVEN_USER_HOME/wrapper/dists/$distributionUrlNameMain"
++  $MAVEN_M2_PATH = "$env:MAVEN_USER_HOME"
++}
++
++if (-not (Test-Path -Path $MAVEN_M2_PATH)) {
++    New-Item -Path $MAVEN_M2_PATH -ItemType Directory | Out-Null
++}
++
++$MAVEN_WRAPPER_DISTS = $null
++if ((Get-Item $MAVEN_M2_PATH).Target[0] -eq $null) {
++  $MAVEN_WRAPPER_DISTS = "$MAVEN_M2_PATH/wrapper/dists"
++} else {
++  $MAVEN_WRAPPER_DISTS = (Get-Item $MAVEN_M2_PATH).Target[0] + "/wrapper/dists"
+ }
+-$MAVEN_HOME_NAME = ([System.Security.Cryptography.MD5]::Create().ComputeHash([byte[]][char[]]$distributionUrl) | ForEach-Object {$_.ToString("x2")}) -join ''
++
++$MAVEN_HOME_PARENT = "$MAVEN_WRAPPER_DISTS/$distributionUrlNameMain"
++$MAVEN_HOME_NAME = ([System.Security.Cryptography.SHA256]::Create().ComputeHash([byte[]][char[]]$distributionUrl) | ForEach-Object {$_.ToString("x2")}) -join ''
+ $MAVEN_HOME = "$MAVEN_HOME_PARENT/$MAVEN_HOME_NAME"
+ 
+ if (Test-Path -Path "$MAVEN_HOME" -PathType Container) {
+@@ -134,7 +148,33 @@ if ($distributionSha256Sum) {
+ 
+ # unzip and move
+ Expand-Archive "$TMP_DOWNLOAD_DIR/$distributionUrlName" -DestinationPath "$TMP_DOWNLOAD_DIR" | Out-Null
+-Rename-Item -Path "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain" -NewName $MAVEN_HOME_NAME | Out-Null
++
++# Find the actual extracted directory name (handles snapshots where filename != directory name)
++$actualDistributionDir = ""
++
++# First try the expected directory name (for regular distributions)
++$expectedPath = Join-Path "$TMP_DOWNLOAD_DIR" "$distributionUrlNameMain"
++$expectedMvnPath = Join-Path "$expectedPath" "bin/$MVN_CMD"
++if ((Test-Path -Path $expectedPath -PathType Container) -and (Test-Path -Path $expectedMvnPath -PathType Leaf)) {
++  $actualDistributionDir = $distributionUrlNameMain
++}
++
++# If not found, search for any directory with the Maven executable (for snapshots)
++if (!$actualDistributionDir) {
++  Get-ChildItem -Path "$TMP_DOWNLOAD_DIR" -Directory | ForEach-Object {
++    $testPath = Join-Path $_.FullName "bin/$MVN_CMD"
++    if (Test-Path -Path $testPath -PathType Leaf) {
++      $actualDistributionDir = $_.Name
++    }
++  }
++}
++
++if (!$actualDistributionDir) {
++  Write-Error "Could not find Maven distribution directory in extracted archive"
++}
++
++Write-Verbose "Found extracted Maven distribution directory: $actualDistributionDir"
++Rename-Item -Path "$TMP_DOWNLOAD_DIR/$actualDistributionDir" -NewName $MAVEN_HOME_NAME | Out-Null
+ try {
+   Move-Item -Path "$TMP_DOWNLOAD_DIR/$MAVEN_HOME_NAME" -Destination $MAVEN_HOME_PARENT | Out-Null
+ } catch {
+diff --git a/pom.xml b/pom.xml
+index 8576c22ba59..004709a9b04 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -5,7 +5,7 @@
+   <parent>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-parent</artifactId>
+-    <version>3.5.0</version>
++    <version>3.5.6</version>
+     <relativePath></relativePath>
+   </parent>
+ 
+@@ -25,17 +25,17 @@
+     <project.build.outputTimestamp>2024-11-28T14:37:52Z</project.build.outputTimestamp>
+ 
+     <!-- Web dependencies -->
+-    <webjars-locator.version>1.1.0</webjars-locator.version>
+-    <webjars-bootstrap.version>5.3.6</webjars-bootstrap.version>
++    <webjars-locator.version>1.1.1</webjars-locator.version>
++    <webjars-bootstrap.version>5.3.8</webjars-bootstrap.version>
+     <webjars-font-awesome.version>4.7.0</webjars-font-awesome.version>
+ 
+-    <checkstyle.version>10.25.0</checkstyle.version>
++    <checkstyle.version>11.1.0</checkstyle.version>
+     <jacoco.version>0.8.13</jacoco.version>
+     <libsass.version>0.3.4</libsass.version>
+     <lifecycle-mapping>1.0.0</lifecycle-mapping>
+     <maven-checkstyle.version>3.6.0</maven-checkstyle.version>
+     <nohttp-checkstyle.version>0.0.11</nohttp-checkstyle.version>
+-    <spring-format.version>0.0.46</spring-format.version>
++    <spring-format.version>0.0.47</spring-format.version>
+ 
+   </properties>
+ 
+diff --git a/src/main/resources/static/resources/css/petclinic.css b/src/main/resources/static/resources/css/petclinic.css
+index 22e3e50ea2c..4b701b13b5a 100644
+--- a/src/main/resources/static/resources/css/petclinic.css
++++ b/src/main/resources/static/resources/css/petclinic.css
+@@ -12,7 +12,7 @@
+  * limitations under the License.
+  */
+ /*!
+-   * Bootstrap  v5.3.6 (https://getbootstrap.com/)
++   * Bootstrap  v5.3.8 (https://getbootstrap.com/)
+    * Copyright 2011-2025 The Bootstrap Authors
+    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
+    */
+@@ -479,6 +479,9 @@ legend {
+ [type="search"] {
+   -webkit-appearance: textfield;
+   outline-offset: -2px; }
++  [type="search"]::-webkit-search-cancel-button {
++    cursor: pointer;
++    filter: grayscale(1); }
+ 
+ /* rtl:raw:
+ [type="tel"],
+@@ -5072,6 +5075,7 @@ textarea.form-control-lg {
+ .spinner-grow,
+ .spinner-border {
+   display: inline-block;
++  flex-shrink: 0;
+   width: var(--bs-spinner-width);
+   height: var(--bs-spinner-height);
+   vertical-align: var(--bs-spinner-vertical-align);
