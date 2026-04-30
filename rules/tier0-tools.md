@@ -21,6 +21,7 @@ file is the single source of truth for what Soliton runs pre-LLM.
 | `golangci-lint` | go | `golangci-lint run --out-format=sarif {files} > {out}` | 0 = clean; 1 = findings |
 | `clippy` | rust | `cargo clippy --message-format=json > {out}` | bespoke — parse JSON |
 | `checkstyle` | java | `checkstyle -f sarif -o {out} {files}` | 0 = clean |
+| `checkstyle` (Maven) | java (alt) | `mvn checkstyle:check -Dcheckstyle.failOnViolation=false -Dcheckstyle.outputFile={out} -Dcheckstyle.outputFileFormat=sarif` | 0 = clean (failOnViolation=false collects, doesn't block) |
 
 **No-format policy**: Tier 0 does NOT auto-format. That is `pre-commit`'s job. Tier 0 only *reports*
 formatting drift — never rewrites the PR.
@@ -45,6 +46,8 @@ does not compile, and there's no point spending LLM tokens to report that.
 | `bandit` | python (alt) | `bandit -f sarif -o {out} -r {dirs}` | SARIF |
 | `gosec` | go (alt) | `gosec -fmt sarif -out {out} ./...` | SARIF |
 | `brakeman` | ruby | `brakeman -f sarif -o {out}` | SARIF |
+| `spotbugs` (Maven) | java | `mvn com.github.spotbugs:spotbugs-maven-plugin:check -Dspotbugs.failOnError=false -Dspotbugs.sarifOutput=true -Dspotbugs.sarifOutputDir={out_dir}` | SARIF (Maven plugin v4.7+) |
+| `spotbugs` (CLI) | java (alt) | `spotbugs -textui -sarif -output {out} {classes_dir}` | needs compiled `.class` files; SARIF output — install via standalone JAR from spotbugs.github.io/releases |
 
 **Default rulesets**:
 - `semgrep --config p/owasp-top-ten --config p/security-audit --config p/secrets`
@@ -122,21 +125,126 @@ tier0:
       typescript: ["eslint"]        # or ["biome"]
       go: ["golangci-lint"]
       rust: ["clippy"]
+      java: ["checkstyle"]          # standalone CLI; or ["checkstyle-maven"] if mvn on PATH
     type_check:
       python: ["mypy"]              # or ["pyright"]
       typescript: ["tsc"]
       go: ["go-vet"]
-    sast: ["semgrep"]
+      java: ["javac-mvn"]           # mvn compile (fatal on compilation error)
+    sast: ["semgrep", "spotbugs"]   # spotbugs is Java-specific; gracefully skipped on non-Java diffs
     secrets: ["gitleaks"]
     sca:
       npm: ["osv-scanner"]
       pip: ["osv-scanner"]
       cargo: ["cargo-audit"]
+      maven: ["osv-scanner"]        # operates on pom.xml dependency tree
 
   disabled_tools: []                # e.g. ["jscpd"] to disable clone detection
   skip_languages: []                # e.g. ["sql"] to skip SQL-tier checks
   max_duration_ms: 60000
 ```
+
+## Installation cheatsheet
+
+Tier-0 tools follow Soliton's catalog principle 3 (graceful skip when absent). For integrators who want full coverage on a given language, here's the canonical install path per OS / package manager:
+
+### Cross-language (always install)
+
+```bash
+# gitleaks — OSS secret scanner
+winget install gitleaks.gitleaks               # Windows
+brew install gitleaks                          # macOS
+go install github.com/gitleaks/gitleaks/v8@latest   # Linux / fallback
+
+# osv-scanner — CVE/SCA across all manifests
+winget install Google.OSVScanner               # Windows
+brew install osv-scanner                       # macOS
+go install github.com/google/osv-scanner/cmd/osv-scanner@latest   # Linux / fallback
+
+# semgrep — multi-lang SAST (Python, Java, JS, Go, Ruby, etc.)
+pip install semgrep                            # any platform with Python
+```
+
+### Python
+
+```bash
+pip install ruff mypy bandit
+```
+
+### TypeScript / JavaScript
+
+```bash
+npm i -g eslint typescript                     # or @biomejs/biome (alt)
+```
+
+### Go
+
+```bash
+# golangci-lint
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+# gosec (alt)
+go install github.com/securego/gosec/v2/cmd/gosec@latest
+```
+
+### Java
+
+```bash
+# Option A: Maven plugins (preferred when integrator already has mvn)
+# No separate install — invoked via Maven plugins:
+#   mvn checkstyle:check   (lint)
+#   mvn com.github.spotbugs:spotbugs-maven-plugin:check   (SAST)
+#   mvn compile            (type check / fatal compilation errors)
+# Add the plugins to your pom.xml's <build><plugins> section. Reference:
+#   https://maven.apache.org/plugins/maven-checkstyle-plugin/
+#   https://spotbugs.readthedocs.io/en/latest/maven.html
+
+# Option B: Standalone CLIs (when Maven not on PATH)
+# checkstyle — Java lint
+choco install checkstyle                       # Windows (admin required)
+brew install checkstyle                        # macOS
+# Else download standalone JAR + alias:
+#   https://github.com/checkstyle/checkstyle/releases
+# spotbugs — Java SAST
+# Currently no choco/brew/winget package; install via standalone:
+#   https://github.com/spotbugs/spotbugs/releases (download spotbugs-X.Y.Z.zip,
+#   add bin/ to PATH).
+```
+
+### Ruby
+
+```bash
+gem install brakeman rubocop
+```
+
+### Rust
+
+```bash
+rustup component add clippy
+cargo install cargo-audit
+```
+
+### AST diff (multi-lang, advisory only)
+
+```bash
+cargo install difftastic                       # Linux/macOS/Windows (any with cargo)
+choco install difftastic                       # Windows (alt, admin)
+brew install difftastic                        # macOS (alt)
+```
+
+### Verification — Tier-0 self-test
+
+After install, verify each tool fires from a small repo:
+
+```bash
+gitleaks detect --source . --no-git --report-format json --report-path /tmp/gl.json
+osv-scanner --format json --recursive .
+semgrep --config p/owasp-top-ten --sarif --output /tmp/sg.sarif .
+# (Java-specific, in a Maven project)
+mvn checkstyle:check
+mvn com.github.spotbugs:spotbugs-maven-plugin:check
+```
+
+Tools absent from PATH are silently skipped; `Tier-0 verdict` falls back to `needs_llm` (vs `clean`) when the deterministic floor isn't fully covered for the diff's language. Soliton's behavior degrades gracefully — integrators with only the cross-language tools (gitleaks + osv-scanner + semgrep) still get supply-chain integrity + secret + CVE coverage on every PR.
 
 ## Exit-code conventions for CI gating
 
