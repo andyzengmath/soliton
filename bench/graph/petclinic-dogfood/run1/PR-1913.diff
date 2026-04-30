@@ -1,0 +1,2343 @@
+diff --git a/README.md b/README.md
+index c865c3b5148..1f865c56f2d 100644
+--- a/README.md
++++ b/README.md
+@@ -54,13 +54,13 @@ A similar setup is provided for MySQL and PostgreSQL if a persistent database co
+ You can start MySQL or PostgreSQL locally with whatever installer works for your OS or use docker:
+ 
+ ```bash
+-docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.1
++docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.2
+ ```
+ 
+ or
+ 
+ ```bash
+-docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:17.0
++docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:17.5
+ ```
+ 
+ Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
+diff --git a/build.gradle b/build.gradle
+index b52d8e1859d..ad101e32f7c 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,10 +1,10 @@
+ plugins {
+   id 'java'
+-  id 'org.springframework.boot' version '3.4.2'
+-  id 'io.spring.dependency-management' version '1.1.6'
+-  id 'org.graalvm.buildtools.native' version '0.10.3'
+-  id 'org.cyclonedx.bom' version '1.10.0'
+-  id 'io.spring.javaformat' version '0.0.43'
++  id 'org.springframework.boot' version '3.5.0'
++  id 'io.spring.dependency-management' version '1.1.7'
++  id 'org.graalvm.buildtools.native' version '0.10.6'
++  id 'org.cyclonedx.bom' version '2.3.1'
++  id 'io.spring.javaformat' version '0.0.46'
+   id "io.spring.nohttp" version "0.0.11"
+ }
+ 
+@@ -15,7 +15,7 @@ apply plugin: 'io.spring.javaformat'
+ gradle.startParameter.excludedTaskNames += [ "checkFormatAot", "checkFormatAotTest" ]
+ 
+ group = 'org.springframework.samples'
+-version = '3.4.0'
++version = '3.5.0'
+ 
+ java {
+   sourceCompatibility = JavaVersion.VERSION_17
+@@ -25,11 +25,11 @@ repositories {
+   mavenCentral()
+ }
+ 
+-ext.checkstyleVersion = "10.20.1"
+-ext.springJavaformatCheckstyleVersion = "0.0.43"
+-ext.webjarsLocatorLiteVersion = "1.0.1"
++ext.checkstyleVersion = "10.25.0"
++ext.springJavaformatCheckstyleVersion = "0.0.46"
++ext.webjarsLocatorLiteVersion = "1.1.0"
+ ext.webjarsFontawesomeVersion = "4.7.0"
+-ext.webjarsBootstrapVersion = "5.3.3"
++ext.webjarsBootstrapVersion = "5.3.6"
+ 
+ dependencies {
+   // Workaround for AOT issue (https://github.com/spring-projects/spring-framework/pull/33949) -->
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 47579bbaf59..e066d123770 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -1,6 +1,6 @@
+ services:
+   mysql:
+-    image: mysql:9.1
++    image: mysql:9.2
+     ports:
+       - "3306:3306"
+     environment:
+@@ -12,7 +12,7 @@ services:
+     volumes:
+       - "./conf.d:/etc/mysql/conf.d:ro"
+   postgres:
+-    image: postgres:17.0
++    image: postgres:17.5
+     ports:
+       - "5432:5432"
+     environment:
+diff --git a/gradle/wrapper/gradle-wrapper.jar b/gradle/wrapper/gradle-wrapper.jar
+index a4b76b9530d..1b33c55baab 100644
+Binary files a/gradle/wrapper/gradle-wrapper.jar and b/gradle/wrapper/gradle-wrapper.jar differ
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+index df97d72b8b9..ca025c83a7c 100644
+--- a/gradle/wrapper/gradle-wrapper.properties
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -1,6 +1,6 @@
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-bin.zip
++distributionUrl=https\://services.gradle.org/distributions/gradle-8.14-bin.zip
+ networkTimeout=10000
+ validateDistributionUrl=true
+ zipStoreBase=GRADLE_USER_HOME
+diff --git a/gradlew b/gradlew
+index f5feea6d6b1..23d15a93670 100755
+--- a/gradlew
++++ b/gradlew
+@@ -86,8 +86,7 @@ done
+ # shellcheck disable=SC2034
+ APP_BASE_NAME=${0##*/}
+ # Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
+-APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s
+-' "$PWD" ) || exit
++APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
+ 
+ # Use the maximum available, or set MAX_FD != -1 to use that value.
+ MAX_FD=maximum
+@@ -115,7 +114,7 @@ case "$( uname )" in                #(
+   NONSTOP* )        nonstop=true ;;
+ esac
+ 
+-CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
++CLASSPATH="\\\"\\\""
+ 
+ 
+ # Determine the Java command to use to start the JVM.
+@@ -206,7 +205,7 @@ fi
+ DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+ 
+ # Collect all arguments for the java command:
+-#   * DEFAULT_JVM_OPTS, JAVA_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
++#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
+ #     and any embedded shellness will be escaped.
+ #   * For example: A user cannot expect ${Hostname} to be expanded, as it is an environment variable and will be
+ #     treated as '${Hostname}' itself on the command line.
+@@ -214,7 +213,7 @@ DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+ set -- \
+         "-Dorg.gradle.appname=$APP_BASE_NAME" \
+         -classpath "$CLASSPATH" \
+-        org.gradle.wrapper.GradleWrapperMain \
++        -jar "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" \
+         "$@"
+ 
+ # Stop when "xargs" is not available.
+diff --git a/gradlew.bat b/gradlew.bat
+index 9d21a21834d..db3a6ac207e 100644
+--- a/gradlew.bat
++++ b/gradlew.bat
+@@ -70,11 +70,11 @@ goto fail
+ :execute
+ @rem Setup the command line
+ 
+-set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
++set CLASSPATH=
+ 
+ 
+ @rem Execute Gradle
+-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
++"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" -jar "%APP_HOME%\gradle\wrapper\gradle-wrapper.jar" %*
+ 
+ :end
+ @rem End local scope for the variables with windows NT shell
+diff --git a/k8s/db.yml b/k8s/db.yml
+index c230ddba2b1..29d5ea4f868 100644
+--- a/k8s/db.yml
++++ b/k8s/db.yml
+@@ -41,7 +41,7 @@ spec:
+         app: demo-db
+     spec:
+       containers:
+-        - image: postgres:17
++        - image: postgres:17.5
+           name: postgresql
+           env:
+             - name: POSTGRES_USER
+diff --git a/pom.xml b/pom.xml
+index 27fb9a6bd6a..1dbccf016ba 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -5,13 +5,13 @@
+   <parent>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-parent</artifactId>
+-    <version>3.4.2</version>
++    <version>3.5.0</version>
+     <relativePath></relativePath>
+   </parent>
+ 
+   <groupId>org.springframework.samples</groupId>
+   <artifactId>spring-petclinic</artifactId>
+-  <version>3.4.0-SNAPSHOT</version>
++  <version>3.5.0-SNAPSHOT</version>
+ 
+   <name>petclinic</name>
+ 
+@@ -21,22 +21,21 @@
+     <java.version>17</java.version>
+     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+-    <!-- Important for reproducible builds. Update using e.g. ./mvnw versions:set
+-        -DnewVersion=... -->
++    <!-- Important for reproducible builds. Update using e.g. ./mvnw versions:set -DnewVersion=... -->
+     <project.build.outputTimestamp>2024-11-28T14:37:52Z</project.build.outputTimestamp>
+ 
+     <!-- Web dependencies -->
+-    <webjars-locator.version>1.0.1</webjars-locator.version>
+-    <webjars-bootstrap.version>5.3.3</webjars-bootstrap.version>
++    <webjars-locator.version>1.1.0</webjars-locator.version>
++    <webjars-bootstrap.version>5.3.6</webjars-bootstrap.version>
+     <webjars-font-awesome.version>4.7.0</webjars-font-awesome.version>
+ 
+-    <checkstyle.version>10.20.1</checkstyle.version>
+-    <jacoco.version>0.8.12</jacoco.version>
+-    <libsass.version>0.2.29</libsass.version>
++    <checkstyle.version>10.25.0</checkstyle.version>
++    <jacoco.version>0.8.13</jacoco.version>
++    <libsass.version>0.3.4</libsass.version>
+     <lifecycle-mapping>1.0.0</lifecycle-mapping>
+     <maven-checkstyle.version>3.6.0</maven-checkstyle.version>
+     <nohttp-checkstyle.version>0.0.11</nohttp-checkstyle.version>
+-    <spring-format.version>0.0.43</spring-format.version>
++    <spring-format.version>0.0.46</spring-format.version>
+ 
+   </properties>
+ 
+@@ -168,9 +167,7 @@
+             <configuration>
+               <rules>
+                 <requireJavaVersion>
+-                  <message>This build requires at least Java ${java.version},
+-                                        update your JVM, and
+-                                        run the build again</message>
++                  <message>This build requires at least Java ${java.version}, update your JVM, and run the build again</message>
+                   <version>${java.version}</version>
+                 </requireJavaVersion>
+               </rules>
+diff --git a/src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java b/src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java
+index ac6e150304c..fa063099595 100644
+--- a/src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java
++++ b/src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -24,7 +24,6 @@
+  * PetClinic Spring Boot Application.
+  *
+  * @author Dave Syer
+- *
+  */
+ @SpringBootApplication
+ @ImportRuntimeHints(PetClinicRuntimeHints.class)
+diff --git a/src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java b/src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java
+index 2975923d752..4999f4c3c00 100644
+--- a/src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java
++++ b/src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java b/src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java
+index 3038bce3a90..6babed56da3 100644
+--- a/src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java
++++ b/src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java b/src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java
+index 012e8c4be74..d4be03e9ee4 100644
+--- a/src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java
++++ b/src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/model/Person.java b/src/main/java/org/springframework/samples/petclinic/model/Person.java
+index 7c3d81a84d9..7ee1f03974b 100644
+--- a/src/main/java/org/springframework/samples/petclinic/model/Person.java
++++ b/src/main/java/org/springframework/samples/petclinic/model/Person.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/model/package-info.java b/src/main/java/org/springframework/samples/petclinic/model/package-info.java
+index 37d6295e8a3..e8982c3d445 100644
+--- a/src/main/java/org/springframework/samples/petclinic/model/package-info.java
++++ b/src/main/java/org/springframework/samples/petclinic/model/package-info.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/Owner.java b/src/main/java/org/springframework/samples/petclinic/owner/Owner.java
+index c5ae067dce5..63e3acc7a71 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/Owner.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/Owner.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java b/src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java
+index fa35064564a..1348457ee7d 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java b/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
+index ae465911428..9384b318e1f 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -25,7 +25,7 @@
+ import org.springframework.data.jpa.repository.Query;
+ 
+ /**
+- * Repository class for <code>Owner</code> domain objects All method names are compliant
++ * Repository class for <code>Owner</code> domain objects. All method names are compliant
+  * with Spring Data naming conventions so this interface can easily be extended for Spring
+  * Data. See:
+  * https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#repositories.query-methods.query-creation
+@@ -38,13 +38,6 @@
+  */
+ public interface OwnerRepository extends JpaRepository<Owner, Integer> {
+ 
+-	/**
+-	 * Retrieve all {@link PetType}s from the data store.
+-	 * @return a Collection of {@link PetType}s.
+-	 */
+-	@Query("SELECT ptype FROM PetType ptype ORDER BY ptype.name")
+-	List<PetType> findPetTypes();
+-
+ 	/**
+ 	 * Retrieve {@link Owner}s from the data store by last name, returning all owners
+ 	 * whose last name <i>starts</i> with the given name.
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/Pet.java b/src/main/java/org/springframework/samples/petclinic/owner/Pet.java
+index 1fdc77cec2d..1945f9b6718 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/Pet.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/Pet.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetController.java b/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
+index 3234e39d6f6..56707d99f3c 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -48,13 +48,16 @@ class PetController {
+ 
+ 	private final OwnerRepository owners;
+ 
+-	public PetController(OwnerRepository owners) {
++	private final PetTypeRepository types;
++
++	public PetController(OwnerRepository owners, PetTypeRepository types) {
+ 		this.owners = owners;
++		this.types = types;
+ 	}
+ 
+ 	@ModelAttribute("types")
+ 	public Collection<PetType> populatePetTypes() {
+-		return this.owners.findPetTypes();
++		return this.types.findPetTypes();
+ 	}
+ 
+ 	@ModelAttribute("owner")
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetType.java b/src/main/java/org/springframework/samples/petclinic/owner/PetType.java
+index eeea6a758df..e7d63d1aaa1 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetType.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetType.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java b/src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java
+index 73bfa1ae162..7ddc6e9231b 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -35,10 +35,10 @@
+ @Component
+ public class PetTypeFormatter implements Formatter<PetType> {
+ 
+-	private final OwnerRepository owners;
++	private final PetTypeRepository types;
+ 
+-	public PetTypeFormatter(OwnerRepository owners) {
+-		this.owners = owners;
++	public PetTypeFormatter(PetTypeRepository types) {
++		this.types = types;
+ 	}
+ 
+ 	@Override
+@@ -48,7 +48,7 @@ public String print(PetType petType, Locale locale) {
+ 
+ 	@Override
+ 	public PetType parse(String text, Locale locale) throws ParseException {
+-		Collection<PetType> findPetTypes = this.owners.findPetTypes();
++		Collection<PetType> findPetTypes = this.types.findPetTypes();
+ 		for (PetType type : findPetTypes) {
+ 			if (type.getName().equals(text)) {
+ 				return type;
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java b/src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java
+new file mode 100644
+index 00000000000..0412948ebc0
+--- /dev/null
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java
+@@ -0,0 +1,43 @@
++/*
++ * Copyright 2012-2025 the original author or authors.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      https://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package org.springframework.samples.petclinic.owner;
++
++import java.util.List;
++import java.util.Optional;
++
++import jakarta.annotation.Nonnull;
++import org.springframework.data.domain.Page;
++import org.springframework.data.domain.Pageable;
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.data.jpa.repository.Query;
++
++/**
++ * Repository class for <code>PetType</code> domain objects.
++ *
++ * @author Patrick Baumgartner
++ */
++
++public interface PetTypeRepository extends JpaRepository<PetType, Integer> {
++
++	/**
++	 * Retrieve all {@link PetType}s from the data store.
++	 * @return a Collection of {@link PetType}s.
++	 */
++	@Query("SELECT ptype FROM PetType ptype ORDER BY ptype.name")
++	List<PetType> findPetTypes();
++
++}
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java b/src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java
+index 6422aa8db80..dfe5304d57a 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/Visit.java b/src/main/java/org/springframework/samples/petclinic/owner/Visit.java
+index 35569bdaaf5..085cd2849b8 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/Visit.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/Visit.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/VisitController.java b/src/main/java/org/springframework/samples/petclinic/owner/VisitController.java
+index b546f609a34..21c1823a569 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/VisitController.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/VisitController.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java b/src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java
+index f90679094d7..1382f3aea4c 100644
+--- a/src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java
++++ b/src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/system/CrashController.java b/src/main/java/org/springframework/samples/petclinic/system/CrashController.java
+index 2b28600fde5..0081a560b76 100644
+--- a/src/main/java/org/springframework/samples/petclinic/system/CrashController.java
++++ b/src/main/java/org/springframework/samples/petclinic/system/CrashController.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java b/src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java
+index 9224015bcd3..d77a35ea8c6 100644
+--- a/src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java
++++ b/src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/vet/Specialty.java b/src/main/java/org/springframework/samples/petclinic/vet/Specialty.java
+index b0b6315fced..184bf5e6b75 100644
+--- a/src/main/java/org/springframework/samples/petclinic/vet/Specialty.java
++++ b/src/main/java/org/springframework/samples/petclinic/vet/Specialty.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/vet/Vet.java b/src/main/java/org/springframework/samples/petclinic/vet/Vet.java
+index 00c7ec1c8e3..fb2bd71ee0a 100644
+--- a/src/main/java/org/springframework/samples/petclinic/vet/Vet.java
++++ b/src/main/java/org/springframework/samples/petclinic/vet/Vet.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/vet/VetController.java b/src/main/java/org/springframework/samples/petclinic/vet/VetController.java
+index 29fcecc7ae7..89ad9bc41c0 100644
+--- a/src/main/java/org/springframework/samples/petclinic/vet/VetController.java
++++ b/src/main/java/org/springframework/samples/petclinic/vet/VetController.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java b/src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java
+index 8b9e0823c86..dbf68d02972 100644
+--- a/src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java
++++ b/src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/java/org/springframework/samples/petclinic/vet/Vets.java b/src/main/java/org/springframework/samples/petclinic/vet/Vets.java
+index 9b672d25e38..634cad773c5 100644
+--- a/src/main/java/org/springframework/samples/petclinic/vet/Vets.java
++++ b/src/main/java/org/springframework/samples/petclinic/vet/Vets.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/main/resources/application-postgres.properties b/src/main/resources/application-postgres.properties
+index 60889b43c15..b265d7e5b41 100644
+--- a/src/main/resources/application-postgres.properties
++++ b/src/main/resources/application-postgres.properties
+@@ -1,3 +1,4 @@
++# database init, supports postgres too
+ database=postgres
+ spring.datasource.url=${POSTGRES_URL:jdbc:postgresql://localhost/petclinic}
+ spring.datasource.username=${POSTGRES_USER:petclinic}
+diff --git a/src/main/resources/static/resources/css/petclinic.css b/src/main/resources/static/resources/css/petclinic.css
+index bbf3f0dbba2..22e3e50ea2c 100644
+--- a/src/main/resources/static/resources/css/petclinic.css
++++ b/src/main/resources/static/resources/css/petclinic.css
+@@ -12,8 +12,8 @@
+  * limitations under the License.
+  */
+ /*!
+-   * Bootstrap  v5.3.3 (https://getbootstrap.com/)
+-   * Copyright 2011-2024 The Bootstrap Authors
++   * Bootstrap  v5.3.6 (https://getbootstrap.com/)
++   * Copyright 2011-2025 The Bootstrap Authors
+    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
+    */
+ :root,
+@@ -456,8 +456,8 @@ legend {
+   width: 100%;
+   padding: 0;
+   margin-bottom: 0.5rem;
+-  font-size: calc(1.275rem + 0.3vw);
+-  line-height: inherit; }
++  line-height: inherit;
++  font-size: calc(1.275rem + 0.3vw); }
+   @media (min-width: 1200px) {
+     legend {
+       font-size: 1.5rem; } }
+@@ -519,44 +519,44 @@ progress {
+   font-weight: 300; }
+ 
+ .display-1 {
+-  font-size: calc(1.625rem + 4.5vw);
+   font-weight: 300;
+-  line-height: 1.2; }
++  line-height: 1.2;
++  font-size: calc(1.625rem + 4.5vw); }
+   @media (min-width: 1200px) {
+     .display-1 {
+       font-size: 5rem; } }
+ .display-2 {
+-  font-size: calc(1.575rem + 3.9vw);
+   font-weight: 300;
+-  line-height: 1.2; }
++  line-height: 1.2;
++  font-size: calc(1.575rem + 3.9vw); }
+   @media (min-width: 1200px) {
+     .display-2 {
+       font-size: 4.5rem; } }
+ .display-3 {
+-  font-size: calc(1.525rem + 3.3vw);
+   font-weight: 300;
+-  line-height: 1.2; }
++  line-height: 1.2;
++  font-size: calc(1.525rem + 3.3vw); }
+   @media (min-width: 1200px) {
+     .display-3 {
+       font-size: 4rem; } }
+ .display-4 {
+-  font-size: calc(1.475rem + 2.7vw);
+   font-weight: 300;
+-  line-height: 1.2; }
++  line-height: 1.2;
++  font-size: calc(1.475rem + 2.7vw); }
+   @media (min-width: 1200px) {
+     .display-4 {
+       font-size: 3.5rem; } }
+ .display-5 {
+-  font-size: calc(1.425rem + 2.1vw);
+   font-weight: 300;
+-  line-height: 1.2; }
++  line-height: 1.2;
++  font-size: calc(1.425rem + 2.1vw); }
+   @media (min-width: 1200px) {
+     .display-5 {
+       font-size: 3rem; } }
+ .display-6 {
+-  font-size: calc(1.375rem + 1.5vw);
+   font-weight: 300;
+-  line-height: 1.2; }
++  line-height: 1.2;
++  font-size: calc(1.375rem + 1.5vw); }
+   @media (min-width: 1200px) {
+     .display-6 {
+       font-size: 2.5rem; } }
+@@ -674,7 +674,7 @@ progress {
+     margin-top: var(--bs-gutter-y); }
+ 
+ .col {
+-  flex: 1 0 0%; }
++  flex: 1 0 0; }
+ 
+ .row-cols-auto > * {
+   flex: 0 0 auto;
+@@ -839,7 +839,7 @@ progress {
+ 
+ @media (min-width: 576px) {
+   .col-sm {
+-    flex: 1 0 0%; }
++    flex: 1 0 0; }
+   .row-cols-sm-auto > * {
+     flex: 0 0 auto;
+     width: auto; }
+@@ -963,7 +963,7 @@ progress {
+ 
+ @media (min-width: 768px) {
+   .col-md {
+-    flex: 1 0 0%; }
++    flex: 1 0 0; }
+   .row-cols-md-auto > * {
+     flex: 0 0 auto;
+     width: auto; }
+@@ -1087,7 +1087,7 @@ progress {
+ 
+ @media (min-width: 992px) {
+   .col-lg {
+-    flex: 1 0 0%; }
++    flex: 1 0 0; }
+   .row-cols-lg-auto > * {
+     flex: 0 0 auto;
+     width: auto; }
+@@ -1211,7 +1211,7 @@ progress {
+ 
+ @media (min-width: 1200px) {
+   .col-xl {
+-    flex: 1 0 0%; }
++    flex: 1 0 0; }
+   .row-cols-xl-auto > * {
+     flex: 0 0 auto;
+     width: auto; }
+@@ -1335,7 +1335,7 @@ progress {
+ 
+ @media (min-width: 1400px) {
+   .col-xxl {
+-    flex: 1 0 0%; }
++    flex: 1 0 0; }
+   .row-cols-xxl-auto > * {
+     flex: 0 0 auto;
+     width: auto; }
+@@ -1899,9 +1899,9 @@ textarea.form-control-lg {
+   .form-check-input:checked {
+     background-color: #0d6efd;
+     border-color: #0d6efd; }
+-    .form-check-input[type="checkbox"]:checked {
++    .form-check-input:checked[type="checkbox"] {
+       --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e"); }
+-    .form-check-input[type="radio"]:checked {
++    .form-check-input:checked[type="radio"] {
+       --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e"); }
+   .form-check-input[type="checkbox"]:indeterminate {
+     background-color: #0d6efd;
+@@ -2033,9 +2033,11 @@ textarea.form-control-lg {
+     top: 0;
+     left: 0;
+     z-index: 2;
++    max-width: 100%;
+     height: 100%;
+     padding: 1rem 0.75rem;
+     overflow: hidden;
++    color: rgba(var(--bs-body-color-rgb), 0.65);
+     text-align: start;
+     text-overflow: ellipsis;
+     white-space: nowrap;
+@@ -2063,35 +2065,31 @@ textarea.form-control-lg {
+       padding-bottom: 0.625rem; }
+   .form-floating > .form-select {
+     padding-top: 1.625rem;
+-    padding-bottom: 0.625rem; }
++    padding-bottom: 0.625rem;
++    padding-left: 0.75rem; }
+   .form-floating > .form-control:focus ~ label,
+   .form-floating > .form-control:not(:placeholder-shown) ~ label,
+   .form-floating > .form-control-plaintext ~ label,
+   .form-floating > .form-select ~ label {
+-    color: rgba(var(--bs-body-color-rgb), 0.65);
+     transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem); }
+-    .form-floating > .form-control:focus ~ label::after,
+-    .form-floating > .form-control:not(:placeholder-shown) ~ label::after,
+-    .form-floating > .form-control-plaintext ~ label::after,
+-    .form-floating > .form-select ~ label::after {
+-      position: absolute;
+-      inset: 1rem 0.375rem;
+-      z-index: -1;
+-      height: 1.5em;
+-      content: "";
+-      background-color: var(--bs-body-bg);
+-      border-radius: var(--bs-border-radius); }
+   .form-floating > .form-control:-webkit-autofill ~ label {
+-    color: rgba(var(--bs-body-color-rgb), 0.65);
+     transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem); }
++  .form-floating > textarea:focus ~ label::after,
++  .form-floating > textarea:not(:placeholder-shown) ~ label::after {
++    position: absolute;
++    inset: 1rem 0.375rem;
++    z-index: -1;
++    height: 1.5em;
++    content: "";
++    background-color: var(--bs-body-bg);
++    border-radius: var(--bs-border-radius); }
++  .form-floating > textarea:disabled ~ label::after {
++    background-color: var(--bs-secondary-bg); }
+   .form-floating > .form-control-plaintext ~ label {
+     border-width: var(--bs-border-width) 0; }
+   .form-floating > :disabled ~ label,
+   .form-floating > .form-control:disabled ~ label {
+     color: #6c757d; }
+-    .form-floating > :disabled ~ label::after,
+-    .form-floating > .form-control:disabled ~ label::after {
+-      background-color: var(--bs-secondary-bg); }
+ 
+ .input-group {
+   position: relative;
+@@ -2165,7 +2163,7 @@ textarea.form-control-lg {
+   border-bottom-right-radius: 0; }
+ 
+ .input-group > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+-  margin-left: calc(var(--bs-border-width) * -1);
++  margin-left: calc(-1 * var(--bs-border-width));
+   border-top-left-radius: 0;
+   border-bottom-left-radius: 0; }
+ 
+@@ -2203,7 +2201,7 @@ textarea.form-control-lg {
+ .was-validated .form-control:valid, .form-control.is-valid {
+   border-color: var(--bs-form-valid-border-color);
+   padding-right: calc(1.5em + 0.75rem);
+-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
++  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1'/%3e%3c/svg%3e");
+   background-repeat: no-repeat;
+   background-position: right calc(0.375em + 0.1875rem) center;
+   background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem); }
+@@ -2217,8 +2215,8 @@ textarea.form-control-lg {
+ 
+ .was-validated .form-select:valid, .form-select.is-valid {
+   border-color: var(--bs-form-valid-border-color); }
+-  .was-validated .form-select:valid:not([multiple]):not([size]), .was-validated .form-select[size="1"]:valid:not([multiple]), .form-select.is-valid:not([multiple]):not([size]), .form-select.is-valid[size="1"]:not([multiple]) {
+-    --bs-form-select-bg-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
++  .was-validated .form-select:valid:not([multiple]):not([size]), .was-validated .form-select:valid:not([multiple])[size="1"], .form-select.is-valid:not([multiple]):not([size]), .form-select.is-valid:not([multiple])[size="1"] {
++    --bs-form-select-bg-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1'/%3e%3c/svg%3e");
+     padding-right: 4.125rem;
+     background-position: right 0.75rem center, center right 2.25rem;
+     background-size: 16px 12px, calc(0.75em + 0.375rem) calc(0.75em + 0.375rem); }
+@@ -2241,9 +2239,9 @@ textarea.form-control-lg {
+ .form-check-inline .form-check-input ~ .valid-feedback {
+   margin-left: .5em; }
+ 
+-.was-validated .input-group > .form-control:not(:focus):valid, .input-group > .form-control.is-valid:not(:focus), .was-validated .input-group > .form-select:not(:focus):valid,
+-.input-group > .form-select.is-valid:not(:focus), .was-validated .input-group > .form-floating:not(:focus-within):valid,
+-.input-group > .form-floating.is-valid:not(:focus-within) {
++.was-validated .input-group > .form-control:not(:focus):valid, .input-group > .form-control:not(:focus).is-valid, .was-validated .input-group > .form-select:not(:focus):valid,
++.input-group > .form-select:not(:focus).is-valid, .was-validated .input-group > .form-floating:not(:focus-within):valid,
++.input-group > .form-floating:not(:focus-within).is-valid {
+   z-index: 3; }
+ 
+ .invalid-feedback {
+@@ -2289,7 +2287,7 @@ textarea.form-control-lg {
+ 
+ .was-validated .form-select:invalid, .form-select.is-invalid {
+   border-color: var(--bs-form-invalid-border-color); }
+-  .was-validated .form-select:invalid:not([multiple]):not([size]), .was-validated .form-select[size="1"]:invalid:not([multiple]), .form-select.is-invalid:not([multiple]):not([size]), .form-select.is-invalid[size="1"]:not([multiple]) {
++  .was-validated .form-select:invalid:not([multiple]):not([size]), .was-validated .form-select:invalid:not([multiple])[size="1"], .form-select.is-invalid:not([multiple]):not([size]), .form-select.is-invalid:not([multiple])[size="1"] {
+     --bs-form-select-bg-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+     padding-right: 4.125rem;
+     background-position: right 0.75rem center, center right 2.25rem;
+@@ -2313,9 +2311,9 @@ textarea.form-control-lg {
+ .form-check-inline .form-check-input ~ .invalid-feedback {
+   margin-left: .5em; }
+ 
+-.was-validated .input-group > .form-control:not(:focus):invalid, .input-group > .form-control.is-invalid:not(:focus), .was-validated .input-group > .form-select:not(:focus):invalid,
+-.input-group > .form-select.is-invalid:not(:focus), .was-validated .input-group > .form-floating:not(:focus-within):invalid,
+-.input-group > .form-floating.is-invalid:not(:focus-within) {
++.was-validated .input-group > .form-control:not(:focus):invalid, .input-group > .form-control:not(:focus).is-invalid, .was-validated .input-group > .form-select:not(:focus):invalid,
++.input-group > .form-select:not(:focus).is-invalid, .was-validated .input-group > .form-floating:not(:focus-within):invalid,
++.input-group > .form-floating:not(:focus-within).is-invalid {
+   z-index: 4; }
+ 
+ .btn {
+@@ -3007,7 +3005,7 @@ textarea.form-control-lg {
+   border-radius: var(--bs-border-radius); }
+   .btn-group > :not(.btn-check:first-child) + .btn,
+   .btn-group > .btn-group:not(:first-child) {
+-    margin-left: calc(var(--bs-border-width) * -1); }
++    margin-left: calc(-1 * var(--bs-border-width)); }
+   .btn-group > .btn:not(:last-child):not(.dropdown-toggle),
+   .btn-group > .btn.dropdown-toggle-split:first-child,
+   .btn-group > .btn-group:not(:last-child) > .btn {
+@@ -3044,12 +3042,13 @@ textarea.form-control-lg {
+     width: 100%; }
+   .btn-group-vertical > .btn:not(:first-child),
+   .btn-group-vertical > .btn-group:not(:first-child) {
+-    margin-top: calc(var(--bs-border-width) * -1); }
++    margin-top: calc(-1 * var(--bs-border-width)); }
+   .btn-group-vertical > .btn:not(:last-child):not(.dropdown-toggle),
+   .btn-group-vertical > .btn-group:not(:last-child) > .btn {
+     border-bottom-right-radius: 0;
+     border-bottom-left-radius: 0; }
+-  .btn-group-vertical > .btn ~ .btn,
++  .btn-group-vertical > .btn:nth-child(n + 3),
++  .btn-group-vertical > :not(.btn-check) + .btn,
+   .btn-group-vertical > .btn-group:not(:first-child) > .btn {
+     border-top-left-radius: 0;
+     border-top-right-radius: 0; }
+@@ -3152,8 +3151,8 @@ textarea.form-control-lg {
+ 
+ .nav-justified > .nav-link,
+ .nav-justified .nav-item {
+-  flex-basis: 0;
+   flex-grow: 1;
++  flex-basis: 0;
+   text-align: center; }
+ 
+ .nav-fill .nav-item .nav-link,
+@@ -3243,8 +3242,8 @@ textarea.form-control-lg {
+     color: var(--bs-navbar-active-color); }
+ 
+ .navbar-collapse {
+-  flex-basis: 100%;
+   flex-grow: 1;
++  flex-basis: 100%;
+   align-items: center; }
+ 
+ .navbar-toggler {
+@@ -3646,7 +3645,7 @@ textarea.form-control-lg {
+     display: flex;
+     flex-flow: row wrap; }
+     .card-group > .card {
+-      flex: 1 0 0%;
++      flex: 1 0 0;
+       margin-bottom: 0; }
+       .card-group > .card + .card {
+         margin-left: 0;
+@@ -3654,20 +3653,20 @@ textarea.form-control-lg {
+       .card-group > .card:not(:last-child) {
+         border-top-right-radius: 0;
+         border-bottom-right-radius: 0; }
+-        .card-group > .card:not(:last-child) .card-img-top,
+-        .card-group > .card:not(:last-child) .card-header {
++        .card-group > .card:not(:last-child) > .card-img-top,
++        .card-group > .card:not(:last-child) > .card-header {
+           border-top-right-radius: 0; }
+-        .card-group > .card:not(:last-child) .card-img-bottom,
+-        .card-group > .card:not(:last-child) .card-footer {
++        .card-group > .card:not(:last-child) > .card-img-bottom,
++        .card-group > .card:not(:last-child) > .card-footer {
+           border-bottom-right-radius: 0; }
+       .card-group > .card:not(:first-child) {
+         border-top-left-radius: 0;
+         border-bottom-left-radius: 0; }
+-        .card-group > .card:not(:first-child) .card-img-top,
+-        .card-group > .card:not(:first-child) .card-header {
++        .card-group > .card:not(:first-child) > .card-img-top,
++        .card-group > .card:not(:first-child) > .card-header {
+           border-top-left-radius: 0; }
+-        .card-group > .card:not(:first-child) .card-img-bottom,
+-        .card-group > .card:not(:first-child) .card-footer {
++        .card-group > .card:not(:first-child) > .card-img-bottom,
++        .card-group > .card:not(:first-child) > .card-footer {
+           border-bottom-left-radius: 0; } }
+ 
+ .accordion {
+@@ -3682,11 +3681,11 @@ textarea.form-control-lg {
+   --bs-accordion-btn-padding-y: 1rem;
+   --bs-accordion-btn-color: var(--bs-body-color);
+   --bs-accordion-btn-bg: var(--bs-accordion-bg);
+-  --bs-accordion-btn-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23212529' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e");
++  --bs-accordion-btn-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23212529' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+   --bs-accordion-btn-icon-width: 1.25rem;
+   --bs-accordion-btn-icon-transform: rotate(-180deg);
+   --bs-accordion-btn-icon-transition: transform 0.2s ease-in-out;
+-  --bs-accordion-btn-active-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23052c65' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e");
++  --bs-accordion-btn-active-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23052c65' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+   --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+   --bs-accordion-body-padding-x: 1.25rem;
+   --bs-accordion-body-padding-y: 1rem;
+@@ -3773,14 +3772,14 @@ textarea.form-control-lg {
+     border-top: 0; }
+   .accordion-flush > .accordion-item:last-child {
+     border-bottom: 0; }
+-  .accordion-flush > .accordion-item > .accordion-header .accordion-button, .accordion-flush > .accordion-item > .accordion-header .accordion-button.collapsed {
+-    border-radius: 0; }
+-  .accordion-flush > .accordion-item > .accordion-collapse {
++  .accordion-flush > .accordion-item > .accordion-collapse,
++  .accordion-flush > .accordion-item > .accordion-header .accordion-button,
++  .accordion-flush > .accordion-item > .accordion-header .accordion-button.collapsed {
+     border-radius: 0; }
+ 
+ [data-bs-theme="dark"] .accordion-button::after {
+-  --bs-accordion-btn-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236ea8fe'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+-  --bs-accordion-btn-active-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236ea8fe'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e"); }
++  --bs-accordion-btn-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236ea8fe'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708'/%3e%3c/svg%3e");
++  --bs-accordion-btn-active-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236ea8fe'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708'/%3e%3c/svg%3e"); }
+ 
+ .breadcrumb {
+   --bs-breadcrumb-padding-x: 0;
+@@ -3872,7 +3871,7 @@ textarea.form-control-lg {
+     border-color: var(--bs-pagination-disabled-border-color); }
+ 
+ .page-item:not(:first-child) .page-link {
+-  margin-left: calc(var(--bs-border-width) * -1); }
++  margin-left: calc(-1 * var(--bs-border-width)); }
+ 
+ .page-item:first-child .page-link {
+   border-top-left-radius: var(--bs-pagination-border-radius);
+@@ -4002,7 +4001,7 @@ textarea.form-control-lg {
+ 
+ @keyframes progress-bar-stripes {
+   0% {
+-    background-position-x: 1rem; } }
++    background-position-x: var(--bs-progress-height); } }
+ 
+ .progress,
+ .progress-stacked {
+@@ -4080,19 +4079,6 @@ textarea.form-control-lg {
+     content: counters(section, ".") ". ";
+     counter-increment: section; }
+ 
+-.list-group-item-action {
+-  width: 100%;
+-  color: var(--bs-list-group-action-color);
+-  text-align: inherit; }
+-  .list-group-item-action:hover, .list-group-item-action:focus {
+-    z-index: 1;
+-    color: var(--bs-list-group-action-hover-color);
+-    text-decoration: none;
+-    background-color: var(--bs-list-group-action-hover-bg); }
+-  .list-group-item-action:active {
+-    color: var(--bs-list-group-action-active-color);
+-    background-color: var(--bs-list-group-action-active-bg); }
+-
+ .list-group-item {
+   position: relative;
+   display: block;
+@@ -4122,6 +4108,19 @@ textarea.form-control-lg {
+       margin-top: calc(-1 * var(--bs-list-group-border-width));
+       border-top-width: var(--bs-list-group-border-width); }
+ 
++.list-group-item-action {
++  width: 100%;
++  color: var(--bs-list-group-action-color);
++  text-align: inherit; }
++  .list-group-item-action:not(.active):hover, .list-group-item-action:not(.active):focus {
++    z-index: 1;
++    color: var(--bs-list-group-action-hover-color);
++    text-decoration: none;
++    background-color: var(--bs-list-group-action-hover-bg); }
++  .list-group-item-action:not(.active):active {
++    color: var(--bs-list-group-action-active-color);
++    background-color: var(--bs-list-group-action-active-bg); }
++
+ .list-group-horizontal {
+   flex-direction: row; }
+   .list-group-horizontal > .list-group-item:first-child:not(:last-child) {
+@@ -4334,19 +4333,19 @@ textarea.form-control-lg {
+ 
+ .btn-close {
+   --bs-btn-close-color: #000;
+-  --bs-btn-close-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e");
++  --bs-btn-close-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414'/%3e%3c/svg%3e");
+   --bs-btn-close-opacity: 0.5;
+   --bs-btn-close-hover-opacity: 0.75;
+   --bs-btn-close-focus-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+   --bs-btn-close-focus-opacity: 1;
+   --bs-btn-close-disabled-opacity: 0.25;
+-  --bs-btn-close-white-filter: invert(1) grayscale(100%) brightness(200%);
+   box-sizing: content-box;
+   width: 1em;
+   height: 1em;
+   padding: 0.25em 0.25em;
+   color: var(--bs-btn-close-color);
+   background: transparent var(--bs-btn-close-bg) center/1em auto no-repeat;
++  filter: var(--bs-btn-close-filter);
+   border: 0;
+   border-radius: 0.375rem;
+   opacity: var(--bs-btn-close-opacity); }
+@@ -4364,10 +4363,14 @@ textarea.form-control-lg {
+     opacity: var(--bs-btn-close-disabled-opacity); }
+ 
+ .btn-close-white {
+-  filter: var(--bs-btn-close-white-filter); }
++  --bs-btn-close-filter: invert(1) grayscale(100%) brightness(200%); }
+ 
+-[data-bs-theme="dark"] .btn-close {
+-  filter: var(--bs-btn-close-white-filter); }
++:root,
++[data-bs-theme="light"] {
++  --bs-btn-close-filter: ; }
++
++[data-bs-theme="dark"] {
++  --bs-btn-close-filter: invert(1) grayscale(100%) brightness(200%); }
+ 
+ .toast {
+   --bs-toast-zindex: 1090;
+@@ -4433,7 +4436,7 @@ textarea.form-control-lg {
+   --bs-modal-width: 500px;
+   --bs-modal-padding: 1rem;
+   --bs-modal-margin: 0.5rem;
+-  --bs-modal-color: ;
++  --bs-modal-color: var(--bs-body-color);
+   --bs-modal-bg: var(--bs-body-bg);
+   --bs-modal-border-color: var(--bs-border-color-translucent);
+   --bs-modal-border-width: var(--bs-border-width);
+@@ -4467,8 +4470,8 @@ textarea.form-control-lg {
+   margin: var(--bs-modal-margin);
+   pointer-events: none; }
+   .modal.fade .modal-dialog {
+-    transition: transform 0.3s ease-out;
+-    transform: translate(0, -50px); }
++    transform: translate(0, -50px);
++    transition: transform 0.3s ease-out; }
+     @media (prefers-reduced-motion: reduce) {
+       .modal.fade .modal-dialog {
+         transition: none; } }
+@@ -4529,7 +4532,10 @@ textarea.form-control-lg {
+   border-top-right-radius: var(--bs-modal-inner-border-radius); }
+   .modal-header .btn-close {
+     padding: calc(var(--bs-modal-header-padding-y) * .5) calc(var(--bs-modal-header-padding-x) * .5);
+-    margin: calc(-.5 * var(--bs-modal-header-padding-y)) calc(-.5 * var(--bs-modal-header-padding-x)) calc(-.5 * var(--bs-modal-header-padding-y)) auto; }
++    margin-top: calc(-.5 * var(--bs-modal-header-padding-y));
++    margin-right: calc(-.5 * var(--bs-modal-header-padding-x));
++    margin-bottom: calc(-.5 * var(--bs-modal-header-padding-y));
++    margin-left: auto; }
+ 
+ .modal-title {
+   margin-bottom: 0;
+@@ -4965,6 +4971,7 @@ textarea.form-control-lg {
+   color: #fff;
+   text-align: center;
+   background: none;
++  filter: var(--bs-carousel-control-icon-filter);
+   border: 0;
+   opacity: 0.5;
+   transition: opacity 0.15s ease; }
+@@ -4996,10 +5003,10 @@ textarea.form-control-lg {
+   background-size: 100% 100%; }
+ 
+ .carousel-control-prev-icon {
+-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e") /*rtl:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e")*/; }
++  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0'/%3e%3c/svg%3e") /*rtl:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708'/%3e%3c/svg%3e")*/; }
+ 
+ .carousel-control-next-icon {
+-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") /*rtl:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e")*/; }
++  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708'/%3e%3c/svg%3e") /*rtl:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0'/%3e%3c/svg%3e")*/; }
+ 
+ .carousel-indicators {
+   position: absolute;
+@@ -5023,7 +5030,7 @@ textarea.form-control-lg {
+     margin-left: 3px;
+     text-indent: -999px;
+     cursor: pointer;
+-    background-color: #fff;
++    background-color: var(--bs-carousel-indicator-active-bg);
+     background-clip: padding-box;
+     border: 0;
+     border-top: 10px solid transparent;
+@@ -5043,29 +5050,24 @@ textarea.form-control-lg {
+   left: 15%;
+   padding-top: 1.25rem;
+   padding-bottom: 1.25rem;
+-  color: #fff;
++  color: var(--bs-carousel-caption-color);
+   text-align: center; }
+ 
+-.carousel-dark .carousel-control-prev-icon,
+-.carousel-dark .carousel-control-next-icon {
+-  filter: invert(1) grayscale(100); }
+-
+-.carousel-dark .carousel-indicators [data-bs-target] {
+-  background-color: #000; }
++.carousel-dark {
++  --bs-carousel-indicator-active-bg: #000;
++  --bs-carousel-caption-color: #000;
++  --bs-carousel-control-icon-filter: invert(1) grayscale(100); }
+ 
+-.carousel-dark .carousel-caption {
+-  color: #000; }
+-
+-[data-bs-theme="dark"] .carousel .carousel-control-prev-icon,
+-[data-bs-theme="dark"] .carousel .carousel-control-next-icon, .carousel[data-bs-theme="dark"] .carousel-control-prev-icon,
+-.carousel[data-bs-theme="dark"] .carousel-control-next-icon {
+-  filter: invert(1) grayscale(100); }
+-
+-[data-bs-theme="dark"] .carousel .carousel-indicators [data-bs-target], .carousel[data-bs-theme="dark"] .carousel-indicators [data-bs-target] {
+-  background-color: #000; }
++:root,
++[data-bs-theme="light"] {
++  --bs-carousel-indicator-active-bg: #fff;
++  --bs-carousel-caption-color: #fff;
++  --bs-carousel-control-icon-filter: ; }
+ 
+-[data-bs-theme="dark"] .carousel .carousel-caption, .carousel[data-bs-theme="dark"] .carousel-caption {
+-  color: #000; }
++[data-bs-theme="dark"] {
++  --bs-carousel-indicator-active-bg: #000;
++  --bs-carousel-caption-color: #000;
++  --bs-carousel-control-icon-filter: invert(1) grayscale(100); }
+ 
+ .spinner-grow,
+ .spinner-border {
+@@ -5521,7 +5523,10 @@ textarea.form-control-lg {
+   padding: var(--bs-offcanvas-padding-y) var(--bs-offcanvas-padding-x); }
+   .offcanvas-header .btn-close {
+     padding: calc(var(--bs-offcanvas-padding-y) * .5) calc(var(--bs-offcanvas-padding-x) * .5);
+-    margin: calc(-.5 * var(--bs-offcanvas-padding-y)) calc(-.5 * var(--bs-offcanvas-padding-x)) calc(-.5 * var(--bs-offcanvas-padding-y)) auto; }
++    margin-top: calc(-.5 * var(--bs-offcanvas-padding-y));
++    margin-right: calc(-.5 * var(--bs-offcanvas-padding-x));
++    margin-bottom: calc(-.5 * var(--bs-offcanvas-padding-y));
++    margin-left: auto; }
+ 
+ .offcanvas-title {
+   margin-bottom: 0;
+@@ -5816,6 +5821,9 @@ textarea.form-control-lg {
+   .visually-hidden:not(caption),
+   .visually-hidden-focusable:not(:focus):not(:focus-within):not(caption) {
+     position: absolute !important; }
++  .visually-hidden *,
++  .visually-hidden-focusable:not(:focus):not(:focus-within) * {
++    overflow: hidden !important; }
+ 
+ .stretched-link::after {
+   position: absolute;
+@@ -9316,7 +9324,7 @@ h1, .h1 {
+   margin-left: auto;
+   margin-right: auto; }
+ 
+-.splash[ng-cloak] {
++[ng-cloak].splash {
+   display: block !important; }
+ 
+ [ng-cloak] {
+@@ -9456,7 +9464,7 @@ strong {
+   -webkit-transition: opacity 0.12s ease-in-out;
+   -o-transition: opacity 0.12s ease-in-out; }
+ 
+-.navbar a.navbar-brand:hover span {
++.navbar a:hover.navbar-brand span {
+   opacity: 1; }
+ 
+ .navbar li > a, .navbar-text {
+diff --git a/src/main/resources/templates/error.html b/src/main/resources/templates/error.html
+index 070e1c7708f..4d76d8d16d1 100644
+--- a/src/main/resources/templates/error.html
++++ b/src/main/resources/templates/error.html
+@@ -2,10 +2,10 @@
+ 
+ <html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'error')}">
+ 
+-  <body>
+-    <img src="../static/resources/images/pets.png" th:src="@{/resources/images/pets.png}"/>
+-    <h2 th:text="#{somethingHappened}">Something happened...</h2>
+-    <p th:text="${message}">Exception message</p>
+-  </body>
++<body>
++  <img src="../static/resources/images/pets.png" th:src="@{/resources/images/pets.png}" />
++  <h2 th:text="#{somethingHappened}">Something happened...</h2>
++  <p th:text="${message}">Exception message</p>
++</body>
+ 
+-</html>
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/fragments/inputField.html b/src/main/resources/templates/fragments/inputField.html
+index 68afbec7ab6..da1de477236 100644
+--- a/src/main/resources/templates/fragments/inputField.html
++++ b/src/main/resources/templates/fragments/inputField.html
+@@ -1,23 +1,21 @@
++<!DOCTYPE html>
++
+ <html xmlns:th="https://www.thymeleaf.org">
++
+ <body>
+   <form>
+     <th:block th:fragment="input (label, name, type)">
+-      <div th:with="valid=${!#fields.hasErrors(name)}"
+-        th:class="${'form-group' + (valid ? '' : ' has-error')}"
++      <div th:with="valid=${!#fields.hasErrors(name)}" th:class="${'form-group' + (valid ? '' : ' has-error')}"
+         class="form-group">
+         <label th:for="${name}" class="col-sm-2 control-label" th:text="${label}">Label</label>
+         <div class="col-sm-10">
+-            <div th:switch="${type}">
+-                <input th:case="'text'" class="form-control" type="text" th:field="*{__${name}__}" />
+-                <input th:case="'date'" class="form-control" type="date" th:field="*{__${name}__}"/>
+-            </div>
+-          <span th:if="${valid}"
+-            class="fa fa-ok form-control-feedback"
+-            aria-hidden="true"></span>
++          <div th:switch="${type}">
++            <input th:case="'text'" class="form-control" type="text" th:field="*{__${name}__}" />
++            <input th:case="'date'" class="form-control" type="date" th:field="*{__${name}__}" />
++          </div>
++          <span th:if="${valid}" class="fa fa-ok form-control-feedback" aria-hidden="true"></span>
+           <th:block th:if="${!valid}">
+-            <span
+-              class="fa fa-remove form-control-feedback"
+-              aria-hidden="true"></span>
++            <span class="fa fa-remove form-control-feedback" aria-hidden="true"></span>
+             <span class="help-inline" th:errors="*{__${name}__}" th:text="#{error}">Error</span>
+           </th:block>
+         </div>
+@@ -25,4 +23,5 @@
+     </th:block>
+   </form>
+ </body>
+-</html>
++
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/fragments/layout.html b/src/main/resources/templates/fragments/layout.html
+index 34e0a5496b6..7c5cd0d8653 100644
+--- a/src/main/resources/templates/fragments/layout.html
++++ b/src/main/resources/templates/fragments/layout.html
+@@ -1,6 +1,6 @@
+-<!doctype html>
+-<html th:fragment="layout (template, menu)"
+-      xmlns:th="https://www.thymeleaf.org">
++<!DOCTYPE html>
++
++<html th:fragment="layout (template, menu)" xmlns:th="https://www.thymeleaf.org">
+ 
+ <head>
+ 
+@@ -8,16 +8,8 @@
+   <meta charset="utf-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+-
+   <link rel="shortcut icon" type="image/x-icon" th:href="@{/resources/images/favicon.png}">
+-
+   <title th:text="#{layoutTitle}">PetClinic :: a Spring Framework demonstration</title>
+-
+-  <!--[if lt IE 9]>
+-    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+-    <![endif]-->
+-
+   <link th:href="@{/webjars/font-awesome/css/font-awesome.min.css}" rel="stylesheet">
+   <link rel="stylesheet" th:href="@{/resources/css/petclinic.css}" />
+ 
+@@ -81,7 +73,8 @@
+       <div class="container">
+         <div class="row">
+           <div class="col-12 text-center">
+-            <img src="../static/images/spring-logo.svg" th:src="@{/resources/images/spring-logo.svg}" alt="VMware Tanzu Logo" class="logo">
++            <img src="../static/images/spring-logo.svg" th:src="@{/resources/images/spring-logo.svg}"
++              alt="VMware Tanzu Logo" class="logo">
+           </div>
+         </div>
+       </div>
+@@ -92,4 +85,4 @@
+ 
+ </body>
+ 
+-</html>
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/fragments/selectField.html b/src/main/resources/templates/fragments/selectField.html
+index b90004ef89f..d248864d798 100644
+--- a/src/main/resources/templates/fragments/selectField.html
++++ b/src/main/resources/templates/fragments/selectField.html
+@@ -1,24 +1,21 @@
++<!DOCTYPE html>
++
+ <html xmlns:th="https://www.thymeleaf.org">
++
+ <body>
+   <form>
+     <th:block th:fragment="select (label, name, items)">
+-      <div th:with="valid=${!#fields.hasErrors(name)}"
+-        th:class="${'form-group' + (valid ? '' : ' has-error')}"
++      <div th:with="valid=${!#fields.hasErrors(name)}" th:class="${'form-group' + (valid ? '' : ' has-error')}"
+         class="form-group">
+         <label th:for="${name}" class="col-sm-2 control-label" th:text="${label}">Label</label>
+ 
+         <div class="col-sm-10">
+           <select th:field="*{__${name}__}">
+-            <option th:each="item : ${items}" th:value="${item}"
+-              th:text="${item}">dog</option>
++            <option th:each="item : ${items}" th:value="${item}" th:text="${item}">dog</option>
+           </select>
+-          <span th:if="${valid}"
+-            class="fa fa-ok form-control-feedback"
+-            aria-hidden="true"></span>
++          <span th:if="${valid}" class="fa fa-ok form-control-feedback" aria-hidden="true"></span>
+           <th:block th:if="${!valid}">
+-            <span
+-              class="fa fa-remove form-control-feedback"
+-              aria-hidden="true"></span>
++            <span class="fa fa-remove form-control-feedback" aria-hidden="true"></span>
+             <span class="help-inline" th:errors="*{__${name}__}" th:text="#{error}">Error</span>
+           </th:block>
+         </div>
+@@ -26,4 +23,5 @@
+     </th:block>
+   </form>
+ </body>
+-</html>
++
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/owners/createOrUpdateOwnerForm.html b/src/main/resources/templates/owners/createOrUpdateOwnerForm.html
+index e9356f1776f..4cd6e115b83 100644
+--- a/src/main/resources/templates/owners/createOrUpdateOwnerForm.html
++++ b/src/main/resources/templates/owners/createOrUpdateOwnerForm.html
+@@ -1,30 +1,25 @@
+-<html xmlns:th="https://www.thymeleaf.org"
+-  th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
++<!DOCTYPE html>
++
++<html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
+ 
+ <body>
+ 
+   <h2 th:text="#{owner}">Owner</h2>
+   <form th:object="${owner}" class="form-horizontal" id="add-owner-form" method="post">
+     <div class="form-group has-feedback">
+-      <input
+-        th:replace="~{fragments/inputField :: input (#{firstName}, 'firstName', 'text')}" />
+-      <input
+-        th:replace="~{fragments/inputField :: input (#{lastName}, 'lastName', 'text')}" />
+-      <input
+-        th:replace="~{fragments/inputField :: input (#{address}, 'address', 'text')}" />
+-      <input
+-        th:replace="~{fragments/inputField :: input (#{city}, 'city', 'text')}" />
+-      <input
+-        th:replace="~{fragments/inputField :: input (#{telephone}, 'telephone', 'text')}" />
++      <input th:replace="~{fragments/inputField :: input (#{firstName}, 'firstName', 'text')}" />
++      <input th:replace="~{fragments/inputField :: input (#{lastName}, 'lastName', 'text')}" />
++      <input th:replace="~{fragments/inputField :: input (#{address}, 'address', 'text')}" />
++      <input th:replace="~{fragments/inputField :: input (#{city}, 'city', 'text')}" />
++      <input th:replace="~{fragments/inputField :: input (#{telephone}, 'telephone', 'text')}" />
+     </div>
+     <div class="form-group">
+       <div class="col-sm-offset-2 col-sm-10">
+-        <button
+-          th:with="text=${owner['new']} ? #{addOwner} : #{updateOwner}"
+-          class="btn btn-primary" type="submit" th:text="${text}">Add
+-          Owner</button>
++        <button th:with="text=${owner['new']} ? #{addOwner} : #{updateOwner}" class="btn btn-primary" type="submit"
++          th:text="${text}">Add Owner</button>
+       </div>
+     </div>
+   </form>
+ </body>
+-</html>
++
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/owners/findOwners.html b/src/main/resources/templates/owners/findOwners.html
+index 61536ae9b6d..703351c7d6b 100644
+--- a/src/main/resources/templates/owners/findOwners.html
++++ b/src/main/resources/templates/owners/findOwners.html
+@@ -1,21 +1,20 @@
+-<html xmlns:th="https://www.thymeleaf.org"
+-  th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
++<!DOCTYPE html>
++
++<html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
+ 
+ <body>
+ 
+   <h2 th:text="#{findOwners}">Find Owners</h2>
+ 
+-  <form th:object="${owner}" th:action="@{/owners}" method="get"
+-    class="form-horizontal" id="search-owner-form">
++  <form th:object="${owner}" th:action="@{/owners}" method="get" class="form-horizontal" id="search-owner-form">
+     <div class="form-group">
+       <div class="control-group" id="lastNameGroup">
+         <label class="col-sm-2 control-label" th:text="#{lastName}">Last name </label>
+         <div class="col-sm-10">
+-          <input class="form-control" th:field="*{lastName}" size="30"
+-            maxlength="80" />
++          <input class="form-control" th:field="*{lastName}" size="30" maxlength="80" />
+           <span class="help-inline">
+             <div th:if="${#fields.hasAnyErrors()}">
+-                <p th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</p>
++              <p th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</p>
+             </div>
+           </span>
+         </div>
+@@ -32,4 +31,5 @@ <h2 th:text="#{findOwners}">Find Owners</h2>
+   </form>
+ 
+ </body>
+-</html>
++
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/owners/ownerDetails.html b/src/main/resources/templates/owners/ownerDetails.html
+index abdc7a3d881..cc175cd1315 100644
+--- a/src/main/resources/templates/owners/ownerDetails.html
++++ b/src/main/resources/templates/owners/ownerDetails.html
+@@ -1,102 +1,96 @@
+ <!DOCTYPE html>
+ 
+-<html xmlns:th="https://www.thymeleaf.org"
+-  th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
++<html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
+ 
+-  <body>
+-  
+-  
+-    <h2 th:text="#{ownerInformation}">Owner Information</h2>
++<body>
+ 
+-    <div th:if="${message}" class="alert alert-success" id="success-message">
+-      <span th:text="${message}"></span>
+-    </div>
++  <h2 th:text="#{ownerInformation}">Owner Information</h2>
+ 
+-    <div th:if="${error}" class="alert alert-danger" id="error-message">
+-      <span th:text="${error}"></span>
+-    </div>
++  <div th:if="${message}" class="alert alert-success" id="success-message">
++    <span th:text="${message}"></span>
++  </div>
+ 
++  <div th:if="${error}" class="alert alert-danger" id="error-message">
++    <span th:text="${error}"></span>
++  </div>
+ 
++  <table class="table table-striped" th:object="${owner}">
++    <tr>
++      <th th:text="#{name}">Name</th>
++      <td><b th:text="*{firstName + ' ' + lastName}"></b></td>
++    </tr>
++    <tr>
++      <th th:text="#{address}">Address</th>
++      <td th:text="*{address}"></td>
++    </tr>
++    <tr>
++      <th th:text="#{city}">City</th>
++      <td th:text="*{city}"></td>
++    </tr>
++    <tr>
++      <th th:text="#{telephone}">Telephone</th>
++      <td th:text="*{telephone}"></td>
++    </tr>
++  </table>
+ 
++  <a th:href="@{__${owner.id}__/edit}" class="btn btn-primary" th:text="#{editOwner}">Edit
++    Owner</a>
++  <a th:href="@{__${owner.id}__/pets/new}" class="btn btn-primary" th:text="#{addNewPet}">Add
++    New Pet</a>
+ 
+-    <table class="table table-striped" th:object="${owner}">
+-      <tr>
+-        <th th:text="#{name}">Name</th>
+-        <td><b th:text="*{firstName + ' ' + lastName}"></b></td>
+-      </tr>
+-      <tr>
+-        <th th:text="#{address}">Address</th>
+-        <td th:text="*{address}"></td>
+-      </tr>
+-      <tr>
+-        <th th:text="#{city}">City</th>
+-        <td th:text="*{city}"></td>
+-      </tr>
+-      <tr>
+-        <th th:text="#{telephone}">Telephone</th>
+-        <td th:text="*{telephone}"></td>
+-      </tr>
+-    </table>
+-  
+-    <a th:href="@{__${owner.id}__/edit}" class="btn btn-primary"  th:text="#{editOwner}">Edit
+-      Owner</a>
+-    <a th:href="@{__${owner.id}__/pets/new}" class="btn btn-primary" th:text="#{addNewPet}">Add
+-      New Pet</a>
+-  
+-    <br />
+-    <br />
+-    <br />
+-    <h2 th:text="#{petsAndVisits}">Pets and Visits</h2>
+-  
+-    <table class="table table-striped">
+-  
+-      <tr th:each="pet : ${owner.pets}">
+-        <td valign="top">
+-          <dl class="dl-horizontal">
+-            <dt th:text="#{name}">Name</dt>
+-            <dd th:text="${pet.name}"></dd>
+-            <dt  th:text="#{birthDate}">Birth Date</dt>
+-            <dd
+-              th:text="${#temporals.format(pet.birthDate, 'yyyy-MM-dd')}"></dd>
+-            <dt th:text="#{type}">Type</dt>
+-            <dd th:text="${pet.type}"></dd>
+-          </dl>
+-        </td>
+-        <td valign="top">
+-          <table class="table-condensed">
+-            <thead>
+-              <tr>
+-                <th th:text="#{visitDate}">Visit Date</th>
+-                <th th:text="#{description}">Description</th>
+-              </tr>
+-            </thead>
+-            <tr th:each="visit : ${pet.visits}">
+-              <td th:text="${#temporals.format(visit.date, 'yyyy-MM-dd')}"></td>
+-              <td th:text="${visit?.description}"></td>
+-            </tr>
++  <br />
++  <br />
++  <br />
++  <h2 th:text="#{petsAndVisits}">Pets and Visits</h2>
++
++  <table class="table table-striped">
++
++    <tr th:each="pet : ${owner.pets}">
++      <td valign="top">
++        <dl class="dl-horizontal">
++          <dt th:text="#{name}">Name</dt>
++          <dd th:text="${pet.name}"></dd>
++          <dt th:text="#{birthDate}">Birth Date</dt>
++          <dd th:text="${#temporals.format(pet.birthDate, 'yyyy-MM-dd')}"></dd>
++          <dt th:text="#{type}">Type</dt>
++          <dd th:text="${pet.type}"></dd>
++        </dl>
++      </td>
++      <td valign="top">
++        <table class="table-condensed">
++          <thead>
+             <tr>
+-              <td><a th:href="@{__${owner.id}__/pets/__${pet.id}__/edit}" th:text="#{editPet}">Edit Pet</a></td>
+-              <td><a th:href="@{__${owner.id}__/pets/__${pet.id}__/visits/new}" th:text="#{addVisit}">Add Visit</a></td>
++              <th th:text="#{visitDate}">Visit Date</th>
++              <th th:text="#{description}">Description</th>
+             </tr>
+-          </table>
+-        </td>
+-      </tr>
+-  
+-    </table>
+-    <script>
++          </thead>
++          <tr th:each="visit : ${pet.visits}">
++            <td th:text="${#temporals.format(visit.date, 'yyyy-MM-dd')}"></td>
++            <td th:text="${visit?.description}"></td>
++          </tr>
++          <tr>
++            <td><a th:href="@{__${owner.id}__/pets/__${pet.id}__/edit}" th:text="#{editPet}">Edit Pet</a></td>
++            <td><a th:href="@{__${owner.id}__/pets/__${pet.id}__/visits/new}" th:text="#{addVisit}">Add Visit</a></td>
++          </tr>
++        </table>
++      </td>
++    </tr>
++
++  </table>
++  <script>
+     // Function to hide the success and error messages after 3 seconds
+     function hideMessages() {
+-        setTimeout(function() {
+-            document.getElementById("success-message").style.display = "none";
+-            document.getElementById("error-message").style.display = "none";
+-        }, 3000); // 3000 milliseconds (3 seconds)
++      setTimeout(function () {
++        document.getElementById("success-message").style.display = "none";
++        document.getElementById("error-message").style.display = "none";
++      }, 3000); // 3000 milliseconds (3 seconds)
+     }
+ 
+     // Call the function to hide messages
+     hideMessages();
+-</script>
++  </script>
+ 
+-  </body>
++</body>
+ 
+ 
+-</html>
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/owners/ownersList.html b/src/main/resources/templates/owners/ownersList.html
+index 45843f6a722..01223c1c57a 100644
+--- a/src/main/resources/templates/owners/ownersList.html
++++ b/src/main/resources/templates/owners/ownersList.html
+@@ -4,59 +4,58 @@
+ 
+ <body>
+ 
+-<h2 th:text="#{owners}">Owners</h2>
++  <h2 th:text="#{owners}">Owners</h2>
+ 
+-<table id="owners" class="table table-striped">
+-  <thead>
+-  <tr>
+-    <th th:text="#{name}" style="width: 150px;">Name</th>
+-    <th th:text="#{address}" style="width: 200px;">Address</th>
+-    <th th:text="#{city}">City</th>
+-    <th th:text="#{telephone}" style="width: 120px">Telephone</th>
+-    <th th:text="#{pets}">Pets</th>
+-  </tr>
+-  </thead>
+-  <tbody>
+-  <tr th:each="owner : ${listOwners}">
+-    <td>
+-      <a th:href="@{/owners/__${owner.id}__}" th:text="${owner.firstName + ' ' + owner.lastName}"/></a>
+-    </td>
+-    <td th:text="${owner.address}"/>
+-    <td th:text="${owner.city}"/>
+-    <td th:text="${owner.telephone}"/>
+-    <td><span th:text="${#strings.listJoin(owner.pets, ', ')}"/></td>
+-  </tr>
+-  </tbody>
+-</table>
+-<div th:if="${totalPages > 1}">
+-  <span th:text="#{pages}">Pages:</span>
+-  <span>[</span>
+-  <span th:each="i: ${#numbers.sequence(1, totalPages)}">
++  <table id="owners" class="table table-striped">
++    <thead>
++      <tr>
++        <th th:text="#{name}" style="width: 150px;">Name</th>
++        <th th:text="#{address}" style="width: 200px;">Address</th>
++        <th th:text="#{city}">City</th>
++        <th th:text="#{telephone}" style="width: 120px">Telephone</th>
++        <th th:text="#{pets}">Pets</th>
++      </tr>
++    </thead>
++    <tbody>
++      <tr th:each="owner : ${listOwners}">
++        <td>
++          <a th:href="@{/owners/__${owner.id}__}" th:text="${owner.firstName + ' ' + owner.lastName}" /></a>
++        </td>
++        <td th:text="${owner.address}" />
++        <td th:text="${owner.city}" />
++        <td th:text="${owner.telephone}" />
++        <td><span th:text="${#strings.listJoin(owner.pets, ', ')}" /></td>
++      </tr>
++    </tbody>
++  </table>
++  <div th:if="${totalPages > 1}">
++    <span th:text="#{pages}">Pages:</span>
++    <span>[</span>
++    <span th:each="i: ${#numbers.sequence(1, totalPages)}">
+       <a th:if="${currentPage != i}" th:href="@{'/owners?page=' + ${i}}">[[${i}]]</a>
+       <span th:unless="${currentPage != i}">[[${i}]]</span>
+     </span>
+-  <span>]&nbsp;</span>
+-  <span>
+-      <a th:if="${currentPage > 1}" th:href="@{'/owners?page=1'}" th:title="#{first}"
+-         class="fa fa-fast-backward"></a>
++    <span>]&nbsp;</span>
++    <span>
++      <a th:if="${currentPage > 1}" th:href="@{'/owners?page=1'}" th:title="#{first}" class="fa fa-fast-backward"></a>
+       <span th:unless="${currentPage > 1}" th:title="#{first}" class="fa fa-fast-backward"></span>
+     </span>
+-  <span>
++    <span>
+       <a th:if="${currentPage > 1}" th:href="@{'/owners?page=__${currentPage - 1}__'}" th:title="#{previous}"
+-         class="fa fa-step-backward"></a>
++        class="fa fa-step-backward"></a>
+       <span th:unless="${currentPage > 1}" th:title="#{previous}" class="fa fa-step-backward"></span>
+     </span>
+-  <span>
++    <span>
+       <a th:if="${currentPage < totalPages}" th:href="@{'/owners?page=__${currentPage + 1}__'}" th:title="#{next}"
+-         class="fa fa-step-forward"></a>
++        class="fa fa-step-forward"></a>
+       <span th:unless="${currentPage < totalPages}" th:title="#{next}" class="fa fa-step-forward"></span>
+     </span>
+-  <span>
++    <span>
+       <a th:if="${currentPage < totalPages}" th:href="@{'/owners?page=__${totalPages}__'}" th:title="#{last}"
+-         class="fa fa-fast-forward"></a>
+-      <span th:unless="${currentPage < totalPages}" th:title="#{last}" class="fa fa-step-forward"></span>
++        class="fa fa-fast-forward"></a>
++      <span th:unless="${currentPage < totalPages}" th:title="#{last}" class="fa fa-fast-forward"></span>
+     </span>
+-</div>
++  </div>
+ </body>
+-</html>
+ 
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/pets/createOrUpdatePetForm.html b/src/main/resources/templates/pets/createOrUpdatePetForm.html
+index b1d300a6fa4..396963d419b 100644
+--- a/src/main/resources/templates/pets/createOrUpdatePetForm.html
++++ b/src/main/resources/templates/pets/createOrUpdatePetForm.html
+@@ -1,5 +1,6 @@
+-<html xmlns:th="https://www.thymeleaf.org"
+-  th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
++<!DOCTYPE html>
++
++<html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
+ 
+ <body>
+ 
+@@ -16,22 +17,18 @@ <h2>
+           <span th:text="${owner?.firstName + ' ' + owner?.lastName}" />
+         </div>
+       </div>
+-      <input
+-        th:replace="~{fragments/inputField :: input ('Name', 'name', 'text')}" />
+-      <input
+-        th:replace="~{fragments/inputField :: input ('Birth Date', 'birthDate', 'date')}" />
+-      <input
+-        th:replace="~{fragments/selectField :: select ('Type', 'type', ${types})}" />
++      <input th:replace="~{fragments/inputField :: input ('Name', 'name', 'text')}" />
++      <input th:replace="~{fragments/inputField :: input ('Birth Date', 'birthDate', 'date')}" />
++      <input th:replace="~{fragments/selectField :: select ('Type', 'type', ${types})}" />
+     </div>
+     <div class="form-group">
+       <div class="col-sm-offset-2 col-sm-10">
+-        <button
+-          th:with="text=${pet['new']} ? 'Add Pet' : 'Update Pet'"
+-          class="btn btn-primary" type="submit" th:text="${text}">Add Pet</button>
++        <button th:with="text=${pet['new']} ? 'Add Pet' : 'Update Pet'" class="btn btn-primary" type="submit"
++          th:text="${text}">Add Pet</button>
+       </div>
+     </div>
+   </form>
+ 
+ </body>
+ 
+-</html>
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/pets/createOrUpdateVisitForm.html b/src/main/resources/templates/pets/createOrUpdateVisitForm.html
+index 20e102fa669..93d394a7370 100644
+--- a/src/main/resources/templates/pets/createOrUpdateVisitForm.html
++++ b/src/main/resources/templates/pets/createOrUpdateVisitForm.html
+@@ -1,5 +1,6 @@
+-<html xmlns:th="https://www.thymeleaf.org"
+-  th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
++<!DOCTYPE html>
++
++<html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'owners')}">
+ 
+ <body>
+ 
+@@ -20,20 +21,16 @@ <h2>
+     </thead>
+     <tr>
+       <td th:text="${pet.name}"></td>
+-      <td
+-        th:text="${#temporals.format(pet.birthDate, 'yyyy-MM-dd')}"></td>
++      <td th:text="${#temporals.format(pet.birthDate, 'yyyy-MM-dd')}"></td>
+       <td th:text="${pet.type}"></td>
+-      <td
+-        th:text="${owner?.firstName + ' ' + owner?.lastName}"></td>
++      <td th:text="${owner?.firstName + ' ' + owner?.lastName}"></td>
+     </tr>
+   </table>
+ 
+   <form th:object="${visit}" class="form-horizontal" method="post">
+     <div class="form-group has-feedback">
+-      <input
+-        th:replace="~{fragments/inputField :: input ('Date', 'date', 'date')}"  />
+-      <input
+-        th:replace="~{fragments/inputField :: input ('Description', 'description', 'text')}" />
++      <input th:replace="~{fragments/inputField :: input ('Date', 'date', 'date')}" />
++      <input th:replace="~{fragments/inputField :: input ('Description', 'description', 'text')}" />
+     </div>
+ 
+     <div class="form-group">
+@@ -58,4 +55,5 @@ <h2>
+   </table>
+ 
+ </body>
+-</html>
++
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/vets/vetList.html b/src/main/resources/templates/vets/vetList.html
+index 8d51c1e89c8..e40fd654e47 100644
+--- a/src/main/resources/templates/vets/vetList.html
++++ b/src/main/resources/templates/vets/vetList.html
+@@ -1,57 +1,57 @@
+ <!DOCTYPE html>
+ 
+-<html xmlns:th="https://www.thymeleaf.org"
+-      th:replace="~{fragments/layout :: layout (~{::body},'vets')}">
++<html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'vets')}">
+ 
+ <body>
+ 
+-<h2 th:text="#{vets}">Veterinarians</h2>
++  <h2 th:text="#{vets}">Veterinarians</h2>
+ 
+-<table id="vets" class="table table-striped">
+-  <thead>
+-  <tr>
+-    <th th:text="#{name}">Name</th>
+-    <th th:text="#{specialties}">Specialties</th>
+-  </tr>
+-  </thead>
+-  <tbody>
+-  <tr th:each="vet : ${listVets}">
+-    <td th:text="${vet.firstName + ' ' + vet.lastName}"></td>
+-    <td><span th:each="specialty : ${vet.specialties}"
+-              th:text="${specialty.name + ' '}"/> <span
+-      th:if="${vet.nrOfSpecialties == 0}" th:text="#{none}">none</span></td>
+-  </tr>
+-  </tbody>
+-</table>
+-
+-<div th:if="${totalPages > 1}">
+-  <span th:text="#{pages}">Pages:</span>
+-  <span>[</span>
+-  <span th:each="i: ${#numbers.sequence(1, totalPages)}">
++  <table id="vets" class="table table-striped">
++    <thead>
++      <tr>
++        <th th:text="#{name}">Name</th>
++        <th th:text="#{specialties}">Specialties</th>
++      </tr>
++    </thead>
++    <tbody>
++      <tr th:each="vet : ${listVets}">
++        <td th:text="${vet.firstName + ' ' + vet.lastName}"></td>
++        <td>
++          <span th:each="specialty : ${vet.specialties}" th:text="${specialty.name + ' '}" /> <span
++            th:if="${vet.nrOfSpecialties == 0}" th:text="#{none}">none</span>
++        </td>
++      </tr>
++    </tbody>
++  </table>
++  <div th:if="${totalPages > 1}">
++    <span th:text="#{pages}">Pages:</span>
++    <span>[</span>
++    <span th:each="i: ${#numbers.sequence(1, totalPages)}">
+       <a th:if="${currentPage != i}" th:href="@{'/vets.html?page=__${i}__'}">[[${i}]]</a>
+       <span th:unless="${currentPage != i}">[[${i}]]</span>
+     </span>
+-  <span>]&nbsp;</span>
+-  <span>
++    <span>]&nbsp;</span>
++    <span>
+       <a th:if="${currentPage > 1}" th:href="@{'/vets.html?page=1'}" th:title="#{first}"
+-         class="fa fa-fast-backward"></a>
+-      <span th:unless="${currentPage > 1}" th:text="#{first}" th:title="#{first}" class="fa fa-fast-backward"></span>
++        class="fa fa-fast-backward"></a>
++      <span th:unless="${currentPage > 1}" th:title="#{first}" class="fa fa-fast-backward"></span>
+     </span>
+-  <span>
++    <span>
+       <a th:if="${currentPage > 1}" th:href="@{'/vets.html?page=__${currentPage - 1}__'}" th:title="#{previous}"
+-         class="fa fa-step-backward"></a>
+-      <span th:unless="${currentPage > 1}" th:text="#{previous}" th:title="#{previous}" class="fa fa-step-backward"></span>
++        class="fa fa-step-backward"></a>
++      <span th:unless="${currentPage > 1}" th:title="#{previous}" class="fa fa-step-backward"></span>
+     </span>
+-  <span>
++    <span>
+       <a th:if="${currentPage < totalPages}" th:href="@{'/vets.html?page=__${currentPage + 1}__'}" th:title="#{next}"
+-         class="fa fa-step-forward"></a>
+-      <span th:unless="${currentPage < totalPages}" th:text="#{next}" th:title="#{next}" class="fa fa-step-forward"></span>
++        class="fa fa-step-forward"></a>
++      <span th:unless="${currentPage < totalPages}" th:title="#{next}" class="fa fa-step-forward"></span>
+     </span>
+-  <span>
++    <span>
+       <a th:if="${currentPage < totalPages}" th:href="@{'/vets.html?page=__${totalPages}__'}" th:title="#{last}"
+-         class="fa fa-fast-forward"></a>
+-      <span th:unless="${currentPage < totalPages}" th:text="#{last}" class="fa fa-fast-forward"></span>
++        class="fa fa-fast-forward"></a>
++      <span th:unless="${currentPage < totalPages}" th:title="#{last}" class="fa fa-fast-forward"></span>
+     </span>
+-</div>
++  </div>
+ </body>
+-</html>
++
++</html>
+\ No newline at end of file
+diff --git a/src/main/resources/templates/welcome.html b/src/main/resources/templates/welcome.html
+index 4fa1cd32855..eb795c2f487 100644
+--- a/src/main/resources/templates/welcome.html
++++ b/src/main/resources/templates/welcome.html
+@@ -2,15 +2,15 @@
+ 
+ <html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'home')}">
+ 
+-  <body>
++<body>
+ 
+-    <h2 th:text="#{welcome}">Welcome</h2>
+-    <div class="row">
+-        <div class="col-md-12">
+-          <img class="img-responsive" src="../static/resources/images/pets.png" th:src="@{/resources/images/pets.png}"/>
+-        </div>
++  <h2 th:text="#{welcome}">Welcome</h2>
++  <div class="row">
++    <div class="col-md-12">
++      <img class="img-responsive" src="../static/resources/images/pets.png" th:src="@{/resources/images/pets.png}" />
+     </div>
++  </div>
+ 
+-  </body>
++</body>
+ 
+ </html>
+\ No newline at end of file
+diff --git a/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
+index d67e449dc93..a78e2e6e10e 100644
+--- a/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -36,6 +36,7 @@
+ import org.testcontainers.containers.MySQLContainer;
+ import org.testcontainers.junit.jupiter.Container;
+ import org.testcontainers.junit.jupiter.Testcontainers;
++import org.testcontainers.utility.DockerImageName;
+ 
+ @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+ @ActiveProfiles("mysql")
+@@ -46,7 +47,7 @@ class MySqlIntegrationTests {
+ 
+ 	@ServiceConnection
+ 	@Container
+-	static MySQLContainer<?> container = new MySQLContainer<>("mysql:9.1");
++	static MySQLContainer<?> container = new MySQLContainer<>(DockerImageName.parse("mysql:9.2"));
+ 
+ 	@LocalServerPort
+ 	int port;
+diff --git a/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java b/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
+index f98d892d363..2a4ea8e069b 100644
+--- a/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
++++ b/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -22,12 +22,12 @@
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.context.annotation.Profile;
+ import org.testcontainers.containers.MySQLContainer;
++import org.testcontainers.utility.DockerImageName;
+ 
+ /**
+  * PetClinic Spring Boot Application.
+  *
+  * @author Dave Syer
+- *
+  */
+ @Configuration
+ public class MysqlTestApplication {
+@@ -36,7 +36,7 @@ public class MysqlTestApplication {
+ 	@Profile("mysql")
+ 	@Bean
+ 	static MySQLContainer<?> container() {
+-		return new MySQLContainer<>("mysql:9.1");
++		return new MySQLContainer<>(DockerImageName.parse("mysql:9.2"));
+ 	}
+ 
+ 	public static void main(String[] args) {
+diff --git a/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java
+index 6d982069686..617af9652f0 100644
+--- a/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java
+index 0b9e4f93a7c..709d33e6649 100644
+--- a/src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java b/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java
+index c7532852210..559311ff842 100644
+--- a/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java b/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
+index 46e7e87ce59..7570ae132c5 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java b/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java
+index 6fc9a849eab..d60636f1f6a 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -24,6 +24,8 @@
+ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+ import org.springframework.context.annotation.ComponentScan;
+ import org.springframework.context.annotation.FilterType;
++import org.springframework.samples.petclinic.owner.PetTypeRepository;
++import org.springframework.samples.petclinic.owner.OwnerRepository;
+ import org.springframework.test.context.aot.DisabledInAotMode;
+ import org.springframework.test.context.bean.override.mockito.MockitoBean;
+ import org.springframework.test.web.servlet.MockMvc;
+@@ -61,12 +63,15 @@ class PetControllerTests {
+ 	@MockitoBean
+ 	private OwnerRepository owners;
+ 
++	@MockitoBean
++	private PetTypeRepository types;
++
+ 	@BeforeEach
+ 	void setup() {
+ 		PetType cat = new PetType();
+ 		cat.setId(3);
+ 		cat.setName("hamster");
+-		given(this.owners.findPetTypes()).willReturn(List.of(cat));
++		given(this.types.findPetTypes()).willReturn(List.of(cat));
+ 
+ 		Owner owner = new Owner();
+ 		Pet pet = new Pet();
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java b/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java
+index 0295b47884d..fe4a5f7f772 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -43,13 +43,13 @@
+ class PetTypeFormatterTests {
+ 
+ 	@Mock
+-	private OwnerRepository pets;
++	private PetTypeRepository types;
+ 
+ 	private PetTypeFormatter petTypeFormatter;
+ 
+ 	@BeforeEach
+ 	void setup() {
+-		this.petTypeFormatter = new PetTypeFormatter(pets);
++		this.petTypeFormatter = new PetTypeFormatter(types);
+ 	}
+ 
+ 	@Test
+@@ -62,14 +62,14 @@ void testPrint() {
+ 
+ 	@Test
+ 	void shouldParse() throws ParseException {
+-		given(this.pets.findPetTypes()).willReturn(makePetTypes());
++		given(types.findPetTypes()).willReturn(makePetTypes());
+ 		PetType petType = petTypeFormatter.parse("Bird", Locale.ENGLISH);
+ 		assertThat(petType.getName()).isEqualTo("Bird");
+ 	}
+ 
+ 	@Test
+ 	void shouldThrowParseException() {
+-		given(this.pets.findPetTypes()).willReturn(makePetTypes());
++		given(types.findPetTypes()).willReturn(makePetTypes());
+ 		Assertions.assertThrows(ParseException.class, () -> {
+ 			petTypeFormatter.parse("Fish", Locale.ENGLISH);
+ 		});
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java b/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java
+index e42e75034ab..e142a897541 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java b/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java
+index 17360278f45..4c78ab31796 100644
+--- a/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -31,6 +31,7 @@
+ import org.springframework.data.domain.Pageable;
+ import org.springframework.samples.petclinic.owner.Owner;
+ import org.springframework.samples.petclinic.owner.OwnerRepository;
++import org.springframework.samples.petclinic.owner.PetTypeRepository;
+ import org.springframework.samples.petclinic.owner.Pet;
+ import org.springframework.samples.petclinic.owner.PetType;
+ import org.springframework.samples.petclinic.owner.Visit;
+@@ -75,6 +76,9 @@ class ClinicServiceTests {
+ 	@Autowired
+ 	protected OwnerRepository owners;
+ 
++	@Autowired
++	protected PetTypeRepository types;
++
+ 	@Autowired
+ 	protected VetRepository vets;
+ 
+@@ -140,7 +144,7 @@ void shouldUpdateOwner() {
+ 
+ 	@Test
+ 	void shouldFindAllPetTypes() {
+-		Collection<PetType> petTypes = this.owners.findPetTypes();
++		Collection<PetType> petTypes = this.types.findPetTypes();
+ 
+ 		PetType petType1 = EntityUtils.getById(petTypes, PetType.class, 1);
+ 		assertThat(petType1.getName()).isEqualTo("cat");
+@@ -159,7 +163,7 @@ void shouldInsertPetIntoDatabaseAndGenerateId() {
+ 
+ 		Pet pet = new Pet();
+ 		pet.setName("bowser");
+-		Collection<PetType> types = this.owners.findPetTypes();
++		Collection<PetType> types = this.types.findPetTypes();
+ 		pet.setType(EntityUtils.getById(types, PetType.class, 2));
+ 		pet.setBirthDate(LocalDate.now());
+ 		owner6.addPet(pet);
+diff --git a/src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java b/src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java
+index 7b7a5e64a73..180ef07f1e1 100644
+--- a/src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java
++++ b/src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
+index 3cdca47bf51..ed8b0819a4b 100644
+--- a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -50,12 +50,6 @@
+ 		properties = { "server.error.include-message=ALWAYS", "management.endpoints.enabled-by-default=false" })
+ class CrashControllerIntegrationTests {
+ 
+-	@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class,
+-			DataSourceTransactionManagerAutoConfiguration.class, HibernateJpaAutoConfiguration.class })
+-	static class TestConfiguration {
+-
+-	}
+-
+ 	@Value(value = "${local.server.port}")
+ 	private int port;
+ 
+@@ -96,4 +90,10 @@ void testTriggerExceptionHtml() {
+ 				"This application has no explicit mapping for");
+ 	}
+ 
++	@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class,
++			DataSourceTransactionManagerAutoConfiguration.class, HibernateJpaAutoConfiguration.class })
++	static class TestConfiguration {
++
++	}
++
+ }
+diff --git a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java
+index cc2ad674620..b2760ebea2b 100644
+--- a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java b/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
+index 5fffeea477e..f295cd68a09 100644
+--- a/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff --git a/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java b/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java
+index b29c6d1009e..24b772dc3f6 100644
+--- a/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2012-2019 the original author or authors.
++ * Copyright 2012-2025 the original author or authors.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.

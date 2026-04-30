@@ -1,0 +1,650 @@
+diff --git a/src/main/resources/messages/messages.properties b/src/main/resources/messages/messages.properties
+index 2d779d3c36c..7b8b5dfd8b8 100644
+--- a/src/main/resources/messages/messages.properties
++++ b/src/main/resources/messages/messages.properties
+@@ -31,3 +31,18 @@ pets=Pets
+ home=Home
+ error=Error
+ telephone.invalid=Telephone must be a 10-digit number
++layoutTitle=PetClinic :: a Spring Framework demonstration
++pet=Pet
++birthDate=Birth Date
++type=Type
++previousVisits=Previous Visits
++date=Date
++description=Description
++new=New 
++addVisit=Add Visit
++editPet=Edit Pet
++ownerInformation=Owner Information
++visitDate=Visit Date
++editOwner=Edit Owner
++addNewPet=Add New Pet
++petsAndVisits=Pets and Visits
+diff --git a/src/main/resources/messages/messages_de.properties b/src/main/resources/messages/messages_de.properties
+index f87ab62b2bd..8d208410cde 100644
+--- a/src/main/resources/messages/messages_de.properties
++++ b/src/main/resources/messages/messages_de.properties
+@@ -31,3 +31,18 @@ pets=Haustiere
+ home=Startseite
+ error=Fehler
+ telephone.invalid=Telefonnummer muss aus 10 Ziffern bestehen
++layoutTitle=PetClinic :: eine Demonstration des Spring Frameworks
++pet=Haustier
++birthDate=Geburtsdatum
++type=Typ
++previousVisits=Frühere Besuche
++date=Datum
++description=Beschreibung
++new=Neu
++addVisit=Besuch hinzufügen
++editPet=Haustier bearbeiten
++ownerInformation=Besitzerinformationen
++visitDate=Besuchsdatum
++editOwner=Besitzer bearbeiten
++addNewPet=Neues Haustier hinzufügen
++petsAndVisits=Haustiere und Besuche
+diff --git a/src/main/resources/messages/messages_es.properties b/src/main/resources/messages/messages_es.properties
+index 5535dfb7a31..91d5c9ebd50 100644
+--- a/src/main/resources/messages/messages_es.properties
++++ b/src/main/resources/messages/messages_es.properties
+@@ -31,3 +31,18 @@ pets=Mascotas
+ home=Inicio
+ error=Error
+ telephone.invalid=El número de teléfono debe tener 10 dígitos
++layoutTitle=PetClinic :: una demostración de Spring Framework
++pet=Mascota
++birthDate=Fecha de nacimiento
++type=Tipo
++previousVisits=Visitas anteriores
++date=Fecha
++description=Descripción
++new=Nuevo
++addVisit=Agregar visita
++editPet=Editar mascota
++ownerInformation=Información del propietario
++visitDate=Fecha de visita
++editOwner=Editar propietario
++addNewPet=Agregar nueva mascota
++petsAndVisits=Mascotas y visitas
+diff --git a/src/main/resources/messages/messages_fa.properties b/src/main/resources/messages/messages_fa.properties
+index b71466c1458..2566b8949ff 100644
+--- a/src/main/resources/messages/messages_fa.properties
++++ b/src/main/resources/messages/messages_fa.properties
+@@ -31,3 +31,18 @@ pets=حیوانات خانگی
+ home=خانه
+ error=خطا
+ telephone.invalid=شماره تلفن باید ۱۰ رقمی باشد
++layoutTitle=PetClinic :: یک نمایش از Spring Framework
++pet=حیوان خانگی
++birthDate=تاریخ تولد
++type=نوع
++previousVisits=ویزیت‌های قبلی
++date=تاریخ
++description=توضیحات
++new=جدید
++addVisit=افزودن ویزیت
++editPet=ویرایش حیوان خانگی
++ownerInformation=اطلاعات مالک
++visitDate=تاریخ ویزیت
++editOwner=ویرایش مالک
++addNewPet=افزودن حیوان خانگی جدید
++petsAndVisits=حیوانات و ویزیت‌ها
+diff --git a/src/main/resources/messages/messages_ko.properties b/src/main/resources/messages/messages_ko.properties
+index a1a8b14cdf4..ca3ae5a0585 100644
+--- a/src/main/resources/messages/messages_ko.properties
++++ b/src/main/resources/messages/messages_ko.properties
+@@ -31,3 +31,18 @@ pets=반려동물
+ home=홈
+ error=오류
+ telephone.invalid=전화번호는 10자리 숫자여야 합니다
++layoutTitle=PetClinic :: Spring Framework 데모
++pet=반려동물
++birthDate=생년월일
++type=종류
++previousVisits=이전 방문
++date=날짜
++description=설명
++new=새로운
++addVisit=방문 추가
++editPet=반려동물 수정
++ownerInformation=소유자 정보
++visitDate=방문 날짜
++editOwner=소유자 수정
++addNewPet=새 반려동물 추가
++petsAndVisits=반려동물 및 방문
+diff --git a/src/main/resources/messages/messages_pt.properties b/src/main/resources/messages/messages_pt.properties
+index 13c442e5cb7..03f5cd5313a 100644
+--- a/src/main/resources/messages/messages_pt.properties
++++ b/src/main/resources/messages/messages_pt.properties
+@@ -31,3 +31,18 @@ pets=Animais de estimação
+ home=Início
+ error=Erro
+ telephone.invalid=O número de telefone deve conter 10 dígitos
++layoutTitle=PetClinic :: uma demonstração do Spring Framework
++pet=Animal de estimação
++birthDate=Data de nascimento
++type=Tipo
++previousVisits=Visitas anteriores
++date=Data
++description=Descrição
++new=Novo
++addVisit=Adicionar visita
++editPet=Editar animal
++ownerInformation=Informações do proprietário
++visitDate=Data da visita
++editOwner=Editar proprietário
++addNewPet=Adicionar novo animal
++petsAndVisits=Animais e visitas
+diff --git a/src/main/resources/messages/messages_ru.properties b/src/main/resources/messages/messages_ru.properties
+index 835fd0430f3..b9ed998be75 100644
+--- a/src/main/resources/messages/messages_ru.properties
++++ b/src/main/resources/messages/messages_ru.properties
+@@ -31,3 +31,18 @@ pets=Питомцы
+ home=Главная
+ error=Ошибка
+ telephone.invalid=Телефон должен содержать 10 цифр
++layoutTitle=PetClinic :: демонстрация Spring Framework
++pet=Питомец
++birthDate=Дата рождения
++type=Тип
++previousVisits=Предыдущие визиты
++date=Дата
++description=Описание
++new=Новый
++addVisit=Добавить визит
++editPet=Редактировать питомца
++ownerInformation=Информация о владельце
++visitDate=Дата визита
++editOwner=Редактировать владельца
++addNewPet=Добавить нового питомца
++petsAndVisits=Питомцы и визиты
+diff --git a/src/main/resources/messages/messages_tr.properties b/src/main/resources/messages/messages_tr.properties
+index 45f86c3d5a4..ff9ffdabda8 100644
+--- a/src/main/resources/messages/messages_tr.properties
++++ b/src/main/resources/messages/messages_tr.properties
+@@ -31,3 +31,18 @@ pets=Evcil Hayvanlar
+ home=Ana Sayfa
+ error=Hata
+ telephone.invalid=Telefon numarası 10 basamaklı olmalıdır
++layoutTitle=PetClinic :: bir Spring Framework demosu
++pet=Evcil Hayvan
++birthDate=Doğum Tarihi
++type=Tür
++previousVisits=Önceki Ziyaretler
++date=Tarih
++description=Açıklama
++new=Yeni
++addVisit=Ziyaret Ekle
++editPet=Evcil Hayvanı Düzenle
++ownerInformation=Sahip Bilgileri
++visitDate=Ziyaret Tarihi
++editOwner=Sahibi Düzenle
++addNewPet=Yeni Evcil Hayvan Ekle
++petsAndVisits=Evcil Hayvanlar ve Ziyaretler
+diff --git a/src/main/resources/templates/fragments/inputField.html b/src/main/resources/templates/fragments/inputField.html
+index de456d25082..68afbec7ab6 100644
+--- a/src/main/resources/templates/fragments/inputField.html
++++ b/src/main/resources/templates/fragments/inputField.html
+@@ -1,4 +1,4 @@
+-<html>
++<html xmlns:th="https://www.thymeleaf.org">
+ <body>
+   <form>
+     <th:block th:fragment="input (label, name, type)">
+@@ -18,7 +18,7 @@
+             <span
+               class="fa fa-remove form-control-feedback"
+               aria-hidden="true"></span>
+-            <span class="help-inline" th:errors="*{__${name}__}">Error</span>
++            <span class="help-inline" th:errors="*{__${name}__}" th:text="#{error}">Error</span>
+           </th:block>
+         </div>
+       </div>
+diff --git a/src/main/resources/templates/fragments/layout.html b/src/main/resources/templates/fragments/layout.html
+index e0d82b00390..34e0a5496b6 100644
+--- a/src/main/resources/templates/fragments/layout.html
++++ b/src/main/resources/templates/fragments/layout.html
+@@ -1,5 +1,6 @@
+ <!doctype html>
+-<html th:fragment="layout (template, menu)">
++<html th:fragment="layout (template, menu)"
++      xmlns:th="https://www.thymeleaf.org">
+ 
+ <head>
+ 
+@@ -10,7 +11,7 @@
+ 
+   <link rel="shortcut icon" type="image/x-icon" th:href="@{/resources/images/favicon.png}">
+ 
+-  <title>PetClinic :: a Spring Framework demonstration</title>
++  <title th:text="#{layoutTitle}">PetClinic :: a Spring Framework demonstration</title>
+ 
+   <!--[if lt IE 9]>
+     <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+diff --git a/src/main/resources/templates/fragments/selectField.html b/src/main/resources/templates/fragments/selectField.html
+index 1e1212d0964..b90004ef89f 100644
+--- a/src/main/resources/templates/fragments/selectField.html
++++ b/src/main/resources/templates/fragments/selectField.html
+@@ -1,4 +1,4 @@
+-<html>
++<html xmlns:th="https://www.thymeleaf.org">
+ <body>
+   <form>
+     <th:block th:fragment="select (label, name, items)">
+@@ -19,7 +19,7 @@
+             <span
+               class="fa fa-remove form-control-feedback"
+               aria-hidden="true"></span>
+-            <span class="help-inline" th:errors="*{__${name}__}">Error</span>
++            <span class="help-inline" th:errors="*{__${name}__}" th:text="#{error}">Error</span>
+           </th:block>
+         </div>
+       </div>
+diff --git a/src/main/resources/templates/owners/findOwners.html b/src/main/resources/templates/owners/findOwners.html
+index 682bc103eee..61536ae9b6d 100644
+--- a/src/main/resources/templates/owners/findOwners.html
++++ b/src/main/resources/templates/owners/findOwners.html
+@@ -12,10 +12,12 @@ <h2 th:text="#{findOwners}">Find Owners</h2>
+         <label class="col-sm-2 control-label" th:text="#{lastName}">Last name </label>
+         <div class="col-sm-10">
+           <input class="form-control" th:field="*{lastName}" size="30"
+-            maxlength="80" /> <span class="help-inline"><div
+-              th:if="${#fields.hasAnyErrors()}">
+-              <p th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</p>
+-            </div></span>
++            maxlength="80" />
++          <span class="help-inline">
++            <div th:if="${#fields.hasAnyErrors()}">
++                <p th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</p>
++            </div>
++          </span>
+         </div>
+       </div>
+     </div>
+diff --git a/src/main/resources/templates/owners/ownerDetails.html b/src/main/resources/templates/owners/ownerDetails.html
+index 15bca4ad2dd..abdc7a3d881 100644
+--- a/src/main/resources/templates/owners/ownerDetails.html
++++ b/src/main/resources/templates/owners/ownerDetails.html
+@@ -6,7 +6,7 @@
+   <body>
+   
+   
+-    <h2>Owner Information</h2>
++    <h2 th:text="#{ownerInformation}">Owner Information</h2>
+ 
+     <div th:if="${message}" class="alert alert-success" id="success-message">
+       <span th:text="${message}"></span>
+@@ -21,44 +21,44 @@ <h2>Owner Information</h2>
+ 
+     <table class="table table-striped" th:object="${owner}">
+       <tr>
+-        <th>Name</th>
++        <th th:text="#{name}">Name</th>
+         <td><b th:text="*{firstName + ' ' + lastName}"></b></td>
+       </tr>
+       <tr>
+-        <th>Address</th>
++        <th th:text="#{address}">Address</th>
+         <td th:text="*{address}"></td>
+       </tr>
+       <tr>
+-        <th>City</th>
++        <th th:text="#{city}">City</th>
+         <td th:text="*{city}"></td>
+       </tr>
+       <tr>
+-        <th>Telephone</th>
++        <th th:text="#{telephone}">Telephone</th>
+         <td th:text="*{telephone}"></td>
+       </tr>
+     </table>
+   
+-    <a th:href="@{__${owner.id}__/edit}" class="btn btn-primary">Edit
++    <a th:href="@{__${owner.id}__/edit}" class="btn btn-primary"  th:text="#{editOwner}">Edit
+       Owner</a>
+-    <a th:href="@{__${owner.id}__/pets/new}" class="btn btn-primary">Add
++    <a th:href="@{__${owner.id}__/pets/new}" class="btn btn-primary" th:text="#{addNewPet}">Add
+       New Pet</a>
+   
+     <br />
+     <br />
+     <br />
+-    <h2>Pets and Visits</h2>
++    <h2 th:text="#{petsAndVisits}">Pets and Visits</h2>
+   
+     <table class="table table-striped">
+   
+       <tr th:each="pet : ${owner.pets}">
+         <td valign="top">
+           <dl class="dl-horizontal">
+-            <dt>Name</dt>
++            <dt th:text="#{name}">Name</dt>
+             <dd th:text="${pet.name}"></dd>
+-            <dt>Birth Date</dt>
++            <dt  th:text="#{birthDate}">Birth Date</dt>
+             <dd
+               th:text="${#temporals.format(pet.birthDate, 'yyyy-MM-dd')}"></dd>
+-            <dt>Type</dt>
++            <dt th:text="#{type}">Type</dt>
+             <dd th:text="${pet.type}"></dd>
+           </dl>
+         </td>
+@@ -66,8 +66,8 @@ <h2>Pets and Visits</h2>
+           <table class="table-condensed">
+             <thead>
+               <tr>
+-                <th>Visit Date</th>
+-                <th>Description</th>
++                <th th:text="#{visitDate}">Visit Date</th>
++                <th th:text="#{description}">Description</th>
+               </tr>
+             </thead>
+             <tr th:each="visit : ${pet.visits}">
+@@ -75,8 +75,8 @@ <h2>Pets and Visits</h2>
+               <td th:text="${visit?.description}"></td>
+             </tr>
+             <tr>
+-              <td><a th:href="@{__${owner.id}__/pets/__${pet.id}__/edit}">Edit Pet</a></td>
+-              <td><a th:href="@{__${owner.id}__/pets/__${pet.id}__/visits/new}">Add Visit</a></td>
++              <td><a th:href="@{__${owner.id}__/pets/__${pet.id}__/edit}" th:text="#{editPet}">Edit Pet</a></td>
++              <td><a th:href="@{__${owner.id}__/pets/__${pet.id}__/visits/new}" th:text="#{addVisit}">Add Visit</a></td>
+             </tr>
+           </table>
+         </td>
+diff --git a/src/main/resources/templates/owners/ownersList.html b/src/main/resources/templates/owners/ownersList.html
+index 2ff13349cde..45843f6a722 100644
+--- a/src/main/resources/templates/owners/ownersList.html
++++ b/src/main/resources/templates/owners/ownersList.html
+@@ -37,24 +37,24 @@ <h2 th:text="#{owners}">Owners</h2>
+     </span>
+   <span>]&nbsp;</span>
+   <span>
+-      <a th:if="${currentPage > 1}" th:href="@{'/owners?page=1'}" title="First"
++      <a th:if="${currentPage > 1}" th:href="@{'/owners?page=1'}" th:title="#{first}"
+          class="fa fa-fast-backward"></a>
+-      <span th:unless="${currentPage > 1}" title="First" class="fa fa-fast-backward"></span>
++      <span th:unless="${currentPage > 1}" th:title="#{first}" class="fa fa-fast-backward"></span>
+     </span>
+   <span>
+-      <a th:if="${currentPage > 1}" th:href="@{'/owners?page=__${currentPage - 1}__'}" title="Previous"
++      <a th:if="${currentPage > 1}" th:href="@{'/owners?page=__${currentPage - 1}__'}" th:title="#{previous}"
+          class="fa fa-step-backward"></a>
+-      <span th:unless="${currentPage > 1}" title="Previous" class="fa fa-step-backward"></span>
++      <span th:unless="${currentPage > 1}" th:title="#{previous}" class="fa fa-step-backward"></span>
+     </span>
+   <span>
+-      <a th:if="${currentPage < totalPages}" th:href="@{'/owners?page=__${currentPage + 1}__'}" title="Next"
++      <a th:if="${currentPage < totalPages}" th:href="@{'/owners?page=__${currentPage + 1}__'}" th:title="#{next}"
+          class="fa fa-step-forward"></a>
+-      <span th:unless="${currentPage < totalPages}" title="Next" class="fa fa-step-forward"></span>
++      <span th:unless="${currentPage < totalPages}" th:title="#{next}" class="fa fa-step-forward"></span>
+     </span>
+   <span>
+-      <a th:if="${currentPage < totalPages}" th:href="@{'/owners?page=__${totalPages}__'}" title="Last"
++      <a th:if="${currentPage < totalPages}" th:href="@{'/owners?page=__${totalPages}__'}" th:title="#{last}"
+          class="fa fa-fast-forward"></a>
+-      <span th:unless="${currentPage < totalPages}" title="Last" class="fa fa-step-forward"></span>
++      <span th:unless="${currentPage < totalPages}" th:title="#{last}" class="fa fa-step-forward"></span>
+     </span>
+ </div>
+ </body>
+diff --git a/src/main/resources/templates/pets/createOrUpdatePetForm.html b/src/main/resources/templates/pets/createOrUpdatePetForm.html
+index dd8a4dd1caa..b1d300a6fa4 100644
+--- a/src/main/resources/templates/pets/createOrUpdatePetForm.html
++++ b/src/main/resources/templates/pets/createOrUpdatePetForm.html
+@@ -4,14 +4,14 @@
+ <body>
+ 
+   <h2>
+-    <th:block th:if="${pet['new']}">New </th:block>
+-    Pet
++    <th:block th:if="${pet['new']}" th:text="#{new}">New </th:block>
++    <span th:text="#{pet}">Pet</span>
+   </h2>
+   <form th:object="${pet}" class="form-horizontal" method="post">
+     <input type="hidden" name="id" th:value="*{id}" />
+     <div class="form-group has-feedback">
+       <div class="form-group">
+-        <label class="col-sm-2 control-label">Owner</label>
++        <label class="col-sm-2 control-label" th:text="#{owner}">Owner</label>
+         <div class="col-sm-10">
+           <span th:text="${owner?.firstName + ' ' + owner?.lastName}" />
+         </div>
+@@ -27,8 +27,7 @@ <h2>
+       <div class="col-sm-offset-2 col-sm-10">
+         <button
+           th:with="text=${pet['new']} ? 'Add Pet' : 'Update Pet'"
+-          class="btn btn-primary" type="submit" th:text="${text}">Add
+-          Pet</button>
++          class="btn btn-primary" type="submit" th:text="${text}">Add Pet</button>
+       </div>
+     </div>
+   </form>
+diff --git a/src/main/resources/templates/pets/createOrUpdateVisitForm.html b/src/main/resources/templates/pets/createOrUpdateVisitForm.html
+index 4b0d315f0d0..20e102fa669 100644
+--- a/src/main/resources/templates/pets/createOrUpdateVisitForm.html
++++ b/src/main/resources/templates/pets/createOrUpdateVisitForm.html
+@@ -4,18 +4,18 @@
+ <body>
+ 
+   <h2>
+-    <th:block th:if="${visit['new']}">New </th:block>
++    <th:block th:if="${visit['new']}" th:text="#{new}">New </th:block>
+     Visit
+   </h2>
+ 
+-  <b>Pet</b>
++  <b th:text="#{pet}">Pet</b>
+   <table class="table table-striped">
+     <thead>
+       <tr>
+-        <th>Name</th>
+-        <th>Birth Date</th>
+-        <th>Type</th>
+-        <th>Owner</th>
++        <th th:text="#{name}">Name</th>
++        <th th:text="#{birthDate}">Birth Date</th>
++        <th th:text="#{type}">Type</th>
++        <th th:text="#{owner}">Owner</th>
+       </tr>
+     </thead>
+     <tr>
+@@ -39,17 +39,17 @@ <h2>
+     <div class="form-group">
+       <div class="col-sm-offset-2 col-sm-10">
+         <input type="hidden" name="petId" th:value="${pet.id}" />
+-        <button class="btn btn-primary" type="submit">Add Visit</button>
++        <button class="btn btn-primary" type="submit" th:text="${addVisit}">Add Visit</button>
+       </div>
+     </div>
+   </form>
+ 
+   <br />
+-  <b>Previous Visits</b>
++  <b th:text="#{previousVisits}">Previous Visits</b>
+   <table class="table table-striped">
+     <tr>
+-      <th>Date</th>
+-      <th>Description</th>
++      <th th:text="#{date}">Date</th>
++      <th th:text="#{description}">Description</th>
+     </tr>
+     <tr th:if="${!visit['new']}" th:each="visit : ${pet.visits}">
+       <td th:text="${#temporals.format(visit.date, 'yyyy-MM-dd')}"></td>
+diff --git a/src/main/resources/templates/vets/vetList.html b/src/main/resources/templates/vets/vetList.html
+index 10a9efb04f0..8d51c1e89c8 100644
+--- a/src/main/resources/templates/vets/vetList.html
++++ b/src/main/resources/templates/vets/vetList.html
+@@ -33,22 +33,22 @@ <h2 th:text="#{vets}">Veterinarians</h2>
+     </span>
+   <span>]&nbsp;</span>
+   <span>
+-      <a th:if="${currentPage > 1}" th:href="@{'/vets.html?page=1'}" title=#{first}
++      <a th:if="${currentPage > 1}" th:href="@{'/vets.html?page=1'}" th:title="#{first}"
+          class="fa fa-fast-backward"></a>
+-      <span th:unless="${currentPage > 1}" th:text="#{first}" title=#{first} class="fa fa-fast-backward"></span>
++      <span th:unless="${currentPage > 1}" th:text="#{first}" th:title="#{first}" class="fa fa-fast-backward"></span>
+     </span>
+   <span>
+-      <a th:if="${currentPage > 1}" th:href="@{'/vets.html?page=__${currentPage - 1}__'}" title=#{previous}
++      <a th:if="${currentPage > 1}" th:href="@{'/vets.html?page=__${currentPage - 1}__'}" th:title="#{previous}"
+          class="fa fa-step-backward"></a>
+-      <span th:unless="${currentPage > 1}" th:text="#{previous}" title=#{previous} class="fa fa-step-backward"></span>
++      <span th:unless="${currentPage > 1}" th:text="#{previous}" th:title="#{previous}" class="fa fa-step-backward"></span>
+     </span>
+   <span>
+-      <a th:if="${currentPage < totalPages}" th:href="@{'/vets.html?page=__${currentPage + 1}__'}" title=#{next}
++      <a th:if="${currentPage < totalPages}" th:href="@{'/vets.html?page=__${currentPage + 1}__'}" th:title="#{next}"
+          class="fa fa-step-forward"></a>
+-      <span th:unless="${currentPage < totalPages}" th:text="#{next}" title=#{next} class="fa fa-step-forward"></span>
++      <span th:unless="${currentPage < totalPages}" th:text="#{next}" th:title="#{next}" class="fa fa-step-forward"></span>
+     </span>
+   <span>
+-      <a th:if="${currentPage < totalPages}" th:href="@{'/vets.html?page=__${totalPages}__'}" title=#{last}
++      <a th:if="${currentPage < totalPages}" th:href="@{'/vets.html?page=__${totalPages}__'}" th:title="#{last}"
+          class="fa fa-fast-forward"></a>
+       <span th:unless="${currentPage < totalPages}" th:text="#{last}" class="fa fa-fast-forward"></span>
+     </span>
+diff --git a/src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java b/src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java
+new file mode 100644
+index 00000000000..fec159cec1c
+--- /dev/null
++++ b/src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java
+@@ -0,0 +1,136 @@
++package org.springframework.samples.petclinic.system;
++
++import org.junit.jupiter.api.Test;
++
++import java.io.IOException;
++import java.nio.file.*;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.Properties;
++import java.util.Set;
++import java.util.TreeSet;
++import java.util.regex.Pattern;
++import java.util.stream.Stream;
++
++import static org.junit.jupiter.api.Assertions.fail;
++
++/**
++ * This test ensures that there are no hard-coded strings without internationalization in
++ * any HTML files. Also ensures that a string is translated in every language to avoid
++ * partial translations.
++ *
++ * @author Anuj Ashok Potdar
++ */
++public class I18nPropertiesSyncTest {
++
++	private static final String I18N_DIR = "src/main/resources";
++
++	private static final String BASE_NAME = "messages";
++
++	public static final String PROPERTIES = ".properties";
++
++	private static final Pattern HTML_TEXT_LITERAL = Pattern.compile(">([^<>{}]+)<");
++
++	private static final Pattern BRACKET_ONLY = Pattern.compile("<[^>]*>\\s*[\\[\\]](?:&nbsp;)?\\s*</[^>]*>");
++
++	private static final Pattern HAS_TH_TEXT_ATTRIBUTE = Pattern.compile("th:(u)?text\\s*=\\s*\"[^\"]+\"");
++
++	@Test
++	public void checkNonInternationalizedStrings() throws IOException {
++		Path root = Paths.get("src/main");
++		List<Path> files;
++
++		try (Stream<Path> stream = Files.walk(root)) {
++			files = stream.filter(p -> p.toString().endsWith(".java") || p.toString().endsWith(".html"))
++				.filter(p -> !p.toString().contains("/test/"))
++				.filter(p -> !p.getFileName().toString().endsWith("Test.java"))
++				.toList();
++		}
++
++		StringBuilder report = new StringBuilder();
++
++		for (Path file : files) {
++			List<String> lines = Files.readAllLines(file);
++			for (int i = 0; i < lines.size(); i++) {
++				String line = lines.get(i).trim();
++
++				if (line.startsWith("//") || line.startsWith("@") || line.contains("log.")
++						|| line.contains("System.out"))
++					continue;
++
++				if (file.toString().endsWith(".html")) {
++					boolean hasLiteralText = HTML_TEXT_LITERAL.matcher(line).find();
++					boolean hasThTextAttribute = HAS_TH_TEXT_ATTRIBUTE.matcher(line).find();
++					boolean isBracketOnly = BRACKET_ONLY.matcher(line).find();
++
++					if (hasLiteralText && !line.contains("#{") && !hasThTextAttribute && !isBracketOnly) {
++						report.append("HTML: ")
++							.append(file)
++							.append(" Line ")
++							.append(i + 1)
++							.append(": ")
++							.append(line)
++							.append("\n");
++					}
++				}
++			}
++		}
++
++		if (!report.isEmpty()) {
++			fail("Hardcoded (non-internationalized) strings found:\n" + report);
++		}
++	}
++
++	@Test
++	public void checkI18nPropertyFilesAreInSync() throws IOException {
++		List<Path> propertyFiles;
++		try (Stream<Path> stream = Files.walk(Paths.get(I18N_DIR))) {
++			propertyFiles = stream.filter(p -> p.getFileName().toString().startsWith(BASE_NAME))
++				.filter(p -> p.getFileName().toString().endsWith(PROPERTIES))
++				.toList();
++		}
++
++		Map<String, Properties> localeToProps = new HashMap<>();
++
++		for (Path path : propertyFiles) {
++			Properties props = new Properties();
++			try (var reader = Files.newBufferedReader(path)) {
++				props.load(reader);
++				localeToProps.put(path.getFileName().toString(), props);
++			}
++		}
++
++		String baseFile = BASE_NAME + PROPERTIES;
++		Properties baseProps = localeToProps.get(baseFile);
++		if (baseProps == null) {
++			fail("Base properties file '" + baseFile + "' not found.");
++			return;
++		}
++
++		Set<String> baseKeys = baseProps.stringPropertyNames();
++		StringBuilder report = new StringBuilder();
++
++		for (Map.Entry<String, Properties> entry : localeToProps.entrySet()) {
++			String fileName = entry.getKey();
++			// We use fallback logic to include english strings, hence messages_en is not
++			// populated.
++			if (fileName.equals(baseFile) || fileName.equals("messages_en.properties"))
++				continue;
++
++			Properties props = entry.getValue();
++			Set<String> missingKeys = new TreeSet<>(baseKeys);
++			missingKeys.removeAll(props.stringPropertyNames());
++
++			if (!missingKeys.isEmpty()) {
++				report.append("Missing keys in ").append(fileName).append(":\n");
++				missingKeys.forEach(k -> report.append("  ").append(k).append("\n"));
++			}
++		}
++
++		if (!report.isEmpty()) {
++			fail("Translation files are not in sync:\n" + report);
++		}
++	}
++
++}

@@ -1,0 +1,27 @@
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java b/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
+index ab594841ca5..ae465911428 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
+@@ -69,9 +69,4 @@ public interface OwnerRepository extends JpaRepository<Owner, Integer> {
+ 	 */
+ 	Optional<Owner> findById(@Nonnull Integer id);
+ 
+-	/**
+-	 * Returns all the owners from data store
+-	 **/
+-	Page<Owner> findAll(Pageable pageable);
+-
+ }
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java b/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
+index 9b36dd45126..46e7e87ce59 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
+@@ -94,8 +94,6 @@ void setup() {
+ 		given(this.owners.findByLastNameStartingWith(eq("Franklin"), any(Pageable.class)))
+ 			.willReturn(new PageImpl<>(List.of(george)));
+ 
+-		given(this.owners.findAll(any(Pageable.class))).willReturn(new PageImpl<>(List.of(george)));
+-
+ 		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(george));
+ 		Visit visit = new Visit();
+ 		visit.setDate(LocalDate.now());

@@ -121,7 +121,25 @@ Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
 
 ## C · Empirical credibility gaps
 
-### C1 · Enterprise-rebuild dogfood (Java / COBOL)
+### C1 · Enterprise-rebuild dogfood (Java / COBOL) — **PARTIAL CLOSURE 2026-04-30 (scout arm: SHIP)**
+**Status (2026-04-30 update):** ✅ first arm closed as SHIP. Spring PetClinic / 10-PR scout completed at ~$2.38 total spend. Pre-reg ship criteria both cleared (5+ reviews surfaced real findings; 3+ non-OSS-web flavor reviews emitted concrete findings). Writeup: `bench/graph/enterprise-java-dogfood.md`. Per-PR review markdowns + raw inputs: `bench/graph/petclinic-dogfood/run1/PR-<N>.{md,diff,-meta.json}`.
+**Headline catches:**
+- PR 2093 — `distributionSha256Sum` removal in gradle wrapper (CWE-494, OWASP A08; CRITICAL conf 92; human reviewer missed)
+- PR 2133 — `--release 17` flag dropped while `<java.version>25</java.version>` kept (CRITICAL conf 92; oracle-confirmed by maintainer @snicoll's post-merge revert `fc1c749`)
+- PR 1878 — `${addVisit}` Thymeleaf typo (variable vs message key) + cross-locale trailing-space drift (HIGH)
+- PR 1775 — `Collectors.toList()` immutability regression on `@XmlElement` JAXB-marshalled method (IMPROVEMENT after realist-check downgrade)
+
+**Methodology caveat:** Each PR review ran as a single-agent Claude Code Agent simulating Soliton's swarm rules (Task-tool isolation prevented child agents from spawning `soliton:*` sub-agents). Findings are concrete and well-reasoned but per-agent attribution is simulator-derived rather than measured. Per-PR cost ranged $0.02–$0.65 vs the projected $2–$5 for true swarm dispatch.
+
+**Remaining open arms (not yet started):**
+- **C1.B — Apache Camel or internal monolith** with full swarm dispatch from main-orchestrator context (signal-grade attribution; budget ~$15–$50).
+- **COBOL/PL-SQL** target — gated on graph-code-indexing's SQL/COBOL parser support per §B1.
+- **Procurement-tier metrics** (precision/recall vs. ground-truth bug list) — needs annotated-bug corpus, not present in PetClinic's git log.
+
+**Strategic fit (post-shipping):** the value-prop case for "Soliton catches enterprise-rebuild-relevant defects" is no longer aspirational — it is observed. PRD §7 strategic-moat narrative now backed by 4 oracle-grade findings on real Spring Boot 3.5/4.0 + supply-chain migration PRs.
+
+**(Original 2026-04-29 entry follows for historical context.)**
+
 **Status:** all CRB numbers are against OSS web/cloud apps (TS, Python, Go, Ruby, Java/Keycloak limited). The PRD's actual goal — AI-native rebuild of legacy Java/COBOL/PL-SQL — is **untested**.
 **Why this is the biggest gap:** the strategic moat narrative (`docs/prd-ai-native-takeover.md` + `idea-stage/IDEA_REPORT.md` § 7) hinges on enterprise-rebuild fit. Without one validation run, the v2 architecture lives in OSS-web territory.
 **What it takes:**

@@ -1,0 +1,742 @@
+diff --git a/README.md b/README.md
+index e8aa6f3d894..02aa9fbdf84 100644
+--- a/README.md
++++ b/README.md
+@@ -63,13 +63,13 @@ A similar setup is provided for MySQL and PostgreSQL if a persistent database co
+ You can start MySQL or PostgreSQL locally with whatever installer works for your OS or use docker:
+ 
+ ```bash
+-docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.5
++docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.6
+ ```
+ 
+ or
+ 
+ ```bash
+-docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.1
++docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.3
+ ```
+ 
+ Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
+diff --git a/build.gradle b/build.gradle
+index 936ff1edb6a..e526faed21e 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,10 +1,10 @@
+ plugins {
+   id 'java'
+   id 'checkstyle'
+-  id 'org.springframework.boot' version '4.0.1'
++  id 'org.springframework.boot' version '4.0.3'
+   id 'io.spring.dependency-management' version '1.1.7'
+-  id 'org.graalvm.buildtools.native' version '0.11.3'
+-  id 'org.cyclonedx.bom' version '3.0.2'
++  id 'org.graalvm.buildtools.native' version '0.11.5'
++  id 'org.cyclonedx.bom' version '3.2.0'
+   id 'io.spring.javaformat' version '0.0.47'
+   id "io.spring.nohttp" version "0.0.11"
+ }
+@@ -24,9 +24,9 @@ repositories {
+   mavenCentral()
+ }
+ 
+-ext.checkstyleVersion = "12.1.2"
++ext.checkstyleVersion = "12.3.1"
+ ext.springJavaformatCheckstyleVersion = "0.0.47"
+-ext.webjarsLocatorLiteVersion = "1.1.2"
++ext.webjarsLocatorLiteVersion = "1.1.3"
+ ext.webjarsFontawesomeVersion = "4.7.0"
+ ext.webjarsBootstrapVersion = "5.3.8"
+ 
+@@ -62,6 +62,11 @@ tasks.named('test') {
+   useJUnitPlatform()
+ }
+ 
++tasks.named("cyclonedxDirectBom").configure {
++  dependsOn("compileJava")
++  skipConfigs = [".*[Tt]est.*"]
++}
++
+ checkstyle {
+   configDirectory = project.file('src/checkstyle')
+   configFile = file('src/checkstyle/nohttp-checkstyle.xml')
+@@ -85,4 +90,4 @@ checkFormatAot.enabled = false
+ checkFormatAotTest.enabled = false
+ 
+ formatAot.enabled = false
+-formatAotTest.enabled = false
++formatAotTest.enabled = false
+\ No newline at end of file
+diff --git a/docker-compose.yml b/docker-compose.yml
+index b2313a1e634..a605753821d 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -1,6 +1,6 @@
+ services:
+   mysql:
+-    image: mysql:9.5
++    image: mysql:9.6
+     ports:
+       - "3306:3306"
+     environment:
+@@ -12,7 +12,7 @@ services:
+     volumes:
+       - "./conf.d:/etc/mysql/conf.d:ro"
+   postgres:
+-    image: postgres:18.1
++    image: postgres:18.3
+     ports:
+       - "5432:5432"
+     environment:
+diff --git a/k8s/db.yml b/k8s/db.yml
+index 5c6e0f9e263..e26088f88cb 100644
+--- a/k8s/db.yml
++++ b/k8s/db.yml
+@@ -41,7 +41,7 @@ spec:
+         app: demo-db
+     spec:
+       containers:
+-        - image: postgres:18.1
++        - image: postgres:18.3
+           name: postgresql
+           env:
+             - name: POSTGRES_USER
+diff --git a/pom.xml b/pom.xml
+index fb38cc3db5d..36251b49e5c 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -1,14 +1,17 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
++
+   <parent>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-parent</artifactId>
+-    <version>4.0.1</version>
++    <version>4.0.3</version>
+   </parent>
++
+   <groupId>org.springframework.samples</groupId>
+   <artifactId>spring-petclinic</artifactId>
+   <version>4.0.0-SNAPSHOT</version>
++
+   <name>petclinic</name>
+ 
+   <properties>
+@@ -20,11 +23,12 @@
+     <project.build.outputTimestamp>2024-11-28T14:37:52Z</project.build.outputTimestamp>
+ 
+     <!-- Web dependencies -->
+-    <webjars-locator.version>1.1.2</webjars-locator.version>
++    <webjars-locator.version>1.1.3</webjars-locator.version>
+     <webjars-bootstrap.version>5.3.8</webjars-bootstrap.version>
+     <webjars-font-awesome.version>4.7.0</webjars-font-awesome.version>
+ 
+-    <checkstyle.version>12.1.2</checkstyle.version>
++    <!-- Checkstyle needs to stay on v12 since v13 sets minimal jdk to 21 - https://checkstyle.org/releasenotes.html#Release_13.0.0 -->
++    <checkstyle.version>12.3.1</checkstyle.version>
+     <jacoco.version>0.8.14</jacoco.version>
+     <libsass.version>0.3.4</libsass.version>
+     <lifecycle-mapping>1.0.0</lifecycle-mapping>
+@@ -33,13 +37,6 @@
+     <spring-format.version>0.0.47</spring-format.version>
+   </properties>
+ 
+-  <licenses>
+-    <license>
+-      <name>Apache License, Version 2.0</name>
+-      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+-    </license>
+-  </licenses>
+-
+   <dependencies>
+     <!-- Spring and Spring Boot dependencies -->
+     <dependency>
+@@ -126,6 +123,11 @@
+       <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+       <scope>test</scope>
+     </dependency>
++    <dependency>
++      <groupId>org.springframework.boot</groupId>
++      <artifactId>spring-boot-starter-restclient</artifactId>
++      <scope>test</scope>
++    </dependency>
+     <dependency>
+       <groupId>org.springframework.boot</groupId>
+       <artifactId>spring-boot-starter-restclient-test</artifactId>
+@@ -290,6 +292,13 @@
+       </plugin>
+     </plugins>
+   </build>
++  <licenses>
++    <license>
++      <name>Apache License, Version 2.0</name>
++      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
++    </license>
++  </licenses>
++
+   <profiles>
+     <profile>
+       <id>css</id>
+diff --git a/src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java b/src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java
+index 61e882a959b..8eec0216c4d 100644
+--- a/src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java
++++ b/src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java
+@@ -45,7 +45,7 @@ public void setName(String name) {
+ 	@Override
+ 	public String toString() {
+ 		String name = this.getName();
+-		return (name != null) ? name : "<null>";
++		return name != null ? name : "<null>";
+ 	}
+ 
+ }
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetController.java b/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
+index 8398e4f137e..e0689c694f1 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
+@@ -106,8 +106,9 @@ public String initCreationForm(Owner owner, ModelMap model) {
+ 	public String processCreationForm(Owner owner, @Valid Pet pet, BindingResult result,
+ 			RedirectAttributes redirectAttributes) {
+ 
+-		if (StringUtils.hasText(pet.getName()) && pet.isNew() && owner.getPet(pet.getName(), true) != null)
++		if (StringUtils.hasText(pet.getName()) && pet.isNew() && owner.getPet(pet.getName(), true) != null) {
+ 			result.rejectValue("name", "duplicate", "already exists");
++		}
+ 
+ 		LocalDate currentDate = LocalDate.now();
+ 		if (pet.getBirthDate() != null && pet.getBirthDate().isAfter(currentDate)) {
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java b/src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java
+index b62751c977e..520ed3f4a5b 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java
+@@ -45,7 +45,7 @@ public PetTypeFormatter(PetTypeRepository types) {
+ 	@Override
+ 	public String print(PetType petType, Locale locale) {
+ 		String name = petType.getName();
+-		return (name != null) ? name : "<null>";
++		return name != null ? name : "<null>";
+ 	}
+ 
+ 	@Override
+diff --git a/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
+index 0cacc580a3a..076f3a73c7d 100644
+--- a/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
+@@ -47,7 +47,7 @@ class MySqlIntegrationTests {
+ 
+ 	@ServiceConnection
+ 	@Container
+-	static MySQLContainer container = new MySQLContainer(DockerImageName.parse("mysql:9.5"));
++	static MySQLContainer container = new MySQLContainer(DockerImageName.parse("mysql:9.6"));
+ 
+ 	@LocalServerPort
+ 	int port;
+@@ -59,13 +59,13 @@ class MySqlIntegrationTests {
+ 	private RestTemplateBuilder builder;
+ 
+ 	@Test
+-	void testFindAll() {
++	void findAll() {
+ 		vets.findAll();
+ 		vets.findAll(); // served from cache
+ 	}
+ 
+ 	@Test
+-	void testOwnerDetails() {
++	void ownerDetails() {
+ 		RestTemplate template = builder.rootUri("http://localhost:" + port).build();
+ 		ResponseEntity<String> result = template.exchange(RequestEntity.get("/owners/1").build(), String.class);
+ 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+diff --git a/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java b/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
+index e18b6cbaf75..55347c74e9e 100644
+--- a/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
++++ b/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
+@@ -36,7 +36,7 @@ public class MysqlTestApplication {
+ 	@Profile("mysql")
+ 	@Bean
+ 	static MySQLContainer container() {
+-		return new MySQLContainer(DockerImageName.parse("mysql:9.5"));
++		return new MySQLContainer(DockerImageName.parse("mysql:9.6"));
+ 	}
+ 
+ 	public static void main(String[] args) {
+diff --git a/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java
+index 4ceb14a038f..b753654df6b 100644
+--- a/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java
+@@ -44,20 +44,20 @@ public class PetClinicIntegrationTests {
+ 	private RestTemplateBuilder builder;
+ 
+ 	@Test
+-	void testFindAll() {
++	void findAll() {
+ 		vets.findAll();
+ 		vets.findAll(); // served from cache
+ 	}
+ 
+ 	@Test
+-	void testOwnerDetails() {
++	void ownerDetails() {
+ 		RestTemplate template = builder.rootUri("http://localhost:" + port).build();
+ 		ResponseEntity<String> result = template.exchange(RequestEntity.get("/owners/1").build(), String.class);
+ 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+ 	}
+ 
+ 	@Test
+-	void testOwnerList() {
++	void ownerList() {
+ 		RestTemplate template = builder.rootUri("http://localhost:" + port).build();
+ 		ResponseEntity<String> result = template.exchange(RequestEntity.get("/owners?lastName=").build(), String.class);
+ 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+diff --git a/src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java
+index f3c5181e7c7..ecbbe2309ca 100644
+--- a/src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java
+@@ -79,13 +79,13 @@ public static void main(String[] args) {
+ 	}
+ 
+ 	@Test
+-	void testFindAll() throws Exception {
++	void findAll() throws Exception {
+ 		vets.findAll();
+ 		vets.findAll(); // served from cache
+ 	}
+ 
+ 	@Test
+-	void testOwnerDetails() {
++	void ownerDetails() {
+ 		RestTemplate template = builder.rootUri("http://localhost:" + port).build();
+ 		ResponseEntity<String> result = template.exchange(RequestEntity.get("/owners/1").build(), String.class);
+ 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java b/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
+index bcab1974997..558b9ae4a92 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
+@@ -102,7 +102,7 @@ void setup() {
+ 	}
+ 
+ 	@Test
+-	void testInitCreationForm() throws Exception {
++	void initCreationForm() throws Exception {
+ 		mockMvc.perform(get("/owners/new"))
+ 			.andExpect(status().isOk())
+ 			.andExpect(model().attributeExists("owner"))
+@@ -110,7 +110,7 @@ void testInitCreationForm() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessCreationFormSuccess() throws Exception {
++	void processCreationFormSuccess() throws Exception {
+ 		mockMvc
+ 			.perform(post("/owners/new").param("firstName", "Joe")
+ 				.param("lastName", "Bloggs")
+@@ -121,7 +121,7 @@ void testProcessCreationFormSuccess() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessCreationFormHasErrors() throws Exception {
++	void processCreationFormHasErrors() throws Exception {
+ 		mockMvc
+ 			.perform(post("/owners/new").param("firstName", "Joe").param("lastName", "Bloggs").param("city", "London"))
+ 			.andExpect(status().isOk())
+@@ -132,7 +132,7 @@ void testProcessCreationFormHasErrors() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testInitFindForm() throws Exception {
++	void initFindForm() throws Exception {
+ 		mockMvc.perform(get("/owners/find"))
+ 			.andExpect(status().isOk())
+ 			.andExpect(model().attributeExists("owner"))
+@@ -140,14 +140,14 @@ void testInitFindForm() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessFindFormSuccess() throws Exception {
++	void processFindFormSuccess() throws Exception {
+ 		Page<Owner> tasks = new PageImpl<>(List.of(george(), new Owner()));
+ 		when(this.owners.findByLastNameStartingWith(anyString(), any(Pageable.class))).thenReturn(tasks);
+ 		mockMvc.perform(get("/owners?page=1")).andExpect(status().isOk()).andExpect(view().name("owners/ownersList"));
+ 	}
+ 
+ 	@Test
+-	void testProcessFindFormByLastName() throws Exception {
++	void processFindFormByLastName() throws Exception {
+ 		Page<Owner> tasks = new PageImpl<>(List.of(george()));
+ 		when(this.owners.findByLastNameStartingWith(eq("Franklin"), any(Pageable.class))).thenReturn(tasks);
+ 		mockMvc.perform(get("/owners?page=1").param("lastName", "Franklin"))
+@@ -156,7 +156,7 @@ void testProcessFindFormByLastName() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessFindFormNoOwnersFound() throws Exception {
++	void processFindFormNoOwnersFound() throws Exception {
+ 		Page<Owner> tasks = new PageImpl<>(List.of());
+ 		when(this.owners.findByLastNameStartingWith(eq("Unknown Surname"), any(Pageable.class))).thenReturn(tasks);
+ 		mockMvc.perform(get("/owners?page=1").param("lastName", "Unknown Surname"))
+@@ -168,7 +168,7 @@ void testProcessFindFormNoOwnersFound() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testInitUpdateOwnerForm() throws Exception {
++	void initUpdateOwnerForm() throws Exception {
+ 		mockMvc.perform(get("/owners/{ownerId}/edit", TEST_OWNER_ID))
+ 			.andExpect(status().isOk())
+ 			.andExpect(model().attributeExists("owner"))
+@@ -181,7 +181,7 @@ void testInitUpdateOwnerForm() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessUpdateOwnerFormSuccess() throws Exception {
++	void processUpdateOwnerFormSuccess() throws Exception {
+ 		mockMvc
+ 			.perform(post("/owners/{ownerId}/edit", TEST_OWNER_ID).param("firstName", "Joe")
+ 				.param("lastName", "Bloggs")
+@@ -193,14 +193,14 @@ void testProcessUpdateOwnerFormSuccess() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessUpdateOwnerFormUnchangedSuccess() throws Exception {
++	void processUpdateOwnerFormUnchangedSuccess() throws Exception {
+ 		mockMvc.perform(post("/owners/{ownerId}/edit", TEST_OWNER_ID))
+ 			.andExpect(status().is3xxRedirection())
+ 			.andExpect(view().name("redirect:/owners/{ownerId}"));
+ 	}
+ 
+ 	@Test
+-	void testProcessUpdateOwnerFormHasErrors() throws Exception {
++	void processUpdateOwnerFormHasErrors() throws Exception {
+ 		mockMvc
+ 			.perform(post("/owners/{ownerId}/edit", TEST_OWNER_ID).param("firstName", "Joe")
+ 				.param("lastName", "Bloggs")
+@@ -214,7 +214,7 @@ void testProcessUpdateOwnerFormHasErrors() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testShowOwner() throws Exception {
++	void showOwner() throws Exception {
+ 		mockMvc.perform(get("/owners/{ownerId}", TEST_OWNER_ID))
+ 			.andExpect(status().isOk())
+ 			.andExpect(model().attribute("owner", hasProperty("lastName", is("Franklin"))))
+@@ -229,7 +229,7 @@ void testShowOwner() throws Exception {
+ 	}
+ 
+ 	@Test
+-	public void testProcessUpdateOwnerFormWithIdMismatch() throws Exception {
++	void processUpdateOwnerFormWithIdMismatch() throws Exception {
+ 		int pathOwnerId = 1;
+ 
+ 		Owner owner = new Owner();
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java b/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java
+index 391bb3dbb8b..e7d16d7c52d 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java
+@@ -84,7 +84,7 @@ void setup() {
+ 	}
+ 
+ 	@Test
+-	void testInitCreationForm() throws Exception {
++	void initCreationForm() throws Exception {
+ 		mockMvc.perform(get("/owners/{ownerId}/pets/new", TEST_OWNER_ID))
+ 			.andExpect(status().isOk())
+ 			.andExpect(view().name("pets/createOrUpdatePetForm"))
+@@ -92,7 +92,7 @@ void testInitCreationForm() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessCreationFormSuccess() throws Exception {
++	void processCreationFormSuccess() throws Exception {
+ 		mockMvc
+ 			.perform(post("/owners/{ownerId}/pets/new", TEST_OWNER_ID).param("name", "Betty")
+ 				.param("type", "hamster")
+@@ -105,7 +105,7 @@ void testProcessCreationFormSuccess() throws Exception {
+ 	class ProcessCreationFormHasErrors {
+ 
+ 		@Test
+-		void testProcessCreationFormWithBlankName() throws Exception {
++		void processCreationFormWithBlankName() throws Exception {
+ 			mockMvc
+ 				.perform(post("/owners/{ownerId}/pets/new", TEST_OWNER_ID).param("name", "\t \n")
+ 					.param("birthDate", "2015-02-12"))
+@@ -118,7 +118,7 @@ void testProcessCreationFormWithBlankName() throws Exception {
+ 		}
+ 
+ 		@Test
+-		void testProcessCreationFormWithDuplicateName() throws Exception {
++		void processCreationFormWithDuplicateName() throws Exception {
+ 			mockMvc
+ 				.perform(post("/owners/{ownerId}/pets/new", TEST_OWNER_ID).param("name", "petty")
+ 					.param("birthDate", "2015-02-12"))
+@@ -131,7 +131,7 @@ void testProcessCreationFormWithDuplicateName() throws Exception {
+ 		}
+ 
+ 		@Test
+-		void testProcessCreationFormWithMissingPetType() throws Exception {
++		void processCreationFormWithMissingPetType() throws Exception {
+ 			mockMvc
+ 				.perform(post("/owners/{ownerId}/pets/new", TEST_OWNER_ID).param("name", "Betty")
+ 					.param("birthDate", "2015-02-12"))
+@@ -144,7 +144,7 @@ void testProcessCreationFormWithMissingPetType() throws Exception {
+ 		}
+ 
+ 		@Test
+-		void testProcessCreationFormWithInvalidBirthDate() throws Exception {
++		void processCreationFormWithInvalidBirthDate() throws Exception {
+ 			LocalDate currentDate = LocalDate.now();
+ 			String futureBirthDate = currentDate.plusMonths(1).toString();
+ 
+@@ -160,7 +160,7 @@ void testProcessCreationFormWithInvalidBirthDate() throws Exception {
+ 		}
+ 
+ 		@Test
+-		void testInitUpdateForm() throws Exception {
++		void initUpdateForm() throws Exception {
+ 			mockMvc.perform(get("/owners/{ownerId}/pets/{petId}/edit", TEST_OWNER_ID, TEST_PET_ID))
+ 				.andExpect(status().isOk())
+ 				.andExpect(model().attributeExists("pet"))
+@@ -170,7 +170,7 @@ void testInitUpdateForm() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessUpdateFormSuccess() throws Exception {
++	void processUpdateFormSuccess() throws Exception {
+ 		mockMvc
+ 			.perform(post("/owners/{ownerId}/pets/{petId}/edit", TEST_OWNER_ID, TEST_PET_ID).param("name", "Betty")
+ 				.param("type", "hamster")
+@@ -183,7 +183,7 @@ void testProcessUpdateFormSuccess() throws Exception {
+ 	class ProcessUpdateFormHasErrors {
+ 
+ 		@Test
+-		void testProcessUpdateFormWithInvalidBirthDate() throws Exception {
++		void processUpdateFormWithInvalidBirthDate() throws Exception {
+ 			mockMvc
+ 				.perform(post("/owners/{ownerId}/pets/{petId}/edit", TEST_OWNER_ID, TEST_PET_ID).param("name", " ")
+ 					.param("birthDate", "2015/02/12"))
+@@ -195,7 +195,7 @@ void testProcessUpdateFormWithInvalidBirthDate() throws Exception {
+ 		}
+ 
+ 		@Test
+-		void testProcessUpdateFormWithBlankName() throws Exception {
++		void processUpdateFormWithBlankName() throws Exception {
+ 			mockMvc
+ 				.perform(post("/owners/{ownerId}/pets/{petId}/edit", TEST_OWNER_ID, TEST_PET_ID).param("name", "  ")
+ 					.param("birthDate", "2015-02-12"))
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java b/src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java
+index 1a153bcbc55..d7543ac66ce 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java
+@@ -38,7 +38,7 @@
+  */
+ @ExtendWith(MockitoExtension.class)
+ @DisabledInNativeImage
+-public class PetValidatorTests {
++class PetValidatorTests {
+ 
+ 	private PetValidator petValidator;
+ 
+@@ -63,7 +63,7 @@ void setUp() {
+ 	}
+ 
+ 	@Test
+-	void testValidate() {
++	void validate() {
+ 		petType.setName(petTypeName);
+ 		pet.setName(petName);
+ 		pet.setType(petType);
+@@ -78,7 +78,7 @@ void testValidate() {
+ 	class ValidateHasErrors {
+ 
+ 		@Test
+-		void testValidateWithInvalidPetName() {
++		void validateWithInvalidPetName() {
+ 			petType.setName(petTypeName);
+ 			pet.setName("");
+ 			pet.setType(petType);
+@@ -90,7 +90,7 @@ void testValidateWithInvalidPetName() {
+ 		}
+ 
+ 		@Test
+-		void testValidateWithInvalidPetType() {
++		void validateWithInvalidPetType() {
+ 			pet.setName(petName);
+ 			pet.setType(null);
+ 			pet.setBirthDate(petBirthDate);
+@@ -101,7 +101,7 @@ void testValidateWithInvalidPetType() {
+ 		}
+ 
+ 		@Test
+-		void testValidateWithInvalidBirthDate() {
++		void validateWithInvalidBirthDate() {
+ 			petType.setName(petTypeName);
+ 			pet.setName(petName);
+ 			pet.setType(petType);
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java b/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java
+index 781de389406..bd51302ab5a 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java
+@@ -65,14 +65,14 @@ void init() {
+ 	}
+ 
+ 	@Test
+-	void testInitNewVisitForm() throws Exception {
++	void initNewVisitForm() throws Exception {
+ 		mockMvc.perform(get("/owners/{ownerId}/pets/{petId}/visits/new", TEST_OWNER_ID, TEST_PET_ID))
+ 			.andExpect(status().isOk())
+ 			.andExpect(view().name("pets/createOrUpdateVisitForm"));
+ 	}
+ 
+ 	@Test
+-	void testProcessNewVisitFormSuccess() throws Exception {
++	void processNewVisitFormSuccess() throws Exception {
+ 		mockMvc
+ 			.perform(post("/owners/{ownerId}/pets/{petId}/visits/new", TEST_OWNER_ID, TEST_PET_ID)
+ 				.param("name", "George")
+@@ -82,7 +82,7 @@ void testProcessNewVisitFormSuccess() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testProcessNewVisitFormHasErrors() throws Exception {
++	void processNewVisitFormHasErrors() throws Exception {
+ 		mockMvc
+ 			.perform(post("/owners/{ownerId}/pets/{petId}/visits/new", TEST_OWNER_ID, TEST_PET_ID).param("name",
+ 					"George"))
+diff --git a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
+index 5095851298c..43065c207b4 100644
+--- a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
+@@ -52,14 +52,14 @@
+ @AutoConfigureTestRestTemplate
+ class CrashControllerIntegrationTests {
+ 
+-	@Value(value = "${local.server.port}")
++	@Value("${local.server.port}")
+ 	private int port;
+ 
+ 	@Autowired
+ 	private TestRestTemplate rest;
+ 
+ 	@Test
+-	void testTriggerExceptionJson() {
++	void triggerExceptionJson() {
+ 		ResponseEntity<Map<String, Object>> resp = rest.exchange(
+ 				RequestEntity.get("http://localhost:" + port + "/oups").build(),
+ 				new ParameterizedTypeReference<Map<String, Object>>() {
+@@ -75,7 +75,7 @@ void testTriggerExceptionJson() {
+ 	}
+ 
+ 	@Test
+-	void testTriggerExceptionHtml() {
++	void triggerExceptionHtml() {
+ 		HttpHeaders headers = new HttpHeaders();
+ 		headers.setAccept(List.of(MediaType.TEXT_HTML));
+ 		ResponseEntity<String> resp = rest.exchange("http://localhost:" + port + "/oups", HttpMethod.GET,
+diff --git a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java
+index b2760ebea2b..bb748bab33b 100644
+--- a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java
+@@ -33,7 +33,7 @@ class CrashControllerTests {
+ 	final CrashController testee = new CrashController();
+ 
+ 	@Test
+-	void testTriggerException() {
++	void triggerException() {
+ 		assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> testee.triggerException())
+ 			.withMessageContaining("Expected: controller used to showcase what happens when an exception is thrown");
+ 	}
+diff --git a/src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java b/src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java
+index fec159cec1c..e5a5669f4c8 100644
+--- a/src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java
++++ b/src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java
+@@ -2,8 +2,8 @@
+ 
+ import org.junit.jupiter.api.Test;
+ 
+-import java.io.IOException;
+-import java.nio.file.*;
++import java.nio.file.Files;
++import java.nio.file.Path;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -37,8 +37,8 @@ public class I18nPropertiesSyncTest {
+ 	private static final Pattern HAS_TH_TEXT_ATTRIBUTE = Pattern.compile("th:(u)?text\\s*=\\s*\"[^\"]+\"");
+ 
+ 	@Test
+-	public void checkNonInternationalizedStrings() throws IOException {
+-		Path root = Paths.get("src/main");
++	void checkNonInternationalizedStrings() throws Exception {
++		Path root = Path.of("src/main");
+ 		List<Path> files;
+ 
+ 		try (Stream<Path> stream = Files.walk(root)) {
+@@ -56,8 +56,9 @@ public void checkNonInternationalizedStrings() throws IOException {
+ 				String line = lines.get(i).trim();
+ 
+ 				if (line.startsWith("//") || line.startsWith("@") || line.contains("log.")
+-						|| line.contains("System.out"))
++						|| line.contains("System.out")) {
+ 					continue;
++				}
+ 
+ 				if (file.toString().endsWith(".html")) {
+ 					boolean hasLiteralText = HTML_TEXT_LITERAL.matcher(line).find();
+@@ -83,9 +84,9 @@ public void checkNonInternationalizedStrings() throws IOException {
+ 	}
+ 
+ 	@Test
+-	public void checkI18nPropertyFilesAreInSync() throws IOException {
++	void checkI18nPropertyFilesAreInSync() throws Exception {
+ 		List<Path> propertyFiles;
+-		try (Stream<Path> stream = Files.walk(Paths.get(I18N_DIR))) {
++		try (Stream<Path> stream = Files.walk(Path.of(I18N_DIR))) {
+ 			propertyFiles = stream.filter(p -> p.getFileName().toString().startsWith(BASE_NAME))
+ 				.filter(p -> p.getFileName().toString().endsWith(PROPERTIES))
+ 				.toList();
+@@ -115,8 +116,9 @@ public void checkI18nPropertyFilesAreInSync() throws IOException {
+ 			String fileName = entry.getKey();
+ 			// We use fallback logic to include english strings, hence messages_en is not
+ 			// populated.
+-			if (fileName.equals(baseFile) || fileName.equals("messages_en.properties"))
++			if (fileName.equals(baseFile) || "messages_en.properties".equals(fileName)) {
+ 				continue;
++			}
+ 
+ 			Properties props = entry.getValue();
+ 			Set<String> missingKeys = new TreeSet<>(baseKeys);
+diff --git a/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java b/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
+index b8618c35d82..208758cecf9 100644
+--- a/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
+@@ -80,7 +80,7 @@ void setup() {
+ 	}
+ 
+ 	@Test
+-	void testShowVetListHtml() throws Exception {
++	void showVetListHtml() throws Exception {
+ 
+ 		mockMvc.perform(MockMvcRequestBuilders.get("/vets.html?page=1"))
+ 			.andExpect(status().isOk())
+@@ -90,7 +90,7 @@ void testShowVetListHtml() throws Exception {
+ 	}
+ 
+ 	@Test
+-	void testShowResourcesVetList() throws Exception {
++	void showResourcesVetList() throws Exception {
+ 		ResultActions actions = mockMvc.perform(get("/vets").accept(MediaType.APPLICATION_JSON))
+ 			.andExpect(status().isOk());
+ 		actions.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+diff --git a/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java b/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java
+index 24b772dc3f6..21593507ac1 100644
+--- a/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java
+@@ -26,7 +26,7 @@
+ class VetTests {
+ 
+ 	@Test
+-	void testSerialization() {
++	void serialization() {
+ 		Vet vet = new Vet();
+ 		vet.setFirstName("Zaphod");
+ 		vet.setLastName("Beeblebrox");

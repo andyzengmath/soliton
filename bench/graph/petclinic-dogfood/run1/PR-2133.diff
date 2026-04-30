@@ -1,0 +1,254 @@
+diff --git a/README.md b/README.md
+index 379bd42a6d6..e792c0dab6f 100644
+--- a/README.md
++++ b/README.md
+@@ -60,13 +60,13 @@ A similar setup is provided for MySQL and PostgreSQL if a persistent database co
+ You can start MySQL or PostgreSQL locally with whatever installer works for your OS or use docker:
+ 
+ ```bash
+-docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.2
++docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.5
+ ```
+ 
+ or
+ 
+ ```bash
+-docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.0
++docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.1
+ ```
+ 
+ Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
+diff --git a/build.gradle b/build.gradle
+index 36463df6ba9..3c3634222ca 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,10 +1,10 @@
+ plugins {
+   id 'java'
+   id 'checkstyle'
+-  id 'org.springframework.boot' version '4.0.0-RC2'
++  id 'org.springframework.boot' version '4.0.0'
+   id 'io.spring.dependency-management' version '1.1.7'
+   id 'org.graalvm.buildtools.native' version '0.11.1'
+-  id 'org.cyclonedx.bom' version '3.0.0'
++  id 'org.cyclonedx.bom' version '3.0.2'
+   id 'io.spring.javaformat' version '0.0.47'
+   id "io.spring.nohttp" version "0.0.11"
+   id 'net.ltgt.errorprone' version '4.3.0'
+@@ -25,9 +25,9 @@ repositories {
+   mavenCentral()
+ }
+ 
+-ext.checkstyleVersion = "11.1.0"
++ext.checkstyleVersion = "12.1.2"
+ ext.springJavaformatCheckstyleVersion = "0.0.47"
+-ext.webjarsLocatorLiteVersion = "1.1.1"
++ext.webjarsLocatorLiteVersion = "1.1.2"
+ ext.webjarsFontawesomeVersion = "4.7.0"
+ ext.webjarsBootstrapVersion = "5.3.8"
+ ext.errorProneVersion = "2.42.0"
+@@ -78,7 +78,6 @@ checkstyleNohttp {
+ }
+ 
+ tasks.withType(JavaCompile).configureEach {
+-  options.release = 17
+   options.errorprone {
+     disableAllChecks = true
+   }
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 50c731a9159..b2313a1e634 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -1,6 +1,6 @@
+ services:
+   mysql:
+-    image: mysql:9.2
++    image: mysql:9.5
+     ports:
+       - "3306:3306"
+     environment:
+@@ -12,7 +12,7 @@ services:
+     volumes:
+       - "./conf.d:/etc/mysql/conf.d:ro"
+   postgres:
+-    image: postgres:18.0
++    image: postgres:18.1
+     ports:
+       - "5432:5432"
+     environment:
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+index bad7c2462f5..23449a2b543 100644
+--- a/gradle/wrapper/gradle-wrapper.properties
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -1,6 +1,6 @@
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-9.2.0-bin.zip
++distributionUrl=https\://services.gradle.org/distributions/gradle-9.2.1-bin.zip
+ networkTimeout=10000
+ validateDistributionUrl=true
+ zipStoreBase=GRADLE_USER_HOME
+diff --git a/k8s/db.yml b/k8s/db.yml
+index c2c63037afd..5c6e0f9e263 100644
+--- a/k8s/db.yml
++++ b/k8s/db.yml
+@@ -41,7 +41,7 @@ spec:
+         app: demo-db
+     spec:
+       containers:
+-        - image: postgres:18.0
++        - image: postgres:18.1
+           name: postgresql
+           env:
+             - name: POSTGRES_USER
+diff --git a/mvnw b/mvnw
+index 885f4714348..33c353faea2 100755
+--- a/mvnw
++++ b/mvnw
+@@ -185,7 +185,7 @@ fi
+ __MVNW_QUIET_WGET=--quiet __MVNW_QUIET_CURL=--silent __MVNW_QUIET_UNZIP=-q __MVNW_QUIET_TAR=''
+ [ "${MVNW_VERBOSE-}" != true ] || __MVNW_QUIET_WGET='' __MVNW_QUIET_CURL='' __MVNW_QUIET_UNZIP='' __MVNW_QUIET_TAR=v
+ 
+-# normalize https auth
++# normalize http auth
+ case "${MVNW_PASSWORD:+has-password}" in
+ '') MVNW_USERNAME='' MVNW_PASSWORD='' ;;
+ has-password) [ -n "${MVNW_USERNAME-}" ] || MVNW_USERNAME='' MVNW_PASSWORD='' ;;
+diff --git a/pom.xml b/pom.xml
+index 7eddae997d8..9c852088f5f 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -5,7 +5,7 @@
+   <parent>
+     <groupId>org.springframework.boot</groupId>
+     <artifactId>spring-boot-starter-parent</artifactId>
+-    <version>4.0.0-RC2</version>
++    <version>4.0.0</version>
+     <relativePath></relativePath>
+   </parent>
+ 
+@@ -19,20 +19,19 @@
+ 
+     <!-- Generic properties -->
+     <java.version>25</java.version>
+-    <maven.compiler.release>17</maven.compiler.release>
+     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+     <!-- Important for reproducible builds. Update using e.g. ./mvnw versions:set -DnewVersion=... -->
+-    <project.build.outputTimestamp>2024-11-28T14:37:52Z</project.build.outputTimestamp>
++    <project.build.outputTimestamp>2025-11-22T16:15:42Z</project.build.outputTimestamp>
+ 
+     <!-- Web dependencies -->
+-    <webjars-locator.version>1.1.1</webjars-locator.version>
++    <webjars-locator.version>1.1.2</webjars-locator.version>
+     <webjars-bootstrap.version>5.3.8</webjars-bootstrap.version>
+     <webjars-font-awesome.version>4.7.0</webjars-font-awesome.version>
+ 
+-    <checkstyle.version>11.1.0</checkstyle.version>
++    <checkstyle.version>12.1.2</checkstyle.version>
+     <error-prone.version>2.42.0</error-prone.version>
+-    <jacoco.version>0.8.13</jacoco.version>
++    <jacoco.version>0.8.14</jacoco.version>
+     <libsass.version>0.3.4</libsass.version>
+     <lifecycle-mapping>1.0.0</lifecycle-mapping>
+     <maven-checkstyle.version>3.6.0</maven-checkstyle.version>
+@@ -290,10 +289,10 @@
+         <executions>
+           <execution>
+             <id>default-compile</id>
+-            <phase>compile</phase>
+             <goals>
+               <goal>compile</goal>
+             </goals>
++            <phase>compile</phase>
+             <configuration>
+               <compilerArgs>
+                 <arg>-XDcompilePolicy=simple</arg>
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java b/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
+index e0e9b2f0b5f..d2b3dde40f8 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java
+@@ -17,7 +17,6 @@
+ 
+ import java.util.Optional;
+ 
+-import jakarta.annotation.Nonnull;
+ import org.springframework.data.domain.Page;
+ import org.springframework.data.domain.Pageable;
+ import org.springframework.data.jpa.repository.JpaRepository;
+diff --git a/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
+index 607593aad68..0cacc580a3a 100644
+--- a/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java
+@@ -33,9 +33,9 @@
+ import org.springframework.test.context.ActiveProfiles;
+ import org.springframework.test.context.aot.DisabledInAotMode;
+ import org.springframework.web.client.RestTemplate;
+-import org.testcontainers.containers.MySQLContainer;
+ import org.testcontainers.junit.jupiter.Container;
+ import org.testcontainers.junit.jupiter.Testcontainers;
++import org.testcontainers.mysql.MySQLContainer;
+ import org.testcontainers.utility.DockerImageName;
+ 
+ @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@@ -47,7 +47,7 @@ class MySqlIntegrationTests {
+ 
+ 	@ServiceConnection
+ 	@Container
+-	static MySQLContainer<?> container = new MySQLContainer<>(DockerImageName.parse("mysql:9.2"));
++	static MySQLContainer container = new MySQLContainer(DockerImageName.parse("mysql:9.5"));
+ 
+ 	@LocalServerPort
+ 	int port;
+diff --git a/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java b/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
+index 2a4ea8e069b..e18b6cbaf75 100644
+--- a/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
++++ b/src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java
+@@ -21,7 +21,7 @@
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.context.annotation.Profile;
+-import org.testcontainers.containers.MySQLContainer;
++import org.testcontainers.mysql.MySQLContainer;
+ import org.testcontainers.utility.DockerImageName;
+ 
+ /**
+@@ -35,8 +35,8 @@ public class MysqlTestApplication {
+ 	@ServiceConnection
+ 	@Profile("mysql")
+ 	@Bean
+-	static MySQLContainer<?> container() {
+-		return new MySQLContainer<>(DockerImageName.parse("mysql:9.2"));
++	static MySQLContainer container() {
++		return new MySQLContainer(DockerImageName.parse("mysql:9.5"));
+ 	}
+ 
+ 	public static void main(String[] args) {
+diff --git a/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java b/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java
+index 5d1eabc2cc3..ddc5bab1ed4 100644
+--- a/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java
+@@ -31,9 +31,9 @@
+ import org.springframework.data.domain.Pageable;
+ import org.springframework.samples.petclinic.owner.Owner;
+ import org.springframework.samples.petclinic.owner.OwnerRepository;
+-import org.springframework.samples.petclinic.owner.PetTypeRepository;
+ import org.springframework.samples.petclinic.owner.Pet;
+ import org.springframework.samples.petclinic.owner.PetType;
++import org.springframework.samples.petclinic.owner.PetTypeRepository;
+ import org.springframework.samples.petclinic.owner.Visit;
+ import org.springframework.samples.petclinic.vet.Vet;
+ import org.springframework.samples.petclinic.vet.VetRepository;
+diff --git a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
+index 1046fabe46c..5095851298c 100644
+--- a/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java
+@@ -48,7 +48,7 @@
+  */
+ // NOT Waiting https://github.com/spring-projects/spring-boot/issues/5574
+ @SpringBootTest(webEnvironment = RANDOM_PORT,
+-		properties = { "server.error.include-message=ALWAYS", "management.endpoints.access.default=none" })
++		properties = { "spring.web.error.include-message=ALWAYS", "management.endpoints.access.default=none" })
+ @AutoConfigureTestRestTemplate
+ class CrashControllerIntegrationTests {
+ 
