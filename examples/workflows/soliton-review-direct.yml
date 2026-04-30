@@ -39,7 +39,7 @@ jobs:
         run: git clone --depth 1 --branch v2.0.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - name: Run Soliton review
-        uses: anthropics/claude-code-action@38ec876110f9fbf8b950c79f534430740c3ac009 # v1
+        uses: anthropics/claude-code-action@ef50f123a3a9be95b60040d042717517407c7256 # v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
