@@ -5,6 +5,42 @@ execution on 2026-04-18. All files are additive markdown/YAML — no runtime/bui
 
 ---
 
+## v2.1.1 — 2026-04-30
+
+Patch release reversing the v2.1.0 default-ON status of two content-triggered agents based on Phase 5.3 CRB evidence (PR #68).
+
+### Default flips (default ON → default OFF)
+
+- `agents.silent_failure.enabled` — was `true` in v2.1.0, now `false`
+- `agents.comment_accuracy.enabled` — was `true` in v2.1.0, now `false`
+
+### Why
+
+Phase 5.3's combined-wirings CRB run (PR #68) measured F1 = 0.268 vs Phase 5.2's published 0.313 — a **−0.045 regression at 5.2σ_Δ paired**, well outside the σ_F1=0.0086 noise band measured by PR #48. Per per-agent attribution, the default-ON content-triggered agents emit findings that don't fuzzy-match back to the synthesized review (UNMATCHED FP volume jumped 51 → 180), and CRB's golden set largely doesn't reward error-handling or comment-rot detection. Same per-agent FP-concentration pattern that motivated Phase 5's `skipAgents: [test-quality, consistency]` decision (which gained +0.023 F1 by removing two similar agents from the default dispatch).
+
+The agents themselves are useful for production review (Hora & Robbes 2026 documents real-world value of error-handling and comment-rot detectors); they just don't help leaderboard-style benchmark F1. Integrators who want them on PRs with relevant content should opt in:
+
+```yaml
+# .claude/soliton.local.md
+agents:
+  silent_failure:
+    enabled: true
+  comment_accuracy:
+    enabled: true
+```
+
+### What's unchanged
+
+- `agents/silent-failure.md` and `agents/comment-accuracy.md` agent definitions remain shipped (no functionality removed; just the dispatch default flipped).
+- README badge stays at "Review_Agents-9" — the max-dispatch count is still 9 when both content-triggered agents are explicitly enabled.
+- Phase 5.2's F1=0.313 remains Soliton's CRB number of record.
+
+### What's NOT in this PR
+- No changes to realist-check (Step 5.5, default OFF) — wiring stays as shipped.
+- No changes to cross-file-impact graphSignals consumption — that lever held neutrally on TS in Phase 5.3 (+0.070 vs P3.5).
+
+---
+
 ## v2.1.0 — 2026-04-29
 
 Minor release. Adds v2-promised wirings that were previously dead code (3 agents),
