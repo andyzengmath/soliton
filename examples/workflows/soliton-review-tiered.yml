@@ -280,11 +280,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone Soliton
-        # Pin to an immutable release tag to prevent supply-chain attacks. v2.0.1 is the
-        # current stable release with the v2 feature flags wired (Tier-0, Spec Alignment,
-        # Graph Signals partial mode, realist-check Step 5.5, silent-failure +
-        # comment-accuracy Step 4.1). Bump to v2.0.x as later releases ship.
-        run: git clone --depth 1 --branch v2.0.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        # Pin to an immutable release tag to prevent supply-chain attacks. v2.1.1 is
+        # the current stable release. v2.0.1 shipped Tier-0, Spec Alignment, and
+        # Graph Signals partial mode. v2.1.0 wired realist-check Step 5.5 (default
+        # OFF) and silent-failure + comment-accuracy Step 4.1. v2.1.1 reverted
+        # silent-failure + comment-accuracy defaults to OFF (Phase 5.3 evidence
+        # showed default-ON regressed CRB F1 by 0.045). Integrators wanting
+        # silent-failure / comment-accuracy / realist-check fired must opt in via
+        # `.claude/soliton.local.md`. Bump to v2.x.x as later releases ship.
+        run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - uses: anthropics/claude-code-action@ef50f123a3a9be95b60040d042717517407c7256 # v1
         env:

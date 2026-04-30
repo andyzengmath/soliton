@@ -197,21 +197,25 @@ The score determines how many agents are dispatched:
 | HIGH | 61-80 | 6 (+hallucination, cross-file-impact) | ~45s |
 | CRITICAL | 81-100 | 7 (+historical-context) | ~60s |
 
-> **Note on default config:** the table shows what risk-scorer *recommends* before the skipAgents filter. The shipped default is `skipAgents: ['test-quality', 'consistency']` (per Phase 5 attribution data — those two agents collectively contributed 31% of CRB FPs at 2.5% combined precision). Effective default dispatch counts are LOW=1, MEDIUM=2, HIGH=4, CRITICAL=5. Set `skip_agents: []` in `.claude/soliton.local.md` to restore the table's full counts. v2 also content-triggers `silent-failure` (when diff touches error-handling code) and `comment-accuracy` (when diff modifies comments), each adding +1 to the dispatched count. Realist Check (Step 5.5) is a post-synthesis pass, not a finding-emitter; opt in via `synthesis.realist_check: true`.
+> **Note on default config:** the table shows what risk-scorer *recommends* before the skipAgents filter. The shipped default is `skipAgents: ['test-quality', 'consistency']` (per Phase 5 attribution data — those two agents collectively contributed 31% of CRB FPs at 2.5% combined precision). Effective default dispatch counts are LOW=1, MEDIUM=2, HIGH=4, CRITICAL=5. Set `skip_agents: []` in `.claude/soliton.local.md` to restore the table's full counts. v2 also content-triggers `silent-failure` (when diff touches error-handling code) and `comment-accuracy` (when diff modifies comments) — both default-OFF as of v2.1.1, opt in via `agents.silent_failure.enabled: true` / `agents.comment_accuracy.enabled: true`. Each adds +1 to the dispatched count when enabled. Realist Check (Step 5.5) is a post-synthesis pass, not a finding-emitter; opt in via `synthesis.realist_check: true`. Max-dispatch count is **9** when all content-triggers fire.
 
-### The 7 Review Agents
+### The Review Agents
 
-| Agent | Model | What It Catches |
-|-------|-------|-----------------|
-| **correctness** | Sonnet | Off-by-one, null dereference, race conditions, infinite loops, missing returns |
-| **security** | Opus | OWASP Top 10, SQL/XSS/SSRF injection, hardcoded secrets, auth bypass |
-| **hallucination** | Opus | Non-existent APIs (`fs.readFileAsync`), wrong signatures, deprecated methods |
-| **test-quality** | Sonnet | Missing coverage, mock-only tests, assertion-free tests, missing edge cases |
-| **consistency** | Sonnet | Naming violations, import ordering, style deviations from project patterns |
-| **cross-file-impact** | Sonnet | Changed signatures breaking callers, removed exports, type mismatches |
-| **historical-context** | Sonnet | Files with high bug-fix frequency, recently reverted changes, code churn |
+| Agent | Model | What It Catches | Default |
+|-------|-------|-----------------|---------|
+| **correctness** | Sonnet | Off-by-one, null dereference, race conditions, infinite loops, missing returns | ON |
+| **security** | Opus | OWASP Top 10, SQL/XSS/SSRF injection, hardcoded secrets, auth bypass | ON |
+| **hallucination** | Opus | Non-existent APIs (`fs.readFileAsync`), wrong signatures, deprecated methods | ON |
+| **test-quality** | Sonnet | Missing coverage, mock-only tests, assertion-free tests, missing edge cases | OFF (`skipAgents` default) |
+| **consistency** | Sonnet | Naming violations, import ordering, style deviations from project patterns | OFF (`skipAgents` default) |
+| **cross-file-impact** | Sonnet | Changed signatures breaking callers, removed exports, type mismatches | ON |
+| **historical-context** | Sonnet | Files with high bug-fix frequency, recently reverted changes, code churn | ON |
+| **spec-alignment** (v2 Step 2.7) | Haiku | Acceptance-criteria mismatches in PR description / REVIEW.md / `.claude/specs/` | OFF (opt in via `spec_alignment.enabled: true`) |
+| **silent-failure** (v2 Step 4.1) | Sonnet | Empty catches, swallowed Promises, optional-chaining nullability hides, mock-in-prod, assertion-free tests | OFF as of v2.1.1 (was ON in v2.1.0; opt in via `agents.silent_failure.enabled: true`) |
+| **comment-accuracy** (v2 Step 4.1) | Haiku | Docstring/comment rot, stale `@deprecated`, example-code drift, NOTE/TODO contradictions | OFF as of v2.1.1 (was ON in v2.1.0; opt in via `agents.comment_accuracy.enabled: true`) |
+| **realist-check** (v2 Step 5.5) | Sonnet | Post-synthesis pressure-test of CRITICAL findings; downgrades require cited Mitigated-by | OFF (opt in via `synthesis.realist_check: true`) |
 
-Security and hallucination agents use **Opus** for deepest reasoning. All others use **Sonnet** for speed.
+Security and hallucination agents use **Opus** for deepest reasoning. All others use **Sonnet** or **Haiku** for speed.
 
 ### Output Formats
 
@@ -254,7 +258,7 @@ jobs:
           fetch-depth: 0
 
       - name: Clone Soliton
-        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - uses: anthropics/claude-code-action@v1
         env:
