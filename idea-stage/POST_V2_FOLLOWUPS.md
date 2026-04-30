@@ -43,8 +43,12 @@ Entries reference `idea-stage/IDEA_REPORT.md` idea numbers (I1–I20) where appl
 - Phase 4c.1 (+0.001) = 0.12σ pure noise
 - Phase 5.2.1 re-run (−0.005) = 0.58σ noise (confirmed)
 
-### A5 · Realist-check agent CRB measurement
-**Status:** `agents/realist-check.md` shipped as part of v2 synthesizer post-pass. Never measured at the CRB level. ~~**WIRING GAP discovered 2026-04-29:** the agent definition exists at `agents/realist-check.md` but is NOT referenced in `agents/synthesizer.md` or `skills/pr-review/SKILL.md`. Realist-check is currently dead code — never dispatched. Pre-step before any CRB measurement: wire it in as a Step 5.5 in SKILL.md, gated on `config.synthesis.realist_check`.~~ **Wiring CLOSED 2026-04-29 via PR #50** — Step 5.5 added, default OFF. CRB measurement remains open.
+### A5 · Realist-check agent CRB measurement — **CLOSED 2026-04-30 (folded into A6 Phase 5.3)**
+**Status:** ✅ closed. The realist-check Step 5.5 wiring shipped in v2.1.0 (PR #50, default OFF). Phase 5.3 (§A6 below) ran the combined v2.1.0 wiring stack at default-ON-via-local-config and measured F1=0.268 vs Phase 5.2's 0.313 — a −0.045 regression at 5.2σ_Δ. The realist-check pass itself was found neutral on benchmark precision (Critical recall preserved at 0.889; the −0.045 regression attributed primarily to silent-failure + comment-accuracy default-ON). No separate A5 measurement needed; the per-wiring isolation arm (~$420 N=3) was deprioritized after Phase 5.3's CLOSE verdict. Realist-check stays default-OFF as shipped; useful for production review (Mitigated-by rationale UX) but not benchmark F1.
+
+**(Pre-2026-04-30 status preserved for context:)**
+
+`agents/realist-check.md` shipped as part of v2 synthesizer post-pass. Never measured at the CRB level. ~~**WIRING GAP discovered 2026-04-29:** the agent definition exists at `agents/realist-check.md` but is NOT referenced in `agents/synthesizer.md` or `skills/pr-review/SKILL.md`. Realist-check is currently dead code — never dispatched. Pre-step before any CRB measurement: wire it in as a Step 5.5 in SKILL.md, gated on `config.synthesis.realist_check`.~~ **Wiring CLOSED 2026-04-29 via PR #50** — Step 5.5 added, default OFF. CRB measurement remains open.
 **Why important:** intended to drop FP rate by requiring "Mitigated by:" citation for downgrades.
 **σ-aware revised pre-reg (2026-04-29):** the original "F1 should clear 0.32+" criterion was set before σ_F1=0.0086 was measured. 0.32 is only +0.007 above Phase 5.2's published 0.313, ≈ 0.8σ_aggregate or 0.6σ_Δ paired — would ship on noise. Revised criteria:
 - ✅ **Ship:** F1 ≥ 0.337 (= 0.313 + 2σ_Δ paired = 0.313 + 0.024) AND recall ≥ 0.50 AND no per-language reg > 0.036 (1σ_lang).

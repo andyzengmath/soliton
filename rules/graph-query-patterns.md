@@ -56,8 +56,10 @@ Validation status against `code-review-graph` 2.3.2 (tested 2026-04-21 on this r
 
 **Honest read after validation:** 2 of 7 Soliton queries have direct CLI equivalents in `code-review-graph`; the other 5 are MCP-only. A full graph-signals dogfood against this backend therefore needs either:
 
-1. An MCP client shim inside Soliton (e.g., a Python `graph-cli` wrapper that connects to `code-review-graph serve` over stdio and exposes the 7 queries), or
+1. An MCP client shim inside Soliton (e.g., a Python `graph-cli` wrapper that connects to `code-review-graph serve` over stdio and exposes the 7 queries) — **starter at PR #67 (3 of 7 wired); full close-out tracked as POST_V2_FOLLOWUPS §B2**, or
 2. Degraded Step 2.8 signals — only `info` + `dependencyBreaks` flow through; the rest emit `partial: true`. Still useful (dependencyBreaks is what the `cross-file-impact` agent consumes).
+
+**Status as of 2026-04-30:** option 2 (degraded) is the supported path on `main`. Option 1 (MCP shim) lives on the `feat/mcp-shim-G2-D-starter` branch behind PR #67 — runtime smoke deferred. Until that PR merges, integrators using a `code-review-graph` backend will see Soliton's `cross-file-impact` agent get pre-computed `dependencyBreaks` while the other 5 graph-derived consumers (`blastRadius`, `taintPaths`, `coChange`, `affectedFeatures`, `criticalityScore`) fall through to v1 Grep heuristics. **Do NOT advertise full Step 2.8 coverage to integrators on this backend until PR #67 lands.**
 
 Partial-mode is the minimum viable integration. Full-mode is Phase 6 engineering.
 
