@@ -59,7 +59,12 @@ Per-realist-check projection from `agents/realist-check.md`: expected FP-cut of 
 **Cost:** N=1 ~$140; N=3 ~$420.
 **Strategic fit:** the only built-in v2 lever that hasn't been benchmarked. But under measured σ, the expected lift is below the 2σ noise floor, so the rigor-vs-cost trade-off is real.
 
-### A6 · silent-failure + comment-accuracy CRB measurement (NEW 2026-04-29)
+### A6 · silent-failure + comment-accuracy CRB measurement — **CLOSED 2026-04-30 ❌ CLOSE verdict**
+**Result:** Phase 5.3 50-PR run with all 4 v2.1.0 wirings active produces **F1 = 0.268** (P=0.183, R=0.500), a **−0.045 regression vs Phase 5.2's published 0.313** — well outside the σ_F1=0.0086 noise band (>2σ_Δ paired). Critical recall preserved at 0.889; regression is in High recall (−0.097) + cross-language precision. TS held at +0.070 vs P3.5 (graph signals helping); Python/Ruby/Go/Java all regressed. UNMATCHED FP volume jumped from ~51 (Phase 5.2) to 180 — the new wirings emit findings whose extractor candidates don't fuzzy-match back. Per pre-reg, **CLOSE** verdict triggered. Phase 5.2's F1=0.313 remains Soliton's CRB number of record.
+**Recommendation (per `bench/crb/PHASE_5_3_WRITEUP.md`):** flip `agents.silent_failure.enabled` and `agents.comment_accuracy.enabled` defaults back to OFF for benchmark runs (precision-tuning pass needed). Realist-check Step 5.5 wiring is correct but neutral on benchmark; cross-file-impact graphSignals is keep-but-tune-severity-gate. Cost: ~$140 (≈$125 dispatch + $15 judge).
+
+(Original 2026-04-29 entry follows for historical context.)
+
 **Status:** `agents/silent-failure.md` and `agents/comment-accuracy.md` were dead code since v2.0.0 (defined + registered in `plugin.json` but never dispatched by SKILL.md). **Wiring CLOSED 2026-04-29 via PR #51** — Step 4.1 sub-step 3 added with content-trigger conditions matching the agents' own dispatch-rule sections. Defaults flipped to `true` in CHANGELOG_V2.md to match the "available in v2.0" advertisement. README badge bumped 7 → 9.
 
 **CRB measurement remains open.** With realist-check (PR #50) + silent-failure + comment-accuracy (PR #51) all newly wired, a single Phase 5.3 CRB run could measure all three at once for ~$140 (N=1) or ~$420 (N=3).
