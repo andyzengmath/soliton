@@ -197,8 +197,8 @@ If it exists, read the file and parse its YAML frontmatter (the content between 
 - `graph.enabled` -> `config.graph.enabled` (boolean; enables Step 2.8 Graph Signals)
 - `graph.path` -> `config.graph.path` (string; path to pre-built graph — `.json` for full-mode `graph-cli`, `.code-review-graph/graph.db` for partial-mode `code-review-graph`)
 - `graph.timeout_ms` -> `config.graph.timeout_ms` (integer; per-query timeout for Step 2.8; default 500 full-mode, 10000 partial-mode)
-- `agents.silent_failure.enabled` -> `config.agents.silent_failure.enabled` (boolean; default true; opt-out for Step 4.1 conditional dispatch of `agents/silent-failure.md` when diff touches error-handling code)
-- `agents.comment_accuracy.enabled` -> `config.agents.comment_accuracy.enabled` (boolean; default true; opt-out for Step 4.1 conditional dispatch of `agents/comment-accuracy.md` when diff modifies comment lines)
+- `agents.silent_failure.enabled` -> `config.agents.silent_failure.enabled` (boolean; default **false** as of v2.1.1 — was default true in v2.1.0 but Phase 5.3 CRB measurement (PR #68) showed the default-ON status regressed F1 by 0.045; opt-in to dispatch `agents/silent-failure.md` for diffs touching error-handling code)
+- `agents.comment_accuracy.enabled` -> `config.agents.comment_accuracy.enabled` (boolean; default **false** as of v2.1.1 — same Phase 5.3 evidence as silent_failure; opt-in to dispatch `agents/comment-accuracy.md` when diff modifies comment lines)
 - `synthesis.realist_check` -> `config.synthesis.realist_check` (boolean; enables Step 5.5 Realist Check post-synthesis pass via `agents/realist-check.md`)
 - `synthesis.realist_threshold` -> `config.synthesis.realist_threshold` (integer 0-100; confidence floor for CRITICALs the realist-check agent will pressure-test; default 85)
 
@@ -463,13 +463,21 @@ Proceed to **Step 4**.
 
 3. **Content-triggered v2 agent appends** (only when `config.agents == 'auto'`):
    - Append `silent-failure` to the list when ALL of the following hold:
-     - `config.agents.silent_failure.enabled` (default true) is not explicitly set false; AND
+     - `config.agents.silent_failure.enabled` (default **false** as of v2.1.1) is explicitly set to `true` in `.claude/soliton.local.md`; AND
      - The diff contains any of: `try` / `catch` / `except` / `rescue` keyword additions or modifications, `.catch(` / `.then(` Promise constructs, optional-chaining/null-coalescing introductions (`?.` / `??`), return-null / return-empty / return-undefined patterns on error paths, or new mock / stub / fake imports in non-test files.
    - Append `comment-accuracy` to the list when ALL of the following hold:
-     - `config.agents.comment_accuracy.enabled` (default true) is not explicitly set false; AND
+     - `config.agents.comment_accuracy.enabled` (default **false** as of v2.1.1) is explicitly set to `true` in `.claude/soliton.local.md`; AND
      - The diff contains added or modified lines starting (after the leading `+`) with comment markers: `//`, `#`, `/*`, ` *`, `"""`, `'''`, `///`, `--` (SQL), `%` (TeX/Matlab), or `;` (asm).
 
-   These two agents are deliberately omitted from the risk-scorer's `recommendedAgents` table because their value is content-driven, not risk-level-driven. They only fire on diffs that actually touch the relevant patterns; on a PR with no try/catch and no comment edits, neither is dispatched.
+   These two agents are deliberately omitted from the risk-scorer's `recommendedAgents` table because their value is content-driven, not risk-level-driven. The default-OFF status (as of v2.1.1) reflects Phase 5.3 CRB evidence (PR #68) that default-ON status regressed F1 by 0.045 — the agents emit useful specialist findings but at a precision profile CRB's golden set doesn't reward. Integrators who want them on PRs with relevant content should opt in via `.claude/soliton.local.md`:
+
+   ```yaml
+   agents:
+     silent_failure:
+       enabled: true
+     comment_accuracy:
+       enabled: true
+   ```
 
 4. Remove any agents listed in `config.skipAgents` (from `--skip` flag).
 

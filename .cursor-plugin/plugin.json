@@ -1,6 +1,6 @@
 {
   "name": "soliton",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Intelligent multi-agent PR review with adaptive risk-based dispatch. Sends 2-9 specialized agents based on risk score.",
   "author": {
     "name": "andyzengmath"
