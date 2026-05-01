@@ -62,7 +62,7 @@ jobs:
           fetch-depth: 0
 
       - name: Clone Soliton
-        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - uses: anthropics/claude-code-action@v1
         env:
@@ -160,7 +160,7 @@ See: [`examples/workflows/soliton-review-interactive.yml`](../examples/workflows
           aws-region: us-east-1
 
       - name: Clone Soliton plugin
-        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - uses: anthropics/claude-code-action@v1
         env:
@@ -337,7 +337,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Clone Soliton plugin
-        run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
       - name: Run Soliton review
         id: soliton
         uses: anthropics/claude-code-action@v1
@@ -395,7 +395,7 @@ Pin to a specific release tag for stability:
 
 ```yaml
 - name: Clone Soliton
-  run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+  run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
 ```
 
 ## Security Considerations
@@ -419,9 +419,9 @@ Pin to a specific release tag for stability:
   prevent leaking code context in logs
 - **Plugin integrity**: Pin soliton to a specific version tag to prevent supply chain attacks:
   ```yaml
-  # Replace v0.0.2 with the latest release tag from
+  # Replace v2.1.1 with the latest release tag from
   # https://github.com/andyzengmath/soliton/releases
-  run: git clone --depth 1 --branch v0.0.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
+  run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
   ```
 - **OIDC permissions**: Only add `id-token: write` when using AWS Bedrock or Google
   Vertex AI. The default Anthropic API key flow does not need it

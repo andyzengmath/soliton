@@ -76,7 +76,7 @@ soliton.
 
 ### Also close the TODO in `examples/workflows/soliton-review-tiered.yml`
 
-- [ ] Once v2 is tagged (e.g., `v2.0.0`), update the `Clone Soliton` step in `examples/workflows/soliton-review-tiered.yml` from `--branch v0.0.2` to the new tag.
+- [x] **Done 2026-04-30** (PRs #72 + #73 + #77 + #79). All `examples/workflows/*.yml` files now clone `--branch v2.1.1`; `docs/ci-cd-integration.md` quickstart snippets bumped via PR #79. Original TODO retained as a checked-off item for traceability.
 
 ---
 

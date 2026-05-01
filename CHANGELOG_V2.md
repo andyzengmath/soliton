@@ -215,8 +215,8 @@ Update Step 5 (synthesis) to:
 | Flag | Default | Effect |
 |---|---|---|
 | `synthesis.realist_check` | `false` | Run `agents/realist-check.md` as post-synthesis pressure-test pass (wired in PR #50) |
-| `agents.silent_failure.enabled` | `true` | Content-triggered: dispatch when diff touches error-handling code (wired in this PR) |
-| `agents.comment_accuracy.enabled` | `true` | Content-triggered: dispatch when diff modifies comment lines (wired in this PR) |
+| `agents.silent_failure.enabled` | `false` (was `true` in v2.1.0; reverted in v2.1.1 per Phase 5.3 evidence) | Content-triggered: dispatch when diff touches error-handling code (wired in this PR) |
+| `agents.comment_accuracy.enabled` | `false` (was `true` in v2.1.0; reverted in v2.1.1 per Phase 5.3 evidence) | Content-triggered: dispatch when diff modifies comment lines (wired in this PR) |
 | `stack.auto_detect` | `false` | Auto-detect Graphite/gherrit stack via `gt` CLI on PATH |
 
 CLI flags (new): `--parent <PR#>`, `--parent-sha <SHA>`, `--stack-auto`.
