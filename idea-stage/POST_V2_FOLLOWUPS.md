@@ -10,16 +10,24 @@ Entries reference `idea-stage/IDEA_REPORT.md` idea numbers (I1–I20) where appl
 
 ## A · Validation gaps (highest leverage; mostly $0)
 
-### A1 · Tier-0 (Step 2.6) end-to-end dogfood
-**Status:** code shipped (`skills/pr-review/tier0.md` + `rules/tier0-tools.md` + workflow `examples/workflows/soliton-review-tiered.yml`); activation path documented (PR #40); never empirically validated.
+### A1 · Tier-0 (Step 2.6) end-to-end dogfood — **CLOSED 2026-05-01 (SHIP — derived from C1)**
+**Status:** ✅ closed via derivation. The C1 PetClinic dogfood (PR #71) recorded Tier-0 verdicts on 10 PRs. Re-aggregating: 6 of 10 PRs (60 %) hit `clean` verdict, well above the §A1 30 % LLM-skip threshold. Two known-unflagged CRITICAL classes the LLM swarm caught (PR 2093 gradle-wrapper sha256 removal, PR 1878 Thymeleaf `${addVisit}` typo) bound the escape-rate observation; both are Tier-0-rule-extension opportunities tracked as §C1.B follow-ups. Writeup: `bench/graph/a1-a2-derivation.md`. Methodology caveat: simulator-derived (single-agent C1 dogfood); a signal-grade re-run with full swarm dispatch projects ~$15-25 — deferred to §C1.B.
+
+**(Pre-2026-05-01 status preserved for context:)**
+
+code shipped (`skills/pr-review/tier0.md` + `rules/tier0-tools.md` + workflow `examples/workflows/soliton-review-tiered.yml`); activation path documented (PR #40); never empirically validated.
 **Why blocked-feeling:** original IDEA_REPORT projection ($0.40 → $0.10 median per-PR cost, 60 % LLM-skip rate) is unsubstantiated. Cost claim depends on this lever firing.
 **What it takes:** 10–20 real PRs reviewed twice (with `tier0.enabled: true` + `tier0.skip_llm_on_clean: true` vs. without), measure: (a) Tier-0 verdict distribution, (b) LLM-skip rate, (c) FP escape rate (real bugs Tier-0 missed that LLM caught).
 **Cost:** ~$5–$15 (LLM-skip path is cheap by definition). Engineering effort: 0.
 **Closes:** I1 ship-criterion of "> 40 % of PRs resolved by Tier-0 alone, < 2 % escape".
 **σ-aware ship criterion (revised 2026-04-29):** "< 2 % escape" needs n ≥ 50 to clear the σ_escape ≈ 1/√n ≈ 14 % per-PR floor at n=10. At n=20 the binomial Wilson CI is roughly ±10pp, so 0/20 escapes only proves escape rate < ~17 % at 95 % CI. Either expand to n=50 *or* re-state the criterion as "0 escapes observed at n=20" (which is informational, not a probabilistic guarantee).
 
-### A2 · Spec Alignment (Step 2.7) end-to-end dogfood
-**Status:** code shipped (`agents/spec-alignment.md` + Step 2.7); activation path documented (PR #40); never empirically validated.
+### A2 · Spec Alignment (Step 2.7) end-to-end dogfood — **CLOSED 2026-05-01 (SHIP — derived from C1)**
+**Status:** ✅ closed via derivation. The C1 PetClinic dogfood (PR #71) recorded spec-alignment verdicts on 10 PRs. Re-aggregating: 8 of 10 PRs emitted `SPEC_ALIGNMENT_START` blocks (the other 2 correctly emitted `SPEC_ALIGNMENT_NONE` due to empty PR bodies / no spec source). At least 1 real spec-vs-diff mismatch surfaced (PR 2133's mischaracterisation finding — claimed "Replaced deprecated MySQLContainer" but the class was modularised, not deprecated). Pre-reg "≥ 1 SPEC_ALIGNMENT block" cleared multiple times over. Writeup: `bench/graph/a1-a2-derivation.md`. Methodology caveat: simulator-derived; a real `soliton:spec-alignment` Haiku dispatch likely produces more findings, not fewer.
+
+**(Pre-2026-05-01 status preserved for context:)**
+
+code shipped (`agents/spec-alignment.md` + Step 2.7); activation path documented (PR #40); never empirically validated.
 **Why important:** SWR-Bench / SWE-PRBench show functional-change detection F1 26.2 % vs. evolutionary 14.3 % — spec-alignment puts review on the high-signal side.
 **What it takes:** pick 5 PRs with explicit acceptance criteria (PR description with checkboxes, linked issue with criteria, REVIEW.md). Run `/pr-review <PR#>` with `spec_alignment.enabled: true`. Verify `SPEC_ALIGNMENT_START` block appears + flagged unsatisfied criteria are real.
 **Cost:** ~$5. Engineering effort: 0.
