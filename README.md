@@ -23,6 +23,8 @@ A Claude Code & Cursor plugin that runs 2-9 specialized review agents **in paral
 
 > **Validated on real enterprise PRs.** The [PetClinic dogfood](bench/graph/enterprise-java-dogfood.md) ran Soliton v2.1.1 against 10 merged PRs in [`spring-projects/spring-petclinic`](https://github.com/spring-projects/spring-petclinic) covering Spring Boot 3.5/4.0 migrations, build-supply-chain integrity, Thymeleaf templates, and JPA contract regressions. Four oracle-grade catches: gradle-wrapper `distributionSha256Sum` removal (CWE-494, missed by the human reviewer); `--release 17` flag drop (independently caught + reverted by maintainer [@snicoll](https://github.com/snicoll) in `fc1c749`); Thymeleaf `${addVisit}` variable-vs-message-key typo; `Collectors.toList()` immutability regression on a JAXB-marshalled API. Cumulative spend: ~$2.38 across 10 reviews. See the writeup for per-PR table + methodology caveats.
 
+> **Cost-normalised F1.** On the [Martian CRB Phase 5.2 corpus](bench/crb/cost-normalised-f1.md) (50 PRs across Python/TypeScript/Java/Go/Ruby), Soliton's projected mean cost is **$0.366/PR (\$1.17 per F1 unit; F1/$ = 0.855)** at v2.1.1 risk-adaptive dispatch. In real-world PR streams (with §A1 PetClinic's 60% Tier-0 fast-path eligibility carrying through), the projection drops to **$0.146/PR ($0.47 per F1 unit; F1/$ ≈ 2.14)** — comfortably above the §C2 ship threshold. CRB measures review-quality-on-hard-cases-per-dollar; real-world measures integrator-cost-per-PR-stream. Both are publishable; see writeup for methodology caveats (per-tier projections, not measurements; harness instrumentation pending).
+
 ## Quick Start
 
 ```bash
