@@ -12,11 +12,39 @@ Items closed after the v2.1.2 release tag was published. None require a new rele
 - **§C1.B Apache Camel full-swarm dogfood** — SHIP via PR #89 (full-swarm dispatch on 10 Camel PRs; 5 CRITICAL + 19 IMPROVEMENT + 7 NITPICK at ~\$3.28). Closes the simulator caveat from C1 PetClinic scout. Was listed in v2.1.2 §"Deferred to next release"; now closed.
 - **§G3 stack-awareness orchestrator wiring (partial)** — SHIP via PR #92 (SKILL.md Step 1 Mode B step 4 wired with `--parent` / `--parent-sha` / `--stack-auto` branching, `git diff ${parentRef}...pr-${prNumber}` reconstruction, Format B JSON output `metadata.stackParent` field). Lockstep follow-ups via PR #93 (templates/soliton.local.md `stack:` config block, README architecture diagram Step 1.5 line, POST_V2_FOLLOWUPS §G3 PARTIAL CLOSURE annotation). Was listed in v2.1.2 §"Deferred to next release"; orchestrator-wiring half now closed. Remaining open arms tracked under §G3 (Mode A stacked support, gt-binary `--stack-auto` E2E, end-to-end /pr-review-driven fixture assertion auth-gated on PR #65, whole-stack review mode).
 - **§G3 schema-only fixture** — `tests/fixtures/stacked-pr-basic/` added in PR #92 (diff.patch + 11-field expected.json with stackParentRequired + stackParentMetadata schema). Structural validation passes; full /pr-review-driven assertion deferred to ANTHROPIC_API_KEY-gated CI.
-- **POST_V2_FOLLOWUPS § Ranked priorities footer refreshed** — PR #91 (post-C1.B SHIP), PR #94 (post-G3 partial closure). Living register reflects current closures.
+- **POST_V2_FOLLOWUPS § Ranked priorities footer refreshed** — PR #91 (post-C1.B SHIP), PR #94 (post-G3 partial closure), PR #102 (Phase 6 design as new #1 priority).
+
+### Strategic checkpoint + plan-vs-shipped audit (2026-05-01)
+
+3-agent strategic audit (analyst + scientist + research) surfaced 5 plan-vs-shipped gaps (graph signals spec-only, hallucination-AST orphaned, Evidence Chain never built, cost target $0.146 vs $0.10 promised, 3 dormant agents marketing). Closed 2 of 5:
+- **Gap #4 cost target accuracy** — `IDEA_REPORT.md` § 8 measured-reality callout (PR #101): \$0.40→\$0.146 (64% drop) measured vs projected 73%; CRB F1/\$ = 0.855, real-world F1/\$ ≈ 2.14.
+- **Gap #5 default-7-agents marketing** — README + `.cursor-plugin/plugin.json` clarified that default install dispatches 2-7 review agents; up to 9 with silent-failure + comment-accuracy opt-in (PR #100). "No competitor on Martian CRB publishes F1/\$" added as first-mover claim.
+
+Remaining 3 gaps blocked: #1 needs sibling repo `graph-cli` binary, #2 partially addressed by Phase 6 path, #3 multi-week feature work.
+
+### Phase 6 prep — Java-only L5 cross-file retrieval (Strategic Option B)
+
+Following the strategic audit's recommendation, three PRs landed the **Phase 6** infrastructure (default-OFF; benchmark validation gated on user authorization):
+
+- **PR #102** — `bench/crb/PHASE_6_DESIGN.md` (158 lines): scope-before-build design with σ-aware pre-registered SHIP/HOLD/CLOSE criteria. Hypothesis: Phase 4c.1's Java +0.046 at 2.6σ_lang was real signal; removing the `NOT_FOUND_IN_TREE` suppression (the Go regression driver) recovers the lift cleanly. Expected aggregate: +0.009 → ~0.322.
+- **PR #104** — Phase 6a code: new `skills/pr-review/cross-file-retrieval.md` (Java-only, 97 lines, **NO suppression rule**), `agents/correctness.md` Section 2.5 conditional, config flag `agents.cross_file_retrieval_java.enabled` (default OFF). Behavioral default unchanged.
+- **PR #105** — Phase 6b scripts: `dispatch-phase6.sh` + `run-phase6-pipeline.sh` (scaffolding only, no spend triggered).
+
+Phase 6b CRB measurement (~\$140 single bounded run) awaits explicit user `ship Phase 6b` authorization.
+
+### Doc-debt cleanup cycles (audit-driven, post-v2.1.2)
+
+5 iterative audit cycles surfaced and closed minor drift:
+- **PR #95** — CHANGELOG Unreleased section created (this section).
+- **PR #96** — fixture-runner stacked-PR field type-checks; Phase 6 placeholder fixture deferred.
+- **PR #97** — `11 fixtures` → `16 fixtures` refresh across CI workflow + POST_V2_FOLLOWUPS §G2.
+- **PR #98** — IDEA_REPORT G7 stack-awareness ⚪→◐ partial closure annotation; C1 enterprise dogfood validation callout linking PRs #71 + #89.
+- **PR #99** — agent-file self-documenting default-OFF / default-skip callouts (silent-failure + comment-accuracy + test-quality + consistency); enterprise-java-dogfood footer SHIP annotation.
+- **PR #103** — `RESULTS.md` header forward-pointer to `PHASE_6_DESIGN.md`.
 
 ### Cumulative spend since v2.1.2 cut
 
-~\$3.28 (PR #89 C1.B Apache Camel swarm). All other PRs in this window are doc/eng-only.
+~\$3.28 (PR #89 C1.B Apache Camel swarm). All other PRs in this window are doc/eng-only — no LLM dispatch spend.
 
 ---
 
