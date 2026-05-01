@@ -237,8 +237,19 @@ Surfaced by the parallel audit-team pass after PR #51 (judge-noise + 3 wiring PR
 Recommended new fixtures for the auth-blocked phase: `realist-check-downgrade-rejected` (verifies the no-mitigation-cited guard from PR #50's Step 5.5), `silent-failure-fires-on-trycatch` (PR #51 wiring), `comment-accuracy-fires-on-comment-edit` (PR #51 wiring).
 **Cost to fully close:** ~$0 API once secret is set + small engineering (~half-day to extend runner with `--mode pr-review`).
 
-### G3 · I8 stack-awareness flag parsed but orchestrator logic missing
-**Status:** SKILL.md § "Supported Flags" documents `--parent <PR#>`, `--parent-sha <SHA>`, `--stack-auto` as v2 flags. The flags are **parsed** in Step 1 (Mode A / Mode B) but **no orchestrator logic computes the stacked-PR delta**. A user who runs `/pr-review --parent 42` thinks they're getting "review delta vs parent PR's head" but actually gets the same v1 base-vs-head diff.
+### G3 · I8 stack-awareness orchestrator logic — **PARTIAL CLOSURE 2026-05-01 (PR #92)**
+
+**Status:** ✅ orchestrator-wiring half closed. SKILL.md Step 1 Mode B step 4 now branches on `--parent` / `--parent-sha` / `--stack-auto` flags and reconstructs the diff via `git diff ${parentRef}...pr-${prNumber}` per the rules/stacked-pr-mode.md spec. SKILL.md Step 6 Format B `metadata.stackParent` field declared. `tests/fixtures/stacked-pr-basic/` schema-only fixture passes structural validation. `templates/soliton.local.md` `stack:` config block added (commented-out). README architecture diagram includes Step 1.5 stack-mode line.
+
+**Remaining open arms (post-PR #92):**
+- **Mode A (local branch) stacked-PR support** — only Mode B (PR number) wired in PR #92. Mode A would need git fetch logic to resolve parent PR head locally. Lower priority since stacked PRs naturally land via Mode B in CI; tracker: `--branch <name> --parent-sha <SHA>` use-case.
+- **End-to-end /pr-review-driven fixture assertion** — auth-gated on PR #65 OAuth-token equivalent. Schema-only validation passes today.
+- **`gt`-binary `--stack-auto` end-to-end** — requires Graphite installation + integration test environment. Currently the orchestrator path exists but no automated test exercises it.
+- **Whole-stack review mode** (multi-rung stack context) — explicitly deferred per rules/stacked-pr-mode.md § Future work.
+
+**(Pre-2026-05-01 status preserved for context:)**
+
+SKILL.md § "Supported Flags" documents `--parent <PR#>`, `--parent-sha <SHA>`, `--stack-auto` as v2 flags. The flags are **parsed** in Step 1 (Mode A / Mode B) but **no orchestrator logic computes the stacked-PR delta**. A user who runs `/pr-review --parent 42` thinks they're getting "review delta vs parent PR's head" but actually gets the same v1 base-vs-head diff.
 **Why it matters:** UX-misleading (silent flag rejection); strategic-fit blocker for enterprise rebuild (per IDEA_REPORT § I8, feature-chain PRs in legacy Java/COBOL rebuilds are inherently stacked). Not currently a runtime crash, just a no-op.
 **What it takes:** edit Step 1 (Input Normalization) to compute `git diff parent_pr_sha...HEAD` instead of `baseBranch...HEAD` when `--parent` set. Mode A (local branch) needs git fetch logic to resolve parent PR head. Mode B (PR number) needs to chain `gh pr view <parent> --json headRefOid` before fetching the diff. Maybe ~1 week engineering including tests.
 **Cost:** $0 API + ~1 week engineering.
