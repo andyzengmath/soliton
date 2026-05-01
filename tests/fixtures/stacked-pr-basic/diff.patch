@@ -1,0 +1,17 @@
+diff --git a/src/auth/session.py b/src/auth/session.py
+index abc1234..def5678 100644
+--- a/src/auth/session.py
++++ b/src/auth/session.py
+@@ -42,6 +42,12 @@ def validate_session(token: str, now: datetime) -> SessionResult:
+     if session.expires_at < now:
+         return SessionResult.expired
+     return SessionResult.valid
++
++
++def revoke_session(token: str) -> bool:
++    """Revoke a session token. Returns True if the session existed and was revoked."""
++    session = session_store.get(token)
++    if session is None:
++        return False
++    session_store.delete(token)
++    return True

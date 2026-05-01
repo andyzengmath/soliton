@@ -111,14 +111,38 @@ If `target` is a number (e.g., `123`) or a GitHub PR URL (e.g., `https://github.
    - `comments` — existing PR comments (store as `existingComments`)
    - `reviews` — existing reviews (append to `existingComments`)
 
-4. **Fetch unified diff:**
+4. **Fetch unified diff (stack-mode aware, v2):**
+
+   Stack-mode flags (`--parent <N>`, `--parent-sha <SHA>`, `--stack-auto`) modify which delta is reviewed. See `rules/stacked-pr-mode.md` for the full protocol; the orchestrator dispatch is below.
+
+   **Resolve `parentRef`:**
+   - If `--parent-sha <SHA>` is provided, set `parentRef = <SHA>` and `parentNumber = null`.
+   - Else if `--parent <N>` is provided, fetch parent metadata: `gh pr view ${N} --json headRefOid,title,baseRefName,mergeable,state` and set `parentRef = <headRefOid>`, `parentNumber = N`, `parentTitle = <title>`. **Validate** the parent is not merged (per `rules/stacked-pr-mode.md`); on validation failure, error and STOP.
+   - Else if `--stack-auto` is set AND `gt` binary is on PATH, run the auto-detect block from `rules/stacked-pr-mode.md` § Graphite-specific integration. If a parent PR# is detected, treat as if `--parent <N>` was passed.
+   - Else `parentRef = null` (no stack mode).
+
+   **Fetch the diff:**
    ```bash
-   gh pr diff ${prNumber}
+   if [ -n "$parentRef" ]; then
+     # Stack mode: review delta vs parent's head SHA, not main
+     git fetch origin "pull/${prNumber}/head:pr-${prNumber}" 2>/dev/null
+     [ -n "$parentNumber" ] && git fetch origin "pull/${parentNumber}/head:pr-${parentNumber}" 2>/dev/null
+     git diff "${parentRef}...pr-${prNumber}"
+   else
+     gh pr diff ${prNumber}
+   fi
    ```
    Store as `diff`.
 
+   **Augment `prDescription` when stack mode is active** (helps downstream agents avoid flagging "missing function foo" when foo was added in the parent PR, not this one). Prepend:
+   ```
+   [Stacked PR — reviewed vs parent PR #<parentNumber>: <parentTitle>]
+
+   <original description>
+   ```
+
 5. **Check for empty diff:**
-   If `diff` is empty, output: `No changes detected on PR #${prNumber}.` and **STOP**.
+   If `diff` is empty, output: `No changes detected on PR #${prNumber}.` (or `... vs parent PR #<parentNumber>` in stack mode) and **STOP**.
 
 6. **Construct ReviewRequest:**
    ```
@@ -127,10 +151,11 @@ If `target` is a number (e.g., `123`) or a GitHub PR URL (e.g., `https://github.
      prNumber: <extracted PR number>
      baseBranch: <from PR metadata>
      headBranch: <from PR metadata>
-     diff: <unified diff from gh pr diff>
+     diff: <unified diff from gh pr diff OR stack-mode delta>
      files: <FileChange array from PR metadata>
-     prDescription: <PR title + body>
+     prDescription: <PR title + body, plus stacked-PR header when stack mode active>
      existingComments: <comments and reviews from PR metadata>
+     stackParent: <{pr: parentNumber, headSha: parentRef, title: parentTitle} when stack mode active; else null>
      config: <see Step 2 for config resolution>
    }
    ```
@@ -774,6 +799,7 @@ Output ONLY a valid JSON object with no surrounding text, no markdown, no emoji,
     "completedAgents": <number>,
     "failedAgents": ["<agent names>"],
     "reviewDurationMs": <elapsed milliseconds since reviewStartTime>,
+    "stackParent": <{"pr": <parentNumber>, "headSha": "<SHA>", "title": "<parentTitle>"} when stack mode active per Step 1 Mode B; else null>,
     "totalTokens": {
       "input": <number; sum of usage.input_tokens across every Agent dispatch (Step 3 risk-scorer + Step 4 review agents + Step 5 synthesizer + optional Steps 2.7 spec-alignment / 5.5 realist-check)>,
       "output": <number; sum of usage.output_tokens>,
