@@ -87,7 +87,7 @@ Structural change classes surfaced as non-blocking annotations:
 - `function_signature_changed` → hint to `cross-file-impact` agent
 - `control_flow_added` → hint to `correctness` agent
 - `import_added` → hint to `hallucination` agent
-- `error_handling_changed` → hint to `silent-failure` agent (I7)
+- `error_handling_changed` → hint to `silent-failure` agent (I7) when explicitly enabled (default-OFF since v2.1.1 per Phase 5.3 evidence; opt in via `agents.silent_failure.enabled: true` in `.claude/soliton.local.md`)
 - `type_changed` → hint to `cross-file-impact` + `correctness`
 
 These are hints, not findings. They're attached to the risk-scorer's focus areas.
