@@ -1,0 +1,23 @@
+diff --git a/src/auth/middleware.py b/src/auth/middleware.py
+index 1234567..89abcde 100644
+--- a/src/auth/middleware.py
++++ b/src/auth/middleware.py
+@@ -15,12 +15,15 @@ def authenticate_request(
+     request: Request,
+     session_store: SessionStore,
++    rate_limiter: RateLimiter,
+ ) -> AuthResult:
+     """Validate the request's session and rate-limit cookie.
+
+     Args:
+         request: incoming HTTP request
+         session_store: pluggable backend (Redis or in-memory)
+
+     Returns:
+         AuthResult.authenticated if session is valid; .rate_limited if cookie
+         indicates the IP has exceeded its budget; .unauthenticated otherwise.
+     """
+     session = session_store.get(request.cookies.get("session_id"))
++    if rate_limiter.is_blocked(request.remote_addr):
++        return AuthResult.rate_limited
+     if session is None or session.expired():

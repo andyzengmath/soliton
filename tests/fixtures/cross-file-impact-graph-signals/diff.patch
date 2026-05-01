@@ -1,0 +1,22 @@
+diff --git a/lib/auth/session_validator.ts b/lib/auth/session_validator.ts
+index 7777aaa..8888bbb 100644
+--- a/lib/auth/session_validator.ts
++++ b/lib/auth/session_validator.ts
+@@ -10,11 +10,18 @@ export interface ValidatedSession {
+   role: 'admin' | 'user';
+ }
+
++/**
++ * Validate the session token and return the resolved session — OR throw if
++ * invalid. v2 signature change: the second parameter `now` is now required.
++ */
+ export async function validateSession(
+   token: string,
++  now: Date,
+ ): Promise<ValidatedSession> {
+   const decoded = await jwt.verify(token, SECRET);
+-  if (decoded.exp < Date.now()) {
++  if (decoded.exp < now.getTime()) {
+     throw new SessionExpiredError(token);
+   }
+   return {

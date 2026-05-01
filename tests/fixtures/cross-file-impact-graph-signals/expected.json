@@ -1,0 +1,11 @@
+{
+  "riskRange": [55, 85],
+  "expectedFindings": 1,
+  "expectedCategories": ["cross-file-impact"],
+  "expectedSeverity": "critical",
+  "graphEnabled": true,
+  "graphSignalsConsumed": true,
+  "expectedDependencyBreaksFromGraph": ">=2",
+  "agentTriggerHint": "diff adds a required `now: Date` parameter to validateSession; pre-built graph at .code-review-graph/graph.db should expose 2+ inbound CALLS edges in lib/api/* and lib/middleware/* that pass only the token argument and now break",
+  "description": "Pre-PR signature was validateSession(token: string); the v2 signature adds a required `now: Date` second parameter. When graph.enabled=true and graphSignals.dependencyBreaks[] is non-empty (Step 2.8 emits the pre-computed caller list at confidence 90), the cross-file-impact agent (Step 4.2) consumes the deterministic graph data instead of falling back to v1 Grep-based caller discovery. The agent must emit a CRITICAL finding citing each graph-derived caller location, with confidence 90 (graph signals are deterministic). Per agents/cross-file-impact.md post-PR-#61: when graphSignals.dependencyBreaks present, run Step 1.5 graph-driven path; when absent, fall through to v1 Grep behavior — no behavior change for users without graph.enabled."
+}

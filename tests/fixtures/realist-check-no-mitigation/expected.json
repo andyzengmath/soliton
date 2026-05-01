@@ -1,0 +1,11 @@
+{
+  "riskRange": [80, 100],
+  "expectedFindings": 2,
+  "expectedCategories": ["security", "correctness"],
+  "expectedSeverity": "critical",
+  "realistCheckEnabled": true,
+  "realistCheckHeldCritical": true,
+  "downgradeRejected": true,
+  "agentTriggerHint": "diff (a) drops the is_admin authorization check on grant_admin and (b) introduces SQL injection via f-string concatenation",
+  "description": "Two CRITICAL findings expected: (1) security agent emits CRITICAL for the dropped is_admin check on grant_admin (privilege-escalation enabler — any caller can now grant admin to any user); (2) security agent emits CRITICAL for SQL injection via f-string user_id/granted_by concatenation (CWE-89, OWASP A03). Realist-check (Step 5.5) must run when synthesis.realist_check=true. The defensive guard at agents/realist-check.md says 'never accept a downgrade adjustment that lacks a concrete mitigation field with at least one <file>:<line> citation' — so any LLM attempt to downgrade either CRITICAL to IMPROVEMENT without a Mitigated-by citation must be rejected. Both findings stay at CRITICAL. The TODO comment is bait — it provides hindsight rationale but no real mitigation; realist-check must not accept it as Mitigated-by."
+}

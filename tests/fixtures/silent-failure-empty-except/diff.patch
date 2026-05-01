@@ -1,0 +1,22 @@
+diff --git a/src/services/payment_processor.py b/src/services/payment_processor.py
+index abc1234..def5678 100644
+--- a/src/services/payment_processor.py
++++ b/src/services/payment_processor.py
+@@ -42,9 +42,13 @@ def charge_card(card_token: str, amount_cents: int) -> ChargeResult:
+     """Charge a card via the upstream gateway. Returns ChargeResult.success on
+     success; on gateway error, logs and re-raises."""
+-    response = gateway.charge(card_token, amount_cents)
+-    if not response.ok:
+-        log.error("gateway_error", status=response.status, body=response.body)
+-        raise GatewayError(response.status, response.body)
+-    return ChargeResult(success=True, transaction_id=response.transaction_id)
++    try:
++        response = gateway.charge(card_token, amount_cents)
++        if not response.ok:
++            log.error("gateway_error", status=response.status, body=response.body)
++            raise GatewayError(response.status, response.body)
++        return ChargeResult(success=True, transaction_id=response.transaction_id)
++    except Exception:
++        # swallow — caller will retry
++        pass
++    return ChargeResult(success=False, transaction_id=None)
