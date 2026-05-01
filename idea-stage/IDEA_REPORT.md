@@ -89,30 +89,30 @@ Four observations that matter:
 
 Tier A = Critical for 2-month phase. Tier B = Important, ship by month 3-6. Tier C = Strategic / longer.
 
-| Gap ID | Gap description | Impact | Cost | Tier |
-|---|---|---|---|---|
-| G1 | No deterministic pre-LLM filter — lints / types / secrets / SCA all cost LLM tokens | 5 | 1 | **A** |
-| G2 | No graph-awareness — blast radius / taint / dep-break computed by grep or LLM | 5 | 3 | **A** |
-| G3 | No spec-alignment stage — can't verify PR implements intended change | 4 | 2 | **A** |
-| G4 | No deterministic AST hallucination check — Opus agent does work a free tool could | 4 | 2 | **A** |
-| G5 | No Haiku-tiered dispatch — eligibility / summarization / scoring all use Sonnet | 3 | 1 | **A** |
-| G6 | No silent-failure / comment-rot / license / type-design dimension agents | 3 | 2 | B |
-| G7 | No stack-awareness — PR #3 of 3-stack reviewed as if standalone | 3 | 2 | B |
-| G8 | No verification / realist-check pass before surfacing | 3 | 2 | B |
-| G9 | No Martian-CRB number published | 4 | 2 | **A** |
-| G10 | No learnings loop — dismissed findings don't suppress similar future findings | 3 | 3 | B |
-| G11 | No execution-sandbox verify-fix | 4 | 4 | C |
-| G12 | No multi-model / tri-model cross-check | 3 | 3 | C |
-| G13 | No pre-merge-checks DSL (CodeRabbit-style NL blockers) | 2 | 2 | B |
-| G14 | No hunk-grouping / tri-state severity UX | 2 | 1 | B |
-| G15 | No calibrated token-level confidence (Lin 2026 style) | 3 | 3 | C |
-| G16 | Context assembly not narrow enough for SWE-PRBench-style degradation avoidance | 3 | 2 | B |
-| G17 | No inline-comment posting (single-block today) | 2 | 2 | B |
-| G18 | No pre-existing-bug severity (purple) | 2 | 1 | B |
-| G19 | No cross-run state / auto-resolution tracking | 2 | 3 | C |
-| G20 | No LSP / ast-grep tool access for cross-file / hallucination agents | 3 | 3 | C |
+| Gap ID | Gap description | Impact | Cost | Tier | Status (2026-05-01, v2.1.2) |
+|---|---|---|---|---|---|
+| G1 | No deterministic pre-LLM filter — lints / types / secrets / SCA all cost LLM tokens | 5 | 1 | **A** | ✅ shipped via v2.0.x Tier-0 (Step 2.6); rate-sheet + install cheatsheet in `rules/tier0-tools.md` |
+| G2 | No graph-awareness — blast radius / taint / dep-break computed by grep or LLM | 5 | 3 | **A** | ◐ partial — partial-mode shipped via PR #39 (`info` + `dependencyBreaks`); MCP shim for the other 5 queries lives at PR #67 (Linux smoke deferred) |
+| G3 | No spec-alignment stage — can't verify PR implements intended change | 4 | 2 | **A** | ✅ shipped via v2.0.x Spec Alignment (Step 2.7); 8 of 10 PetClinic PRs emitted SPEC_ALIGNMENT blocks (§A2 derivation, PR #74) |
+| G4 | No deterministic AST hallucination check — Opus agent does work a free tool could | 4 | 2 | **A** | ✅ shipped via `lib/hallucination-ast/` (Khati 2026 protocol; PR #26; F1=0.968 on Khati's 200-sample corpus) |
+| G5 | No Haiku-tiered dispatch — eligibility / summarization / scoring all use Sonnet | 3 | 1 | **A** | ✅ shipped via `rules/model-tiers.md` upgrades (risk-scorer + synth dedup + spec-alignment + comment-accuracy → Haiku; ~45% projected MEDIUM-PR cost drop $0.40 → $0.22) |
+| G6 | No silent-failure / comment-rot / license / type-design dimension agents | 3 | 2 | B | ◐ partial — silent-failure + comment-accuracy shipped via v2.1.0 (PR #51); reverted to default-OFF in v2.1.1 per Phase 5.3 evidence; license + type-design still backlog |
+| G7 | No stack-awareness — PR #3 of 3-stack reviewed as if standalone | 3 | 2 | B | ⚪ partial — `--parent <PR#>` flag parsed but no orchestrator logic; tracked as POST_V2_FOLLOWUPS §G3 (~1 week eng) |
+| G8 | No verification / realist-check pass before surfacing | 3 | 2 | B | ✅ shipped via v2.1.0 Step 5.5 Realist Check (PR #50; default-OFF; opt-in via `synthesis.realist_check: true`) |
+| G9 | No Martian-CRB number published | 4 | 2 | **A** | ✅ shipped — Phase 5.2 F1=0.313 (CRB number of record) + cost-normalised F1 derivation in v2.1.2 (PR #83): F1/$ = 0.855 CRB HOLD / ≈ 2.14 real-world SHIP. Both publishable. |
+| G10 | No learnings loop — dismissed findings don't suppress similar future findings | 3 | 3 | B | ⚪ open |
+| G11 | No execution-sandbox verify-fix | 4 | 4 | C | ⚪ Tier-C backlog |
+| G12 | No multi-model / tri-model cross-check | 3 | 3 | C | ⚪ Tier-C backlog (POST_V2_FOLLOWUPS §I10) |
+| G13 | No pre-merge-checks DSL (CodeRabbit-style NL blockers) | 2 | 2 | B | ⚪ backlog (POST_V2_FOLLOWUPS §I11) |
+| G14 | No hunk-grouping / tri-state severity UX | 2 | 1 | B | ⚪ backlog (POST_V2_FOLLOWUPS §I12) |
+| G15 | No calibrated token-level confidence (Lin 2026 style) | 3 | 3 | C | ⚪ Tier-C backlog |
+| G16 | Context assembly not narrow enough for SWE-PRBench-style degradation avoidance | 3 | 2 | B | ◐ partial — Step 2.75 large-PR chunking shipped (>1000 lines → <500 LOC chunks reviewed in parallel); finer-grained narrowing still backlog |
+| G17 | No inline-comment posting (single-block today) | 2 | 2 | B | ⚪ backlog |
+| G18 | No pre-existing-bug severity (purple) | 2 | 1 | B | ⚪ backlog |
+| G19 | No cross-run state / auto-resolution tracking | 2 | 3 | C | ⚪ Tier-C backlog |
+| G20 | No LSP / ast-grep tool access for cross-file / hallucination agents | 3 | 3 | C | ⚪ Tier-C backlog |
 
-**Tier-A gaps (5 items, G1 / G2 / G3 / G4 / G5 / G9) are the critical-path work** for the 2-month phase. They collectively move the median cost-per-review from $0.40 → $0.10 (73 % drop) and make the first publishable benchmark possible.
+**Tier-A status as of v2.1.2:** 5 of 6 Tier-A gaps shipped (G1/G3/G4/G5/G9 ✅); G2 partial (partial-mode shipped, MCP shim deferred). Original projection of "median cost-per-review $0.40 → $0.10 (73% drop)" is partially validated: rules/model-tiers.md projects $0.22 for MEDIUM v2 dispatch (45% drop, half the original target); §A1's 60% real-world Tier-0 fast-path closes the rest of the gap (effective $0.146/PR per §C2 derivation = 64% drop from $0.40). **G9 publication closed via Phase 5.2 + cost-normalised F1.**
 
 ---
 
