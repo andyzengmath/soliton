@@ -1,6 +1,6 @@
 # Soliton CRB Results
 
-Placeholder for benchmark outputs. Populated as Phase 2 (POC) and Phase 3 (full corpus) execute.
+Canonical phase log. Numbers of record: **Phase 5.2 F1 = 0.313** (CRB number of record per § Phase 5.2 below). Phase 5.3 (combined v2.1.0 wirings, F1=0.268) was a CLOSE-verdict negative-result experiment whose evidence drove the v2.1.1 revert of silent-failure + comment-accuracy defaults; its full writeup lives at [`PHASE_5_3_WRITEUP.md`](PHASE_5_3_WRITEUP.md) for context. **Cost-normalised F1**: see [`cost-normalised-f1.md`](cost-normalised-f1.md) for §C2 Phase 2 derivation pairing Phase 5.2's 0.313 with projected per-PR cost.
 
 ## Phase 2 · POC (5 PRs, language-diverse)
 

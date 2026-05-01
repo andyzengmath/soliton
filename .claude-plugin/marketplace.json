@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Intelligent multi-agent PR review with adaptive risk-based dispatch",
-    "version": "2.1.1"
+    "version": "2.1.2"
   },
   "plugins": [
     {
       "name": "soliton",
       "source": "./",
       "description": "Risk-adaptive parallel PR review — up to 9 review agents (silent-failure + comment-accuracy default-OFF since v2.1.1) + 4 infrastructure agents (Tier-0 / Spec / Graph / Realist Check feature-flagged)",
-      "version": "2.1.1",
+      "version": "2.1.2",
       "keywords": [
         "pr-review",
         "code-review",

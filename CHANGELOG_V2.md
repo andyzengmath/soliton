@@ -5,6 +5,68 @@ execution on 2026-04-18. All files are additive markdown/YAML — no runtime/bui
 
 ---
 
+## v2.1.2 — 2026-05-01
+
+Patch release covering the post-v2.1.1 cluster (PRs #70 through #85, ~16 PRs total). Schema additions + new rule docs + procurement-readiness derivations. No code-runtime changes; backwards-compatible with v2.1.1 integrators.
+
+### New schema (PR #82)
+
+- `skills/pr-review/SKILL.md` Step 6 Format B `metadata` block adds 5 fields:
+  - `metadata.totalTokens.input` / `.output` / `.cacheCreation` / `.cacheRead` (sum of per-Agent `usage` blocks)
+  - `metadata.costUsd` (computed via per-model rate sheet × token totals; rounded to 4 decimals)
+- Heuristic-fallback caveat documented: Claude Code's Agent tool doesn't surface per-Agent `usage` in return values today, so the orchestrator falls back to a length-based heuristic with `*`-suffix annotation in interactive output. Integrators wanting precise costing wrap dispatch upstream of the orchestrator.
+
+### New rule doc (PR #82)
+
+- `rules/model-pricing.md` (NEW, ~85 lines) — per-MTok rate sheet (Opus 4.x \$15/\$75 in/out; Sonnet 4.x \$3/\$15; Haiku 4.x \$1/\$5; cache writes +25%, reads 90% off; verified 2026-04 against anthropic.com/pricing). Per-Agent → per-model → costUsd algorithm. Bedrock/Vertex `costing.rate_overrides` integrator-override pattern. Cost-attribution caveat (review-pass cost only; excludes coding-agent authoring + Tier-0 deterministic-tool runs + graph index build). Rate-update protocol.
+
+### Procurement-readiness numbers published (PRs #71, #74, #76, #82, #83)
+
+- **C1 PetClinic enterprise-Java dogfood** (PR #71): SHIP verdict on 10 merged PRs; 4 oracle-grade catches (gradle sha256 / `--release 17` flag drop / Thymeleaf typo / Collectors.toList immutability). \$2.38 across 10 reviews.
+- **§A1 Tier-0 LLM-skip rate** (PR #74 derivation): 60% on PetClinic real-world stream.
+- **§A2 Spec-Alignment ≥1 SPEC_ALIGNMENT block** (PR #74): 8 of 10 PRs emitted blocks; 2 correctly downgraded to NONE on empty PR bodies.
+- **§A3 Tier-0 LLM-skip rate on CRB corpus** (PR #76): 0% — informational; CRB is selected for non-trivial cases by design.
+- **§C2 cost-normalised F1** (PR #83 derivation): CRB \$0.366/PR mean (\$1.17 per F1 unit; F1/\$ = 0.855 — HOLD per pre-reg). Real-world projection (with §A1 60% Tier-0 fast-path): \$0.146/PR (\$0.47 per F1 unit; F1/\$ ≈ 2.14 — SHIP).
+
+Both procurement numbers publishable with explicit CRB-vs-real-world framing. Closes IDEA_REPORT G9 publication gap.
+
+### Doc consistency closures (PRs #72, #73, #77, #79, #80)
+
+- `.claude-plugin/marketplace.json` version bumped from v2.0.1 to v2.1.1 → v2.1.2 (this release); description updated to match the 9-review + 4-infrastructure agent registry.
+- `examples/workflows/*.yml` and `docs/ci-cd-integration.md` quickstart snippets bumped from `--branch v0.0.2` (5 stale references) to `--branch v2.1.1` (will follow up to v2.1.2 in a separate PR once this tag is cut and verified).
+- README "7 Review Agents" → "Review Agents" (11-row table with default-state column); architecture diagram bumped from "2-7 agents" to "2-9 agents" + adds Step 2.6/2.7/2.8/5.5 boxes.
+- `rules/tier0-tools.md` — adds spotbugs to SAST table, java entries to lint/type_check schema, and a NEW Installation cheatsheet § with per-language install commands (winget/brew/pip/npm/cargo/Maven-plugin) + Tier-0 self-test recipe.
+- `templates/soliton.local.md` — full rewrite: threshold default 80→85 (Phase 3.5 alignment); commented-out v2 nested feature-flag block; Phase 5.3 evidence section explaining why silent-failure + comment-accuracy default-OFF.
+- `CHANGELOG_V2.md:218-219` (this file's v2.1.0 spec section) — silent-failure + comment-accuracy default flags corrected from `true` to `false (was true in v2.1.0; reverted in v2.1.1 per Phase 5.3 evidence)`.
+- `idea-stage/POST_V2_FOLLOWUPS.md` §A5 — closure annotation explicitly added.
+
+### Test fixture additions (PR #81)
+
+4 new fixtures under `tests/fixtures/` covering the v2.1.0 wirings:
+- `silent-failure-empty-except` — Python try/except swallowing GatewayError
+- `comment-accuracy-stale-docstring` — signature change without docstring update
+- `realist-check-no-mitigation` — two CRITICALs without Mitigated-by citation
+- `cross-file-impact-graph-signals` — TS signature change with 2+ inbound CALLS edges
+
+`python tests/run_fixtures.py --mode structural` now exercises 15 fixtures (was 11). All pass schema validation. End-to-end mode awaits ANTHROPIC_API_KEY in CI (PR #65 OAuth-token equivalent blocking).
+
+### Manifest sync
+
+`marketplace.json` description: "Risk-adaptive parallel PR review — up to 9 review agents (silent-failure + comment-accuracy default-OFF since v2.1.1) + 4 infrastructure agents (Tier-0 / Spec / Graph / Realist Check feature-flagged)".
+
+### Cumulative session spend
+
+~\$3.48 across 16 PRs (mostly the C1 PetClinic dogfood at \$2.38; rest \$0 derivations + docs).
+
+### Deferred to next release
+
+- **§C2 Phase 2 measured re-run (~\$15-25)** — pending harness instrumentation that surfaces per-Agent `usage` in Agent tool return values. The Phase 2 derivation (PR #83) is informationally publishable in the meantime.
+- **§C1.B Apache Camel arm with full-swarm dispatch (~\$15-50)** — closes the simulator-caveat from C1 scout.
+- **§G3 stack-awareness orchestrator logic (~1 week eng)** — `--parent <PR#>` flag is parsed but not implemented.
+- **§B1/§B2/§B3 sibling-repo deps** — full-mode graph-cli + MCP shim + Martian CRB upstream submission.
+
+---
+
 ## v2.1.1 — 2026-04-30
 
 Patch release reversing the v2.1.0 default-ON status of two content-triggered agents based on Phase 5.3 CRB evidence (PR #68).
