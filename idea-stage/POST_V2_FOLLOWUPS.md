@@ -123,10 +123,10 @@ Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
 **Closes:** B1 partial coverage gap. Decouples Soliton's full-mode Step 2.8 from sibling-repo timeline.
 
 ### B3 · Martian CRB upstream submission
-**Status:** documented as multi-day infra work in `bench/crb/README.md` § Phase 4. Blocked on `claude-code-action` Console-auth for CI dogfood (memory: `reference_claude_code_action_auth.md`).
-**What it takes:** (a) unblock Console auth for `claude-code-action`; (b) fork 50 benchmark PRs into a GitHub org where Soliton is installed; (c) patch `step1_download_prs.py` (`_NON_BOT_TOOLS += "soliton"`) and `step0_fork_prs.py` (skip `disable_actions`, inject `soliton-review-bench.yml`); (d) run pipeline; (e) open upstream PR adding soliton row to leaderboard table.
+**Status:** documented as multi-day infra work in `bench/crb/README.md` § Phase 4. Blocked on `claude-code-action` Console-auth for CI dogfood (memory: `reference_claude_code_action_auth.md`). **Step (e) submission template pre-staged at `bench/crb/martian-submission-template.md`** (2026-05-01) — ready to launch when steps (a)-(d) clear.
+**What it takes:** (a) unblock Console auth for `claude-code-action`; (b) fork 50 benchmark PRs into a GitHub org where Soliton is installed; (c) patch `step1_download_prs.py` (`_NON_BOT_TOOLS += "soliton"`) and `step0_fork_prs.py` (skip `disable_actions`, inject `soliton-review-bench.yml`); (d) run pipeline; (e) open upstream PR adding soliton row to leaderboard table — **template + methodology citations + pre-flight checklist all ready in `bench/crb/martian-submission-template.md`**.
 **Cost:** $0 API but multi-day human-time.
-**Strategic fit:** turns Soliton's 0.313 self-reported number into a leaderboard-canonical number. Procurement-relevant.
+**Strategic fit:** turns Soliton's 0.313 self-reported number into a leaderboard-canonical number. Procurement-relevant. **Cost-normalised F1 (F1/$ = 2.14 real-world / 0.855 CRB) is a first-mover claim per 2026-05-01 SOTA research — no other vendor publishes this metric.**
 
 ### B4 · `.cursor-plugin/plugin.json` distribution channel
 **Status:** v2.0.1 manifest exists; never confirmed Cursor consumes it. Bumping is harmless but may be cargo-culted.
