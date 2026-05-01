@@ -949,6 +949,8 @@ Moves from Phase 5's rank ≈ 20 to approximately **rank ≈ 18**, closing the g
 
 Phase 5.2 is Soliton's best CRB number to date. Cumulative gain over Phase 3.5: **+0.036 F1** across two disciplined experiments.
 
+**Cost-normalised F1:** see [`bench/crb/cost-normalised-f1.md`](cost-normalised-f1.md) for the §C2 Phase 2 derivation that pairs Phase 5.2's 0.313 F1 with projected per-PR cost ($0.366 mean, $1.17 per F1 unit, F1/$ = 0.855 — HOLD per pre-reg) plus a real-world projection (with §A1 60% Tier-0 fast-path: $0.146 mean, $0.47 per F1 unit, F1/$ ≈ 2.14 — SHIP). Both numbers publishable for procurement-readiness with the CRB-vs-real-world distinction made plain.
+
 ### Cost tracking (Phase 5.2)
 
 - Soliton-side: **$0** — re-used Phase 5 reviews with inline footnote strip.
