@@ -224,6 +224,7 @@ If it exists, read the file and parse its YAML frontmatter (the content between 
 - `graph.timeout_ms` -> `config.graph.timeout_ms` (integer; per-query timeout for Step 2.8; default 500 full-mode, 10000 partial-mode)
 - `agents.silent_failure.enabled` -> `config.agents.silent_failure.enabled` (boolean; default **false** as of v2.1.1 — was default true in v2.1.0 but Phase 5.3 CRB measurement (PR #68) showed the default-ON status regressed F1 by 0.045; opt-in to dispatch `agents/silent-failure.md` for diffs touching error-handling code)
 - `agents.comment_accuracy.enabled` -> `config.agents.comment_accuracy.enabled` (boolean; default **false** as of v2.1.1 — same Phase 5.3 evidence as silent_failure; opt-in to dispatch `agents/comment-accuracy.md` when diff modifies comment lines)
+- `agents.cross_file_retrieval_java.enabled` -> `config.agents.cross_file_retrieval_java.enabled` (boolean; default **false** — Phase 6 experimental, awaiting CRB SHIP per `bench/crb/PHASE_6_DESIGN.md`; when true, the `correctness` agent's §2.5 invokes `skills/pr-review/cross-file-retrieval.md` for diffs containing `*.java` files to populate `CROSS_FILE_CONTEXT_START..END` blocks; purely additive — no `NOT_FOUND_IN_TREE` suppression rule)
 - `synthesis.realist_check` -> `config.synthesis.realist_check` (boolean; enables Step 5.5 Realist Check post-synthesis pass via `agents/realist-check.md`)
 - `synthesis.realist_threshold` -> `config.synthesis.realist_threshold` (integer 0-100; confidence floor for CRITICALs the realist-check agent will pressure-test; default 85)
 
