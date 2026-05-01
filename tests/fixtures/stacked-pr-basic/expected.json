@@ -1,0 +1,17 @@
+{
+  "riskRange": [25, 65],
+  "expectedFindings": 0,
+  "expectedCategories": [],
+  "expectedSeverity": null,
+  "stackParentRequired": true,
+  "stackParentMetadata": {
+    "pr": "<integer or null>",
+    "headSha": "<SHA hex string>",
+    "title": "<string>"
+  },
+  "diffScopedAgainst": "parent-PR-head-sha-not-main",
+  "prDescriptionAugmented": true,
+  "expectedPrDescriptionPrefix": "[Stacked PR — reviewed vs parent PR #",
+  "agentTriggerHint": "When stack mode is active, the diff scoped here adds revoke_session() but the validate_session() signature change to take a `now: Date` parameter is in the parent PR. Agents reviewing the stacked delta should NOT flag the new revoke_session()'s use of session_store.get(token) as inconsistent with validate_session()'s signature, because validate_session()'s `now` parameter is owned by the parent PR's review context — not this delta's. This is the canonical 'don't flag missing function foo' scenario from rules/stacked-pr-mode.md § PR-description augmentation.",
+  "description": "Stacked-PR mode basic fixture: child PR adds a revoke_session() function to src/auth/session.py while the parent PR (referenced via --parent <N>) added the `now: Date` parameter to validate_session(). When the orchestrator runs in stack mode (--parent N OR --parent-sha SHA OR --stack-auto with gt detection), Step 1 Mode B reconstructs the diff via `git diff <PARENT_HEAD>...pr-<N>` (yielding ONLY the revoke_session() addition shown in this diff.patch, NOT the parent's signature change). The orchestrator must populate ReviewRequest.stackParent + augment prDescription with the [Stacked PR — ...] header per rules/stacked-pr-mode.md. Agents see the narrowed delta only; they MUST NOT flag missing/inconsistent dependencies that live in the parent PR. Risk score should be MEDIUM (auth/ sensitive-paths hit + new function in security-sensitive area + small but non-trivial diff). Schema-only validation in tests/run_fixtures.py --mode structural; full /pr-review-driven assertion deferred to ANTHROPIC_API_KEY-gated CI."
+}
