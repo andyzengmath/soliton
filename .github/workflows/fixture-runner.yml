@@ -9,10 +9,10 @@
 #                 / suggestedFix. Local CLI only, no API needed.
 #
 # The full /pr-review-driven runner (asserting risk ranges, finding counts,
-# severity bands across all 11 fixtures) requires Anthropic API auth in CI;
-# that half of §G2 stays manual until ANTHROPIC_API_KEY (or the OAuth-token
-# equivalent) lands in repo secrets — same blocker as the Soliton-Review
-# dogfood workflow.
+# severity bands, and stacked-PR diff scoping across all 16 fixtures) requires
+# Anthropic API auth in CI; that half of §G2 stays manual until
+# ANTHROPIC_API_KEY (or the OAuth-token equivalent) lands in repo secrets —
+# same blocker as the Soliton-Review dogfood workflow.
 
 name: fixture runner
 
