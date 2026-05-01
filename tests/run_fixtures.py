@@ -110,6 +110,24 @@ def validate_structural(fixture_dir: Path) -> tuple[bool, str]:
         if "rule" not in p4 or "symbol" not in p4:
             return False, "phase4bExpected missing rule or symbol"
 
+    # Stacked-PR fixtures (PR #92) carry stackParentRequired, stackParentMetadata,
+    # diffScopedAgainst, prDescriptionAugmented, expectedPrDescriptionPrefix,
+    # agentTriggerHint. Asserted end-to-end by /pr-review-driven runner (auth-gated);
+    # light type-check here.
+    if "stackParentRequired" in expected and not isinstance(expected["stackParentRequired"], bool):
+        return False, "stackParentRequired must be bool"
+    if "stackParentMetadata" in expected:
+        spm = expected["stackParentMetadata"]
+        if not isinstance(spm, dict):
+            return False, "stackParentMetadata must be a dict"
+        for k in ("pr", "headSha", "title"):
+            if k not in spm:
+                return False, f"stackParentMetadata missing key {k!r}"
+    if "prDescriptionAugmented" in expected and not isinstance(expected["prDescriptionAugmented"], bool):
+        return False, "prDescriptionAugmented must be bool"
+    if "diffScopedAgainst" in expected and not isinstance(expected["diffScopedAgainst"], str):
+        return False, "diffScopedAgainst must be str"
+
     return True, f"diff={diff.stat().st_size}B, fields={len(expected)}"
 
 
