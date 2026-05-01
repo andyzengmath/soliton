@@ -1,0 +1,247 @@
+diff --git a/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/KeyManagerFactoryOptions.java b/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/KeyManagerFactoryOptions.java
+index 170bced402b7f..86f6523824806 100644
+--- a/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/KeyManagerFactoryOptions.java
++++ b/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/KeyManagerFactoryOptions.java
+@@ -47,6 +47,10 @@ public KeyManagerFactory getKeyManagerFactory(Vertx vertx) {
+ 
+     @Override
+     public Function<String, X509KeyManager> keyManagerMapper(Vertx vertx) {
++        if (keyManagerFactory == null || keyManagerFactory.getKeyManagers() == null
++                || keyManagerFactory.getKeyManagers().length == 0) {
++            return null;
++        }
+         return keyManagerFactory.getKeyManagers()[0] instanceof X509KeyManager
+                 ? serverName -> (X509KeyManager) keyManagerFactory.getKeyManagers()[0] : null;
+     }
+diff --git a/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/TrustManagerFactoryOptions.java b/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/TrustManagerFactoryOptions.java
+index cedd6268b9023..86419bce2a8a2 100644
+--- a/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/TrustManagerFactoryOptions.java
++++ b/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/TrustManagerFactoryOptions.java
+@@ -47,6 +47,9 @@ public TrustManagerFactory getTrustManagerFactory(Vertx vertx) {
+ 
+     @Override
+     public Function<String, TrustManager[]> trustManagerMapper(Vertx vertx) {
++        if (trustManagerFactory == null) {
++            return null;
++        }
+         return serverName -> trustManagerFactory.getTrustManagers();
+     }
+ }
+diff --git a/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/VertxHelper.java b/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/VertxHelper.java
+index 6c68675817c31..298a3a3f894ab 100644
+--- a/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/VertxHelper.java
++++ b/components/camel-vertx/camel-vertx-common/src/main/java/org/apache/camel/component/vertx/common/VertxHelper.java
+@@ -62,10 +62,14 @@ public static void setupSSLOptions(
+         tcpsslOptions.setSsl(true);
+ 
+         KeyManagerFactory keyManagerFactory = createKeyManagerFactory(camelContext, sslContextParameters);
+-        tcpsslOptions.setKeyCertOptions(new KeyManagerFactoryOptions(keyManagerFactory));
++        if (keyManagerFactory != null) {
++            tcpsslOptions.setKeyCertOptions(new KeyManagerFactoryOptions(keyManagerFactory));
++        }
+ 
+         TrustManagerFactory trustManagerFactory = createTrustManagerFactory(camelContext, sslContextParameters);
+-        tcpsslOptions.setTrustOptions(new TrustManagerFactoryOptions(trustManagerFactory));
++        if (trustManagerFactory != null) {
++            tcpsslOptions.setTrustOptions(new TrustManagerFactoryOptions(trustManagerFactory));
++        }
+ 
+         if (sslContextParameters.getTrustManagers() != null &&
+                 sslContextParameters.getTrustManagers().getTrustManager() == TrustAllTrustManager.INSTANCE) {
+diff --git a/components/camel-vertx/camel-vertx-http/src/test/java/org/apache/camel/component/vertx/http/VertxHttpSSLFlexibleConfigurationTest.java b/components/camel-vertx/camel-vertx-http/src/test/java/org/apache/camel/component/vertx/http/VertxHttpSSLFlexibleConfigurationTest.java
+new file mode 100644
+index 0000000000000..faec8249383b0
+--- /dev/null
++++ b/components/camel-vertx/camel-vertx-http/src/test/java/org/apache/camel/component/vertx/http/VertxHttpSSLFlexibleConfigurationTest.java
+@@ -0,0 +1,89 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.camel.component.vertx.http;
++
++import org.apache.camel.RoutesBuilder;
++import org.apache.camel.builder.RouteBuilder;
++import org.apache.camel.spi.Registry;
++import org.apache.camel.support.jsse.KeyManagersParameters;
++import org.apache.camel.support.jsse.KeyStoreParameters;
++import org.apache.camel.support.jsse.SSLContextParameters;
++import org.apache.camel.support.jsse.TrustManagersParameters;
++import org.junit.jupiter.api.Test;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++
++/**
++ * Test flexible SSL/TLS configuration scenarios: - Server with only keystore (no truststore) - Client with only
++ * truststore (no keystore) This validates CAMEL-23392 fix allowing optional keystore/truststore configuration
++ */
++class VertxHttpSSLFlexibleConfigurationTest extends VertxHttpTestSupport {
++
++    @Test
++    void testServerKeystoreOnlyClientTruststoreOnly() {
++        // Test one-way SSL: server presents certificate, client verifies it
++        // No mutual authentication (client doesn't present certificate)
++        String result
++                = template.requestBody(getProducerUri() + "?sslContextParameters=#clientSSLParameters", null, String.class);
++        assertEquals("Hello World", result);
++    }
++
++    @Override
++    protected RoutesBuilder createRouteBuilder() {
++        return new RouteBuilder() {
++            @Override
++            public void configure() {
++                // Server with only keystore configured (no truststore)
++                from(getTestServerUri() + "?sslContextParameters=#serverSSLParameters")
++                        .setBody(constant("Hello World"));
++            }
++        };
++    }
++
++    @Override
++    protected void bindToRegistry(Registry registry) {
++        // Server SSL: only keystore (presents certificate, no client auth required)
++        SSLContextParameters serverSSLParameters = new SSLContextParameters();
++
++        KeyStoreParameters keystoreParameters = new KeyStoreParameters();
++        keystoreParameters.setResource("server.jks");
++        keystoreParameters.setPassword("security");
++
++        KeyManagersParameters serviceSSLKeyManagers = new KeyManagersParameters();
++        serviceSSLKeyManagers.setKeyPassword("security");
++        serviceSSLKeyManagers.setKeyStore(keystoreParameters);
++
++        serverSSLParameters.setKeyManagers(serviceSSLKeyManagers);
++        // Note: NO truststore configured on server
++
++        registry.bind("serverSSLParameters", serverSSLParameters);
++
++        // Client SSL: only truststore (verifies server certificate, doesn't present own)
++        SSLContextParameters clientSSLParameters = new SSLContextParameters();
++
++        KeyStoreParameters truststoreParameters = new KeyStoreParameters();
++        truststoreParameters.setResource("client.jks");
++        truststoreParameters.setPassword("storepass");
++
++        TrustManagersParameters clientSSLTrustManagers = new TrustManagersParameters();
++        clientSSLTrustManagers.setKeyStore(truststoreParameters);
++        clientSSLParameters.setTrustManagers(clientSSLTrustManagers);
++        // Note: NO keystore configured on client
++
++        registry.bind("clientSSLParameters", clientSSLParameters);
++    }
++}
+diff --git a/components/camel-vertx/camel-vertx-websocket/src/test/java/org/apache/camel/component/vertx/websocket/VertxWebsocketSSLFlexibleConfigurationTest.java b/components/camel-vertx/camel-vertx-websocket/src/test/java/org/apache/camel/component/vertx/websocket/VertxWebsocketSSLFlexibleConfigurationTest.java
+new file mode 100644
+index 0000000000000..818daa81fce86
+--- /dev/null
++++ b/components/camel-vertx/camel-vertx-websocket/src/test/java/org/apache/camel/component/vertx/websocket/VertxWebsocketSSLFlexibleConfigurationTest.java
+@@ -0,0 +1,96 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.camel.component.vertx.websocket;
++
++import org.apache.camel.CamelContext;
++import org.apache.camel.ProducerTemplate;
++import org.apache.camel.builder.RouteBuilder;
++import org.apache.camel.component.mock.MockEndpoint;
++import org.apache.camel.impl.DefaultCamelContext;
++import org.apache.camel.support.jsse.KeyManagersParameters;
++import org.apache.camel.support.jsse.KeyStoreParameters;
++import org.apache.camel.support.jsse.SSLContextParameters;
++import org.apache.camel.support.jsse.TrustManagersParameters;
++import org.junit.jupiter.api.Test;
++
++/**
++ * Test flexible SSL/TLS configuration scenarios for WebSocket: - Server with only keystore (no truststore) - Client
++ * with only truststore (no keystore) This validates CAMEL-23392 fix allowing optional keystore/truststore configuration
++ */
++class VertxWebsocketSSLFlexibleConfigurationTest extends VertxWebSocketTestSupport {
++
++    @Test
++    void testServerKeystoreOnlyClientTruststoreOnly() throws Exception {
++        // Test one-way SSL: server presents certificate, client verifies it
++        // No mutual authentication (client doesn't present certificate)
++        CamelContext context = new DefaultCamelContext();
++
++        // Server SSL: only keystore (presents certificate, no client auth required)
++        SSLContextParameters serverSSLParameters = new SSLContextParameters();
++
++        KeyStoreParameters keystoreParameters = new KeyStoreParameters();
++        keystoreParameters.setResource("server.jks");
++        keystoreParameters.setPassword("security");
++
++        KeyManagersParameters serviceSSLKeyManagers = new KeyManagersParameters();
++        serviceSSLKeyManagers.setKeyPassword("security");
++        serviceSSLKeyManagers.setKeyStore(keystoreParameters);
++
++        serverSSLParameters.setKeyManagers(serviceSSLKeyManagers);
++        // Note: NO truststore configured on server
++
++        // Client SSL: only truststore (verifies server certificate, doesn't present own)
++        SSLContextParameters clientSSLParameters = new SSLContextParameters();
++
++        KeyStoreParameters truststoreParameters = new KeyStoreParameters();
++        truststoreParameters.setResource("client.jks");
++        truststoreParameters.setPassword("storepass");
++
++        TrustManagersParameters clientSSLTrustManagers = new TrustManagersParameters();
++        clientSSLTrustManagers.setKeyStore(truststoreParameters);
++        clientSSLParameters.setTrustManagers(clientSSLTrustManagers);
++        // Note: NO keystore configured on client
++
++        context.addRoutes(new RouteBuilder() {
++            @Override
++            public void configure() {
++                from("direct:start")
++                        .toF("vertx-websocket:localhost:%d/echo?sslContextParameters=#clientSSLParameters", port.getPort());
++
++                fromF("vertx-websocket:localhost:%d/echo?sslContextParameters=#serverSSLParameters", port.getPort())
++                        .setBody(simple("Hello ${body}"))
++                        .to("mock:result");
++            }
++        });
++
++        context.getRegistry().bind("clientSSLParameters", clientSSLParameters);
++        context.getRegistry().bind("serverSSLParameters", serverSSLParameters);
++
++        context.start();
++        try {
++            MockEndpoint mockEndpoint = context.getEndpoint("mock:result", MockEndpoint.class);
++            mockEndpoint.expectedBodiesReceived("Hello world");
++
++            ProducerTemplate template = context.createProducerTemplate();
++            template.sendBody("direct:start", "world");
++
++            mockEndpoint.assertIsSatisfied();
++        } finally {
++            context.stop();
++        }
++    }
++}

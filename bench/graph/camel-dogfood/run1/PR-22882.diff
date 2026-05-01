@@ -1,0 +1,23 @@
+diff --git a/components/camel-smb/src/main/java/org/apache/camel/component/smb/SmbComponent.java b/components/camel-smb/src/main/java/org/apache/camel/component/smb/SmbComponent.java
+index 0b88cdcb2d529..5ea3bba70db00 100644
+--- a/components/camel-smb/src/main/java/org/apache/camel/component/smb/SmbComponent.java
++++ b/components/camel-smb/src/main/java/org/apache/camel/component/smb/SmbComponent.java
+@@ -25,6 +25,7 @@
+ import org.apache.camel.component.file.GenericFileEndpoint;
+ import org.apache.camel.spi.annotations.Component;
+ import org.apache.camel.util.StringHelper;
++import org.apache.camel.util.URISupport;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
+@@ -58,8 +59,8 @@ protected GenericFileEndpoint<FileIdBothDirectoryInformation> buildFileEndpoint(
+         if (path != null) {
+             config.setPath(path);
+             LOG.warn(
+-                    "The path option should be specified in the context-path. Instead of using ?path=/mypath then specify this in the context-path in uri: "
+-                     + uri);
++                    "The path option should be specified in the context-path. Instead of using ?path=/mypath then specify this in the context-path in uri: {}",
++                    URISupport.sanitizeUri(uri));
+         }
+ 
+         if (config.getShareName() == null) {

@@ -1,0 +1,239 @@
+diff --git a/core/camel-base/src/generated/java/org/apache/camel/converter/CamelBaseBulkConverterLoader.java b/core/camel-base/src/generated/java/org/apache/camel/converter/CamelBaseBulkConverterLoader.java
+index 84ac3ebdac410..5fd9e96156ac2 100644
+--- a/core/camel-base/src/generated/java/org/apache/camel/converter/CamelBaseBulkConverterLoader.java
++++ b/core/camel-base/src/generated/java/org/apache/camel/converter/CamelBaseBulkConverterLoader.java
+@@ -41,7 +41,7 @@ public CamelContext getCamelContext() {
+ 
+     @Override
+     public int size() {
+-        return 131;
++        return 129;
+     }
+ 
+     @Override
+@@ -171,14 +171,6 @@ private Object doConvertTo(Class<?> from, Class<?> to, Exchange exchange, Object
+             if (value instanceof java.io.ByteArrayOutputStream) {
+                 return org.apache.camel.converter.IOConverter.toInputStream((java.io.ByteArrayOutputStream) value);
+             }
+-        } else if (to == java.io.ObjectInput.class) {
+-            if (value instanceof java.io.InputStream) {
+-                return org.apache.camel.converter.IOConverter.toObjectInput((java.io.InputStream) value, exchange);
+-            }
+-        } else if (to == java.io.ObjectOutput.class) {
+-            if (value instanceof java.io.OutputStream) {
+-                return org.apache.camel.converter.IOConverter.toObjectOutput((java.io.OutputStream) value);
+-            }
+         } else if (to == java.io.OutputStream.class) {
+             if (value instanceof java.io.File) {
+                 return org.apache.camel.converter.IOConverter.toOutputStream((java.io.File) value);
+@@ -373,12 +365,12 @@ private Object doConvertTo(Class<?> from, Class<?> to, Exchange exchange, Object
+             if (value instanceof java.lang.StringBuffer) {
+                 return org.apache.camel.converter.ObjectConverter.toString((java.lang.StringBuffer) value);
+             }
+-            if (value instanceof java.lang.StringBuilder) {
+-                return org.apache.camel.converter.ObjectConverter.toString((java.lang.StringBuilder) value);
+-            }
+             if (value instanceof java.io.ByteArrayOutputStream) {
+                 return org.apache.camel.converter.IOConverter.toString((java.io.ByteArrayOutputStream) value, exchange);
+             }
++            if (value instanceof java.lang.StringBuilder) {
++                return org.apache.camel.converter.ObjectConverter.toString((java.lang.StringBuilder) value);
++            }
+         } else if (to == java.math.BigInteger.class) {
+             if (value instanceof java.lang.Object) {
+                 Object obj = org.apache.camel.converter.ObjectConverter.toBigInteger(value);
+@@ -565,8 +557,6 @@ private void doRegistration(TypeConverterRegistry registry) {
+         registry.addConverter(new TypeConvertible<>(java.io.Reader.class, java.io.InputStream.class), this);
+         registry.addConverter(new TypeConvertible<>(byte[].class, java.io.InputStream.class), this);
+         registry.addConverter(new TypeConvertible<>(java.io.ByteArrayOutputStream.class, java.io.InputStream.class), this);
+-        registry.addConverter(new TypeConvertible<>(java.io.InputStream.class, java.io.ObjectInput.class), this);
+-        registry.addConverter(new TypeConvertible<>(java.io.OutputStream.class, java.io.ObjectOutput.class), this);
+         registry.addConverter(new TypeConvertible<>(java.io.File.class, java.io.OutputStream.class), this);
+         registry.addConverter(new TypeConvertible<>(java.nio.file.Path.class, java.io.OutputStream.class), this);
+         registry.addConverter(new TypeConvertible<>(org.apache.camel.spi.Resource.class, java.io.Reader.class), this);
+@@ -620,8 +610,8 @@ private void doRegistration(TypeConverterRegistry registry) {
+         registry.addConverter(new TypeConvertible<>(java.lang.Long.class, java.lang.String.class), this);
+         registry.addConverter(new TypeConvertible<>(java.lang.Boolean.class, java.lang.String.class), this);
+         registry.addConverter(new TypeConvertible<>(java.lang.StringBuffer.class, java.lang.String.class), this);
+-        registry.addConverter(new TypeConvertible<>(java.lang.StringBuilder.class, java.lang.String.class), this);
+         registry.addConverter(new TypeConvertible<>(java.io.ByteArrayOutputStream.class, java.lang.String.class), this);
++        registry.addConverter(new TypeConvertible<>(java.lang.StringBuilder.class, java.lang.String.class), this);
+         registry.addConverter(new TypeConvertible<>(java.lang.Object.class, java.math.BigInteger.class), this);
+         registry.addConverter(new TypeConvertible<>(java.lang.CharSequence.class, java.net.URI.class), this);
+         registry.addConverter(new TypeConvertible<>(byte[].class, java.nio.ByteBuffer.class), this);
+@@ -774,14 +764,6 @@ public TypeConverter lookup(Class<?> to, Class<?> from) {
+             if (from == java.io.ByteArrayOutputStream.class) {
+                 return this;
+             }
+-        } else if (to == java.io.ObjectInput.class) {
+-            if (from == java.io.InputStream.class) {
+-                return this;
+-            }
+-        } else if (to == java.io.ObjectOutput.class) {
+-            if (from == java.io.OutputStream.class) {
+-                return this;
+-            }
+         } else if (to == java.io.OutputStream.class) {
+             if (from == java.io.File.class) {
+                 return this;
+@@ -956,10 +938,10 @@ public TypeConverter lookup(Class<?> to, Class<?> from) {
+             if (from == java.lang.StringBuffer.class) {
+                 return this;
+             }
+-            if (from == java.lang.StringBuilder.class) {
++            if (from == java.io.ByteArrayOutputStream.class) {
+                 return this;
+             }
+-            if (from == java.io.ByteArrayOutputStream.class) {
++            if (from == java.lang.StringBuilder.class) {
+                 return this;
+             }
+         } else if (to == java.math.BigInteger.class) {
+diff --git a/core/camel-base/src/main/java/org/apache/camel/converter/IOConverter.java b/core/camel-base/src/main/java/org/apache/camel/converter/IOConverter.java
+index 2ed01407f4921..9c924c2e2b3e8 100644
+--- a/core/camel-base/src/main/java/org/apache/camel/converter/IOConverter.java
++++ b/core/camel-base/src/main/java/org/apache/camel/converter/IOConverter.java
+@@ -27,11 +27,6 @@
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.io.InputStreamReader;
+-import java.io.ObjectInput;
+-import java.io.ObjectInputStream;
+-import java.io.ObjectOutput;
+-import java.io.ObjectOutputStream;
+-import java.io.ObjectStreamClass;
+ import java.io.OutputStream;
+ import java.io.OutputStreamWriter;
+ import java.io.Reader;
+@@ -250,42 +245,6 @@ public static InputStream toInputStream(byte[] data) {
+     }
+ 
+     @Converter(order = 33)
+-    public static ObjectOutput toObjectOutput(OutputStream stream) throws IOException {
+-        if (stream instanceof ObjectOutput out) {
+-            return out;
+-        } else {
+-            return new ObjectOutputStream(IOHelper.buffered(stream));
+-        }
+-    }
+-
+-    @Converter(order = 34)
+-    public static ObjectInput toObjectInput(final InputStream stream, final Exchange exchange) throws IOException {
+-        if (stream instanceof ObjectInput objectInput) {
+-            return objectInput;
+-        } else {
+-            return new ObjectInputStream(IOHelper.buffered(stream)) {
+-                @Override
+-                protected Class<?> resolveClass(ObjectStreamClass objectStreamClass)
+-                        throws IOException, ClassNotFoundException {
+-                    // need to let Camel be able to resolve class using ClassResolver SPI, to let class loading
+-                    // work in OSGi and other containers
+-                    Class<?> answer = null;
+-                    String name = objectStreamClass.getName();
+-                    if (exchange != null) {
+-                        LOG.trace("Loading class {} using Camel ClassResolver", name);
+-                        answer = exchange.getContext().getClassResolver().resolveClass(name);
+-                    }
+-                    if (answer == null) {
+-                        LOG.trace("Loading class {} using JDK default implementation", name);
+-                        answer = super.resolveClass(objectStreamClass);
+-                    }
+-                    return answer;
+-                }
+-            };
+-        }
+-    }
+-
+-    @Converter(order = 35)
+     public static byte[] toBytes(InputStream stream) throws IOException {
+         ByteArrayOutputStream bos = new ByteArrayOutputStream();
+         IOHelper.copyAndCloseInput(IOHelper.buffered(stream), bos);
+@@ -295,36 +254,36 @@ public static byte[] toBytes(InputStream stream) throws IOException {
+         return bos.toByteArray();
+     }
+ 
+-    @Converter(order = 36)
++    @Converter(order = 34)
+     public static byte[] toByteArray(ByteArrayOutputStream os) {
+         return os.toByteArray();
+     }
+ 
+-    @Converter(order = 37)
++    @Converter(order = 35)
+     public static ByteBuffer covertToByteBuffer(InputStream is) throws IOException {
+         ByteArrayOutputStream os = new ByteArrayOutputStream();
+         IOHelper.copyAndCloseInput(is, os);
+         return ByteBuffer.wrap(os.toByteArray());
+     }
+ 
+-    @Converter(order = 38)
++    @Converter(order = 36)
+     public static String toString(ByteArrayOutputStream os, Exchange exchange) throws IOException {
+         return os.toString(ExchangeHelper.getCharset(exchange));
+     }
+ 
+-    @Converter(order = 39)
++    @Converter(order = 37)
+     public static InputStream toInputStream(ByteArrayOutputStream os) {
+         // no buffering required as the complete byte array input is already
+         // passed over as a whole
+         return new ByteArrayInputStream(os.toByteArray());
+     }
+ 
+-    @Converter(order = 40)
++    @Converter(order = 38)
+     public static Properties toProperties(File file) throws IOException {
+         return toProperties(new FileInputStream(file));
+     }
+ 
+-    @Converter(order = 41)
++    @Converter(order = 39)
+     public static Properties toProperties(InputStream is) throws IOException {
+         Properties prop = new Properties();
+         try {
+@@ -335,7 +294,7 @@ public static Properties toProperties(InputStream is) throws IOException {
+         return prop;
+     }
+ 
+-    @Converter(order = 42)
++    @Converter(order = 40)
+     public static Properties toProperties(Reader reader) throws IOException {
+         Properties prop = new Properties();
+         try {
+@@ -346,17 +305,17 @@ public static Properties toProperties(Reader reader) throws IOException {
+         return prop;
+     }
+ 
+-    @Converter(order = 43)
++    @Converter(order = 41)
+     public static Path toPath(File file) {
+         return file.toPath();
+     }
+ 
+-    @Converter(order = 44)
++    @Converter(order = 42)
+     public static File toFile(Path path) {
+         return path.toFile();
+     }
+ 
+-    @Converter(order = 45)
++    @Converter(order = 43)
+     public static Charset toCharset(String name) {
+         return Charset.forName(name);
+     }
+diff --git a/docs/user-manual/modules/ROOT/pages/camel-4x-upgrade-guide-4_21.adoc b/docs/user-manual/modules/ROOT/pages/camel-4x-upgrade-guide-4_21.adoc
+index c538b31adc91b..cf978d2a0c12e 100644
+--- a/docs/user-manual/modules/ROOT/pages/camel-4x-upgrade-guide-4_21.adoc
++++ b/docs/user-manual/modules/ROOT/pages/camel-4x-upgrade-guide-4_21.adoc
+@@ -17,6 +17,11 @@ See the xref:camel-upgrade-recipes-tool.adoc[documentation] page for details.
+ 
+ The `org.apache.camel.support.DefaultHeaderFilterStrategy` changed default setting for lowercase from `false` to `true`.
+ 
++The type converters for Java serialized objects with types `java.io.ObjectInput` and `java.io.ObjectOutput` has been removed.
++Java object serialization is a recurring source of security issues and therefore these converters has been removed.
++These converters are not used at all by Camel itself. To restore compatibility then end users can add these type converters back as custom converters in their own Camel applications.
++However, using Java serialization is discouraged and highly recommend to use other means.
++
+ === camel-yaml-dsl
+ 
+ A new canonical JSON Schema variant (`camelYamlDsl-canonical.json`) has been added alongside the existing classic
