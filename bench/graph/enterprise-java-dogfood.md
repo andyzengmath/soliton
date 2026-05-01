@@ -96,13 +96,19 @@ Categories of PRs hit by this criterion: 2113 (schema), 2133 (migration), 1913 (
 
 ## Per-language toolchain notes (Java)
 
-Per `rules/tier0-tools.md`, the canonical Java tier-0 lint tool is `checkstyle`. Not installed in this run. Tools that DID run:
-- gitleaks (secrets, language-agnostic)
-- osv-scanner (SCA, language-agnostic)
-- semgrep (multi-lang SAST, includes Java rules) — installed mid-run
-- mypy/tsc (irrelevant for Java)
+Per `rules/tier0-tools.md`, Java Tier-0 has two modes: Maven plugin invocations (preferred when `mvn` is on PATH) or standalone CLIs (`checkstyle` JAR, `spotbugs` JAR, `difftastic`). At the time of this run, only the cross-language Tier-0 floor was installed (gitleaks + osv-scanner + semgrep + tsc + mypy); the Java-specific catalog (checkstyle + spotbugs + difftastic) was missing locally.
 
-Follow-up improvement: add checkstyle + spotbugs + difftastic for full Java Tier-0 coverage. The current run validates that Tier-0 *gracefully degrades* when tools are absent (per catalog principle 3) — the lang-agnostic tools (gitleaks, osv-scanner) still run, which is the bare-minimum Tier-0 promise.
+Tools that DID run in this dogfood:
+- gitleaks (secrets, language-agnostic) — verdict clean across all 10 PRs
+- osv-scanner (SCA, language-agnostic) — operates on pom.xml; no CVE-critical findings
+- semgrep (multi-lang SAST, includes Java rules) — installed mid-run; light coverage
+- mypy/tsc (irrelevant for Java) — silently skipped
+
+The current run validates that Tier-0 *gracefully degrades* when language-specific tools are absent (per catalog principle 3) — the lang-agnostic tools still run, which is the bare-minimum Tier-0 promise. The dogfood would be richer with `checkstyle` + `spotbugs` adding Java-specific lint + SAST findings on top.
+
+**Closure of the integrator-side gap (post-PR #71):** `rules/tier0-tools.md` now documents Java install paths under § "Installation cheatsheet → Java" — both the Maven-plugin route (`mvn checkstyle:check spotbugs:check`) for integrators with `mvn` on PATH, and the standalone-CLI route (chocolatey/brew/JAR-download) as fallback. Integrators who care about Java Tier-0 coverage have a clear actionable recipe.
+
+Follow-up arm (C1.B Apache Camel) should run with `mvn checkstyle:check` + `mvn spotbugs:check` available on PATH; the strategist's pre-reg ship criterion (≥1 finding from each tool on a real diff) becomes verifiable at C1.B time.
 
 ## Cost ledger
 
