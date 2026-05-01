@@ -200,7 +200,7 @@ Add `.claude/soliton.local.md` to your repository:
 
 ```yaml
 ---
-threshold: 80
+threshold: 85                # Phase 3.5+ default; was 80 prior, raised to trim ~15% stylistic nits
 agents: auto
 sensitive_paths:        # Override defaults — see templates/soliton.local.md for the full list
   - "auth/"
@@ -218,6 +218,53 @@ default_output: markdown
 feedback_mode: false
 ---
 ```
+
+### v2 Feature Flags (opt-in)
+
+v2.0+ ships four feature-flagged pipeline stages — all default OFF for backwards compatibility. Opt in per-repo via the same `.claude/soliton.local.md` file by adding the nested config blocks below the v1 fields:
+
+```yaml
+---
+# (v1 fields above)
+threshold: 85
+agents: auto
+# ...
+
+# v2 — Tier-0 deterministic gate (Step 2.6)
+tier0:
+  enabled: true                  # Run gitleaks/osv-scanner/semgrep/lang-lint before LLM dispatch
+  skip_llm_on_clean: true        # Fast-path approve when verdict=clean (saves cost on trivial PRs)
+
+# v2 — Spec Alignment (Step 2.7)
+spec_alignment:
+  enabled: true                  # Haiku reads REVIEW.md / .claude/specs/ / PR-checklist; emits SPEC_ALIGNMENT block
+
+# v2 — Graph Signals (Step 2.8)
+graph:
+  enabled: true                  # Pre-built graph for blast radius / dep breaks / taint paths / criticality
+  path: .code-review-graph/graph.db
+  timeout_ms: 20000
+
+# v2 — Realist Check (Step 5.5)
+synthesis:
+  realist_check: true            # Sonnet pressure-tests CRITICAL findings post-synth; downgrades require cited Mitigated-by
+
+# v2 — content-triggered specialist agents (default OFF since v2.1.1; opt in for production review)
+agents:
+  silent_failure:
+    enabled: true                # Dispatch when diff touches error-handling code (try/catch/Promise/optional-chaining)
+  comment_accuracy:
+    enabled: true                # Dispatch when diff modifies comment-marker lines
+---
+```
+
+**Why silent_failure + comment_accuracy default OFF:** Phase 5.3 CRB measurement (PR #68) showed default-ON regressed F1 by 0.045 (5.2σ_Δ paired). The agents emit useful production findings (Hora & Robbes 2026 documents real-world value) but at a precision profile CRB's golden set doesn't reward. Production integrators should opt in; benchmark integrators should leave OFF.
+
+**Tier-0 toolchain prerequisites:** `tier0.enabled: true` requires the cross-language tools on PATH (`gitleaks`, `osv-scanner`, `semgrep`) plus per-language tools (`ruff` for Python, `eslint` for TS/JS, `golangci-lint` for Go, `checkstyle` / `mvn checkstyle:check` for Java, etc.). See `rules/tier0-tools.md` § "Installation cheatsheet" for OS-specific install commands. Absent tools graceful-skip per catalog principle 3.
+
+**Graph backend:** `graph.enabled: true` requires either `graph-cli` (full-mode, sibling `graph-code-indexing` repo) or `code-review-graph` (partial-mode, `pip install code-review-graph`). Partial-mode covers `info` + `dependencyBreaks` directly; the other 5 graph queries (`blastRadius`, `taintPaths`, `coChange`, `affectedFeatures`, `criticalityScore`) require an MCP shim (PR #67 starter, runtime smoke deferred to Linux CI). Soliton emits `partial: true` for the 5 unwired queries.
+
+**Recommended starting point:** copy `examples/workflows/soliton-review-tiered.yml` as your CI workflow — it demonstrates the full Tier-0 → fast-path / blocked / LLM-swarm flow with all the necessary tool installs in the `Install Tier-0 tools` step. The tiered workflow shows ~45% cost drop on MEDIUM PRs vs the v1-only `soliton-review.yml` workflow.
 
 ### Workflow-Level Overrides
 
