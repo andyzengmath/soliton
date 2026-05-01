@@ -466,7 +466,7 @@ Pin to a specific release tag for stability:
   prevent leaking code context in logs
 - **Plugin integrity**: Pin soliton to a specific version tag to prevent supply chain attacks:
   ```yaml
-  # Replace v2.1.1 with the latest release tag from
+  # Replace v2.1.2 with the latest release tag from
   # https://github.com/andyzengmath/soliton/releases
   run: git clone --depth 1 --branch v2.1.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
   ```

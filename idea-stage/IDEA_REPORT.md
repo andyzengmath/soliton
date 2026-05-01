@@ -41,7 +41,7 @@ The user's `risk_gap.md` already names this regime: W3 "Slop PR flood + top-perf
 
 ## 2. What Soliton already does well (verified)
 
-From reading `skills/pr-review/SKILL.md`, the 9 agent prompts, and the CI integration:
+From reading `skills/pr-review/SKILL.md`, the 9 review-agent prompts (7 dispatched by default — `silent-failure` + `comment-accuracy` default-OFF since v2.1.1 per Phase 5.3 evidence), 4 infrastructure agents (Tier-0 / Spec / Graph / Realist Check, all v2 feature-flagged), and the CI integration:
 
 | Capability | Soliton today | Why it matters |
 |---|---|---|
@@ -97,7 +97,7 @@ Tier A = Critical for 2-month phase. Tier B = Important, ship by month 3-6. Tier
 | G4 | No deterministic AST hallucination check — Opus agent does work a free tool could | 4 | 2 | **A** | ✅ shipped via `lib/hallucination-ast/` (Khati 2026 protocol; PR #26; F1=0.968 on Khati's 200-sample corpus) |
 | G5 | No Haiku-tiered dispatch — eligibility / summarization / scoring all use Sonnet | 3 | 1 | **A** | ✅ shipped via `rules/model-tiers.md` upgrades (risk-scorer + synth dedup + spec-alignment + comment-accuracy → Haiku; ~45% projected MEDIUM-PR cost drop $0.40 → $0.22) |
 | G6 | No silent-failure / comment-rot / license / type-design dimension agents | 3 | 2 | B | ◐ partial — silent-failure + comment-accuracy shipped via v2.1.0 (PR #51); reverted to default-OFF in v2.1.1 per Phase 5.3 evidence; license + type-design still backlog |
-| G7 | No stack-awareness — PR #3 of 3-stack reviewed as if standalone | 3 | 2 | B | ⚪ partial — `--parent <PR#>` flag parsed but no orchestrator logic; tracked as POST_V2_FOLLOWUPS §G3 (~1 week eng) |
+| G7 | No stack-awareness — PR #3 of 3-stack reviewed as if standalone | 3 | 2 | B | ◐ partial closure — orchestrator wiring shipped via PRs #92 + #93 (SKILL.md Step 1 Mode B step 4 handles `--parent` / `--parent-sha` / `--stack-auto`; `metadata.stackParent` field in Format B output; `templates/soliton.local.md` `stack:` config block). Remaining open arms (Mode A local-branch stacked support, gt-binary E2E, auth-gated /pr-review-driven fixture) tracked under POST_V2_FOLLOWUPS §G3. |
 | G8 | No verification / realist-check pass before surfacing | 3 | 2 | B | ✅ shipped via v2.1.0 Step 5.5 Realist Check (PR #50; default-OFF; opt-in via `synthesis.realist_check: true`) |
 | G9 | No Martian-CRB number published | 4 | 2 | **A** | ✅ shipped — Phase 5.2 F1=0.313 (CRB number of record) + cost-normalised F1 derivation in v2.1.2 (PR #83): F1/$ = 0.855 CRB HOLD / ≈ 2.14 real-world SHIP. Both publishable. |
 | G10 | No learnings loop — dismissed findings don't suppress similar future findings | 3 | 3 | B | ⚪ open |
@@ -391,6 +391,8 @@ Full design: `DESIGN_TRADITIONAL_AND_GRAPH.md`. Summary of how this maps onto th
 | 6. Behavioural equivalence | LLM-as-judge + behavioural replay + canonicalisation | **Soliton `--execute` mode (I19) wraps the verify step** |
 
 Stage 5 is where the volume is — it is also exactly the regime that breaks traditional human review. Soliton v2's combination of Tier-0 skip + graph-driven agents + stack-aware + feature-coverage signal is purpose-built for it. The evidence chain that every finding carries (Tier-0 rule ID + graph path + agent reasoning) is exactly the "provenance" constraint the user's `risk_gap.md` §3.5.2.9 demands.
+
+**C1 enterprise dogfood validation (v2.1.2):** Two arms shipped at signal-grade — Spring PetClinic scout (PR #71, ~$2.38) emitted 4 oracle-grade catches across 10 enterprise-Java PRs; Apache Camel full-swarm (PR #89, ~$3.28) surfaced **5 CRITICAL + 19 IMPROVEMENT + 7 NITPICK** across 10 PRs including a credential-leak in JSON route dumper, NPE in JmsBinding, and an asymmetric trust-manager guard. Together these close the simulator caveat (single-agent vs full-swarm) flagged by the scout arm. See POST_V2_FOLLOWUPS §C1 + `bench/graph/enterprise-camel-dogfood.md`.
 
 **One must-have extension**: graph-code-indexing must support Java (for enterprise rebuild) and ideally COBOL (for the highest-value enterprise datasets). That is graph-code-indexing's Gap B4 — not Soliton's problem, but the two roadmaps are tightly coupled.
 
