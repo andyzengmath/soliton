@@ -33,8 +33,12 @@ code shipped (`agents/spec-alignment.md` + Step 2.7); activation path documented
 **Cost:** ~$5. Engineering effort: 0.
 **Closes:** I3 acceptance criteria validation.
 
-### A3 · Tier-0 default-ON measurement (zero-cost subset of A1)
-**Status:** never run. IDEA_REPORT predicted 60 % LLM-skip rate; no data.
+### A3 · Tier-0 default-ON measurement (zero-cost subset of A1) — **CLOSED 2026-05-01 (informational — derived from phase5_2-reviews/)**
+**Status:** ✅ closed via derivation. Tally of Tier-0 fast-path-clean eligibility across the 50-PR Phase 5.2 CRB corpus: **0 of 50 PRs (0% LLM-skip rate)**. Every PR fails at least one of the two `clean` promotion gates (`diff_lines ≤ 50` AND `0 findings`): 4 PRs had small diffs but Soliton found CRITICAL/IMPROVEMENT issues; 3 PRs had 0 findings but diff > 50 LOC; 43 PRs failed both gates. **Result does NOT contradict the IDEA_REPORT 60% prediction** — it confirms CRB is selected for non-trivial review-quality benchmark cases by design, while §A1's PetClinic real-world dogfood (60% match) validates the 60% prediction directly. Writeup: `bench/graph/a3-derivation.md`. **Implication:** Tier-0's value-prop is real-world cost saving, not benchmark-leaderboard improvement; future Tier-0 dogfoods should use real-world PR-stream corpora, NOT CRB.
+
+**(Pre-2026-05-01 status preserved for context:)**
+
+never run. IDEA_REPORT predicted 60 % LLM-skip rate; no data.
 **What it takes:** $0 — re-run Tier-0 step alone (no LLM agents) on the existing 50 phase5-reviews/ inputs. Tally how many would have been LLM-skipped (verdict = `clean`, trivial diff). Compare to actual review outputs to estimate FP escape.
 **Cost:** $0 (no LLM calls).
 **Why deprioritized this session:** user signaled "cost/latency is not priority at current stage."
