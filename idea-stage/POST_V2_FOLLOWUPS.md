@@ -166,7 +166,14 @@ Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
 **Cost:** ~$15–$50 LLM + significant set-up time.
 **Strategic fit:** **highest of any open item.** Closes the OSS-vs-enterprise credibility gap.
 
-### C2 · Cost-normalised F1 metric
+### C2 · Cost-normalised F1 metric — **PHASE 1 SHIPPED 2026-05-01 (PR #82)**
+**Phase 1 status:** ✅ shipped. `skills/pr-review/SKILL.md` Step 6 Format B `metadata` block now declares `totalTokens.{input,output,cacheCreation,cacheRead}` + `costUsd` (≤4 decimals). `rules/model-pricing.md` (NEW) declares the per-model rate sheet (Opus 4.x / Sonnet 4.x / Haiku 4.x), the cache-pricing rule (cache write +25%, cache read 90% off), the per-Agent → per-model → costUsd computation algorithm, the Bedrock/Vertex `costing.rate_overrides` integrator-override pattern, and the rate-update protocol. `rules/model-tiers.md` § Cost projection cross-links the new `metadata.costUsd` field. **Caveat:** Claude Code's Agent tool does not surface per-Agent `usage` in return values today, so the orchestrator falls back to a length-based heuristic with `*`-suffix annotation in interactive output until harness support lands.
+
+**Phase 2 status (pre-authorized $15-25, NOT yet started):** re-run Phase 5.2 CRB with the instrumented orchestrator + capture aggregate F1 ÷ $/PR + per-language slice. Compare against the IDEA_REPORT $0.10 (target) / $0.40 (current baseline) cost band. Pre-reg ship: F1/$ ratio ≥ 1.0; hold: 0.7-1.0; close: < 0.7. Output: `bench/crb/cost-normalised-f1.md` + leaderboard-ready summary table.
+
+**(Pre-2026-05-01 status preserved for context:)**
+
+### C2-original · Cost-normalised F1 metric
 **Status:** claimed in IDEA_REPORT § 8 ("$/PR-reviewed; Soliton's cost-normalised F1 wins") but no formal denominator data published. Competitor per-PR API cost not in CRB leaderboard.
 **What it takes:** instrument Soliton's `--output-format json` to emit token + dollar metadata per review. Run on 50 PRs, publish F1 ÷ ($/PR) alongside raw F1. Request Martian add `cost_per_pr` column to dashboard.
 **Cost:** ~$15–$50 (one CRB run with token counters).
