@@ -412,6 +412,8 @@ Assumptions from `docs/ci-cd-integration.md` + realistic Tier-0 skip rates from 
 
 At 500 PRs/day: **$230/day → $63/day ($6.9 k → $1.9 k / month)**. 73 % savings, no quality loss expected (Tier-0 tools cover the same classes LLMs would re-discover; graph signals narrow agent context without removing it).
 
+> **Measured reality as of v2.1.2 (per § 3 Tier-A status calibration + `bench/crb/cost-normalised-f1.md` derivation):** the projected `$0.40 → $0.10` (73% drop) was approximately right but slightly optimistic. `rules/model-tiers.md` projects **$0.22 for MEDIUM v2 dispatch** (45% drop, ~½ the original target); §A1 PetClinic measured **60% real-world Tier-0 fast-path eligibility**, which closes the rest of the gap to effective **$0.146/PR (64% drop from $0.40)** — close to but below the original $0.10 target. CRB-only projection is **$0.366/PR ($1.17 per F1 unit; F1/$ = 0.855 — HOLD vs §C2 ship threshold of 1.0)**; real-world projection (with Tier-0 fast-path) is **F1/$ ≈ 2.14 — SHIP**. See `bench/crb/cost-normalised-f1.md` for full derivation and methodology caveats.
+
 Compare competitors (April 2026):
 - Anthropic managed Code Review: **$15-25/review** → $7,500-12,500/day at 500 PRs.
 - Cursor BugBot: $40/PR-author/month — for 50 devs, $2,000/month fixed.
