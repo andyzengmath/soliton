@@ -288,7 +288,7 @@ jobs:
         # showed default-ON regressed CRB F1 by 0.045). Integrators wanting
         # silent-failure / comment-accuracy / realist-check fired must opt in via
         # `.claude/soliton.local.md`. Bump to v2.x.x as later releases ship.
-        run: git clone --depth 1 --branch v2.1.1 https://github.com/andyzengmath/soliton.git /tmp/soliton
+        run: git clone --depth 1 --branch v2.1.2 https://github.com/andyzengmath/soliton.git /tmp/soliton
 
       - uses: anthropics/claude-code-action@ef50f123a3a9be95b60040d042717517407c7256 # v1
         env:
