@@ -51,6 +51,16 @@ Phase 6b CRB measurement (~\$140 single bounded run) awaits explicit user `ship 
 - **PR #99** — agent-file self-documenting default-OFF / default-skip callouts (silent-failure + comment-accuracy + test-quality + consistency); enterprise-java-dogfood footer SHIP annotation.
 - **PR #103** — `RESULTS.md` header forward-pointer to `PHASE_6_DESIGN.md`.
 
+### Second-pass strategic audit + regression-check chain + Martian prep (post-PR-#111)
+
+A second strategic checkpoint on 2026-05-01 ran 3 parallel audit agents and surfaced 3 NEW gaps (HIGH / MEDIUM / LOW). All three are now closed, plus a code-reviewer follow-up cycle on the regression check itself and a §B3 Martian submission template:
+
+- **PR #112** — closes NEW-2 (Evidence Chain orphan in POST_V2_FOLLOWUPS → §D4 entry) + NEW-3 (Phase 6 HOLD resolution protocol pre-registered: HOLD = CLOSE at N=1, no \$280 re-run; rationale: σ analysis shows N=2 reduces σ by only 1/√2 ≈ 0.71×; rare HOLD→SHIP conversion).
+- **PR #113** — closes NEW-1 HIGH: feature-flag plumbing regression check. New `tests/check_feature_flag_plumbing.py` (146 lines) asserts every `agents.<name>.enabled` template flag has both Step 2 mapping AND downstream consumer in SKILL.md. New CI workflow at `.github/workflows/feature-flag-plumbing.yml`. Guards against the two-point failure mode (PR #107 Step 2 missing + PR #108 Step 4.2 missing) that would have wasted Phase 6b's \$140.
+- **PR #114** — code-reviewer subagent on PR #113 caught 1 LOW + 2 MEDIUM follow-ups; closes LOW (`\b` word boundaries on annotation regex prevent substring false-positives) + 1 MEDIUM (limitation comment documenting Step 2 detection's content-grep nature).
+- **PR #115** — closes the 3rd MEDIUM from PR #113 review: orphan-flag reverse scan. Script now reports SKILL.md-referenced flags absent from template as WARN-only (orphaned wiring is a discoverability defect, not a runtime bug). Bidirectional coverage complete: forward FAIL on missing plumbing + reverse WARN on orphaned wiring.
+- **PR #116** — pre-stages §B3 Martian CRB upstream submission template at `bench/crb/martian-submission-template.md` (~97 lines). Soliton row + cost-normalised F1 first-mover claim (F1/\$ = 2.14 real-world / 0.855 CRB; verified unmatched in 2026-05-01 SOTA research) + methodology citations + pre-flight checklist. When PR #65 OAuth clears + steps (b)-(d) of §B3 run, the upstream PR can launch in <10 min.
+
 ### Cumulative spend since v2.1.2 cut
 
 ~\$3.28 (PR #89 C1.B Apache Camel swarm). All other PRs in this window are doc/eng-only — no LLM dispatch spend.
