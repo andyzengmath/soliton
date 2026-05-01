@@ -50,7 +50,14 @@ def check_plumbing(flag: str, skill_md_text: str) -> tuple[bool, str]:
 
     Returns (ok, reason).
     """
-    # Step 2 mapping pattern: `agents.<name>.enabled -> config.agents.<name>.enabled`
+    # Step 2 mapping pattern: `agents.<name>.enabled -> config.agents.<name>.enabled`.
+    # NOTE: this is a content-based grep, not position-anchored. If a future
+    # contributor adds prose elsewhere in SKILL.md that contains both
+    # "agents.<flag>.enabled" and "config.agents.<flag>.enabled" on the same
+    # line connected by an arrow ("->"), the check will pass even though the
+    # actual Step 2 mapping might be missing. The current SKILL.md structure
+    # makes such a false-positive unlikely (the only Step 2 mapping lines live
+    # in the v2 feature-flag fields list), but the limitation is acknowledged.
     step2_pattern = (
         re.escape(f"agents.{flag}.enabled")
         + r".*->.*"
@@ -61,10 +68,15 @@ def check_plumbing(flag: str, skill_md_text: str) -> tuple[bool, str]:
     # Downstream consumption: count references to either:
     #   - config.agents.<flag>.enabled (orchestrator reads from config)
     #   - <flag>_enabled (resolved annotation passed to agent prompt, e.g. from Step 4.1 step 6)
+    # \b word boundaries on the annotation regex prevent false-positive
+    # substring matches when one flag name is a suffix of another (e.g.,
+    # avoiding `file_enabled` matching as a substring of `cross_file_enabled`).
     config_refs = len(
         re.findall(re.escape(f"config.agents.{flag}.enabled"), skill_md_text)
     )
-    annotation_refs = len(re.findall(re.escape(f"{flag}_enabled"), skill_md_text))
+    annotation_refs = len(
+        re.findall(rf"\b{re.escape(flag)}_enabled\b", skill_md_text)
+    )
 
     # Step 2 mapping line itself contains config.agents.<flag>.enabled.
     # Require at least one ADDITIONAL config reference OR any annotation reference.
