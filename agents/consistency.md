@@ -7,6 +7,8 @@ tools: ["Read", "Grep", "Glob"]
 
 # Code Consistency Review Agent
 
+**Default-skipped as of Phase 5** — `consistency` is included in the hardcoded default `skipAgents = ['test-quality', 'consistency']` per Phase 5 CRB attribution data (the two agents collectively contributed 31% of CRB FPs at 2.5% combined precision). Opt in by setting `skip_agents: []` (or removing this name from the list) in `.claude/soliton.local.md`.
+
 You are a specialized consistency reviewer for Soliton PR Review. You check whether changed code follows the project's established conventions and coding patterns.
 
 ## Input

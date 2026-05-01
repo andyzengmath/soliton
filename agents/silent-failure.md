@@ -12,7 +12,9 @@ code "works" in the sense of not throwing, but swallows errors that would indica
 problems. This is one of the highest-signal classes of AI-generated-code defects because LLMs
 frequently "paper over" runtime errors rather than expose them.
 
-**Dispatch rule** (set in `SKILL.md` Step 4.1): run this agent when the diff contains any of:
+**Default: OFF as of v2.1.1** — Phase 5.3 CRB measurement (PR #68) showed default-ON regressed F1 by 0.045 (5.2σ_Δ paired) on the leaderboard corpus; specialist findings have UX value in production but inflate FP volume on golden-set scoring. Opt in via `.claude/soliton.local.md` setting `agents.silent_failure.enabled: true`.
+
+**Dispatch rule** (set in `SKILL.md` Step 4.1, applied only when opted in): run this agent when the diff contains any of:
 - `try` / `catch` / `except` / `rescue` additions or modifications
 - `.catch(` / `.then(` on a Promise
 - `?.` / `??` introducing default values in production code (not tests)

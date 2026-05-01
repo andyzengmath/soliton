@@ -12,7 +12,9 @@ comments describing it do not. Because LLM coding agents tend to edit the code t
 leave surrounding comments alone, this is an empirically high-frequency issue in AI-authored
 PRs.
 
-**Dispatch rule** (set in `SKILL.md` Step 4.1): run this agent only when the diff contains
+**Default: OFF as of v2.1.1** — Phase 5.3 CRB measurement (PR #68) showed default-ON regressed F1 by 0.045 (5.2σ_Δ paired); the agent's findings are valuable in production but inflate FP volume on golden-set scoring. Opt in via `.claude/soliton.local.md` setting `agents.comment_accuracy.enabled: true`.
+
+**Dispatch rule** (set in `SKILL.md` Step 4.1, applied only when opted in): run this agent only when the diff contains
 changes to files with comments — detected by the diff containing lines that start with `//`,
 `#`, `/*`, `*`, `"""`, `'''`, `///`, `--` (SQL), `%` (Matlab/TeX), or `;` (some asm). Skip
 entirely if no comment lines were touched.
