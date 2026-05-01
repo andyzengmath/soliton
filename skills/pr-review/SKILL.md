@@ -773,12 +773,21 @@ Output ONLY a valid JSON object with no surrounding text, no markdown, no emoji,
     "totalAgents": <number>,
     "completedAgents": <number>,
     "failedAgents": ["<agent names>"],
-    "reviewDurationMs": <elapsed milliseconds since reviewStartTime>
+    "reviewDurationMs": <elapsed milliseconds since reviewStartTime>,
+    "totalTokens": {
+      "input": <number; sum of usage.input_tokens across every Agent dispatch (Step 3 risk-scorer + Step 4 review agents + Step 5 synthesizer + optional Steps 2.7 spec-alignment / 5.5 realist-check)>,
+      "output": <number; sum of usage.output_tokens>,
+      "cacheCreation": <number; sum of usage.cache_creation_input_tokens; 0 when prompt caching not used>,
+      "cacheRead": <number; sum of usage.cache_read_input_tokens; 0 when prompt caching not used>
+    },
+    "costUsd": <number; computed by per-model token×rate multiplication per `rules/model-pricing.md`; rounded to 4 decimals (~$0.0001 precision)>
   }
 }
 ```
 
 **Important:** Output ONLY this JSON. No text before or after. The output must be parseable by `JSON.parse()` / `json.loads()`.
+
+**On `metadata.totalTokens` and `metadata.costUsd` (v2.1.2+, §C2 Phase 1):** these fields support cost-normalised F1 reporting per IDEA_REPORT G9. The orchestrator populates them by summing per-Agent `usage` blocks across every dispatch in the pipeline (risk-scorer, agent swarm, synthesizer, optional spec-alignment + realist-check). When the harness does NOT surface per-Agent `usage` (e.g. Claude Code's Agent tool today does not expose it in the return value), the orchestrator falls back to a heuristic estimate: tokens ≈ markdown length × per-model token-per-character ratio. Mark `metadata.costUsd` with a `*` suffix in interactive output (e.g. `costUsd: 0.32*`) when the heuristic was used; downstream JSON parsers should treat the bare number as canonical and ignore display annotations. Integrators wanting precise costing should wrap dispatch upstream of the orchestrator to capture API-side `usage`. See `rules/model-pricing.md` § "How the orchestrator computes costUsd" for the algorithm and § "Integrator overrides" for Bedrock/Vertex rate-sheet overrides.
 
 ### Format C: Agent Feedback JSON (when `config.outputFormat` is `'json'` AND `config.feedbackMode` is `true`)
 

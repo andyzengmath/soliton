@@ -70,6 +70,13 @@ For a MEDIUM-risk PR (previously 4 Sonnet agents):
 Opus cost is unchanged (one Opus call for security + one for hallucination on HIGH+). Sonnet
 calls are reduced 4× on MEDIUM PRs.
 
+**Note (v2.1.2+, §C2 Phase 1):** the ~$0.22 figure above is a *projection* from per-step-model
+counts × `rules/model-pricing.md` rates. The `metadata.costUsd` field in Format B JSON output
+emits the *measured* number per review (see `skills/pr-review/SKILL.md` Step 6 Format B). For
+benchmark publication purposes, the canonical procurement number is the aggregate measured
+F1 ÷ $/PR computed across a corpus run — pre-authorized as §C2 Phase 2 in
+`idea-stage/POST_V2_FOLLOWUPS.md`.
+
 ## Override patterns
 
 In `.claude/soliton.local.md`:
