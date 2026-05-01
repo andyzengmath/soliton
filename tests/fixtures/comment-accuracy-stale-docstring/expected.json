@@ -1,0 +1,9 @@
+{
+  "riskRange": [25, 60],
+  "expectedFindings": 1,
+  "expectedCategories": ["consistency"],
+  "expectedSeverity": "improvement",
+  "commentAccuracyEnabled": true,
+  "agentTriggerHint": "diff adds rate_limiter parameter to authenticate_request signature but the docstring's Args block still lists only request + session_store",
+  "description": "Pre-PR signature was authenticate_request(request, session_store); the new signature adds a rate_limiter parameter but the docstring's Args block still documents only request + session_store. Soliton's comment-accuracy agent (Step 4.1, content-triggered when diff modifies comment-marker lines OR when signature changes don't propagate to docstrings) must fire when `agents.comment_accuracy.enabled: true` is set and emit an IMPROVEMENT finding citing the docstring/signature drift. As of v2.1.1 comment_accuracy is default-OFF (Phase 5.3 evidence); this fixture is for opt-in production review where docstring accuracy matters."
+}

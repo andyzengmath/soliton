@@ -1,0 +1,9 @@
+{
+  "riskRange": [55, 85],
+  "expectedFindings": 1,
+  "expectedCategories": ["correctness"],
+  "expectedSeverity": "critical",
+  "silentFailureEnabled": true,
+  "agentTriggerHint": "diff adds bare except: that swallows GatewayError + returns failure-coded ChargeResult",
+  "description": "Pre-PR code raised GatewayError on upstream failure; the new code wraps the call in try/except, swallows ALL exceptions, and returns ChargeResult(success=False) — silently masking gateway failures from the caller. Soliton's silent-failure agent (Step 4.1, content-triggered when diff adds try/except patterns) must fire when `agents.silent_failure.enabled: true` is set and emit a CRITICAL finding citing the swallowed-exception anti-pattern. As of v2.1.1 silent_failure is default-OFF (Phase 5.3 evidence regressed F1 by 0.045); this fixture is for opt-in production review where the specialist findings have UX value (Hora & Robbes 2026)."
+}
