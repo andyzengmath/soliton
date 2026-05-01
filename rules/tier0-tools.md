@@ -46,8 +46,8 @@ does not compile, and there's no point spending LLM tokens to report that.
 | `bandit` | python (alt) | `bandit -f sarif -o {out} -r {dirs}` | SARIF |
 | `gosec` | go (alt) | `gosec -fmt sarif -out {out} ./...` | SARIF |
 | `brakeman` | ruby | `brakeman -f sarif -o {out}` | SARIF |
-| `spotbugs` (Maven) | java | `mvn com.github.spotbugs:spotbugs-maven-plugin:check -Dspotbugs.failOnError=false -Dspotbugs.sarifOutput=true -Dspotbugs.sarifOutputDir={out_dir}` | SARIF (Maven plugin v4.7+) |
-| `spotbugs` (CLI) | java (alt) | `spotbugs -textui -sarif -output {out} {classes_dir}` | needs compiled `.class` files; SARIF output — install via standalone JAR from spotbugs.github.io/releases |
+| `spotbugs` (Maven) | java | `mvn com.github.spotbugs:spotbugs-maven-plugin:check -Dspotbugs.failOnError=false -Dspotbugs.sarifOutput=true -Dspotbugs.sarifOutputDirectory={out_dir}` | SARIF (Maven plugin v4.7+) |
+| `spotbugs` (CLI) | java (alt) | `spotbugs -textui -sarif -output {out} {classes_dir}` | needs compiled `.class` files; SARIF output — install via standalone JAR from `https://github.com/spotbugs/spotbugs/releases` |
 
 **Default rulesets**:
 - `semgrep --config p/owasp-top-ten --config p/security-audit --config p/secrets`
@@ -233,18 +233,24 @@ brew install difftastic                        # macOS (alt)
 
 ### Verification — Tier-0 self-test
 
-After install, verify each tool fires from a small repo:
+After install, verify each tool fires from a small repo. The snippet below uses the same SARIF-preferred flags from the canonical invocation tables above, so the output is exactly what Soliton's Tier-0 parser expects:
 
 ```bash
-gitleaks detect --source . --no-git --report-format json --report-path /tmp/gl.json
-osv-scanner --format json --recursive .
+gitleaks detect --source . --no-git --report-format sarif --report-path /tmp/gl.sarif
+osv-scanner --format sarif --output /tmp/osv.sarif --recursive .
 semgrep --config p/owasp-top-ten --sarif --output /tmp/sg.sarif .
 # (Java-specific, in a Maven project)
-mvn checkstyle:check
-mvn com.github.spotbugs:spotbugs-maven-plugin:check
+mvn checkstyle:check -Dcheckstyle.failOnViolation=false -Dcheckstyle.outputFile=/tmp/cs.sarif -Dcheckstyle.outputFileFormat=sarif
+mvn com.github.spotbugs:spotbugs-maven-plugin:check -Dspotbugs.failOnError=false -Dspotbugs.sarifOutput=true -Dspotbugs.sarifOutputDirectory=/tmp
 ```
 
-Tools absent from PATH are silently skipped; `Tier-0 verdict` falls back to `needs_llm` (vs `clean`) when the deterministic floor isn't fully covered for the diff's language. Soliton's behavior degrades gracefully — integrators with only the cross-language tools (gitleaks + osv-scanner + semgrep) still get supply-chain integrity + secret + CVE coverage on every PR.
+Soliton's behavior degrades gracefully — tools absent from PATH are silently skipped. Verdict semantics (per `skills/pr-review/tier0.md`):
+- **`clean`** — at least one tool ran, zero findings, diff ≤ 50 LOC. Fast-path approve when `tier0.skip_llm_on_clean=true`.
+- **`advisory_only`** — only nitpick / low-severity findings, OR zero tools ran (no language coverage).
+- **`needs_llm`** — default when at least one tool ran and surfaced something non-trivial; LLM swarm proceeds.
+- **`blocked`** — secret_leak / cve_critical / type_error_fatal / security_critical surfaced; LLM skipped, CI fails.
+
+Integrators with only the cross-language tools (gitleaks + osv-scanner + semgrep) still get supply-chain integrity + secret + CVE coverage on every PR. Java/TS/Go/Ruby/Rust diffs without their language-specific tools land in `advisory_only` (graceful) rather than `clean` (which would mis-promise coverage).
 
 ## Exit-code conventions for CI gating
 
