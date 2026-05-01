@@ -327,26 +327,28 @@ Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 sessions (~\$3.48 cumulative 
 - ~~G1 hallucination-ast CI~~: shipped.
 - ~~G2-fuller fixture coverage~~: 4 v2.1.0 wiring fixtures added (PR #81).
 - ~~C2 cost-normalised F1 metric~~: Phase 1 schema + rule sheet (PR #82), Phase 2 derivation (PR #83). F1/$ = 0.855 CRB HOLD / ≈ 2.14 real-world SHIP. **Closes IDEA_REPORT G9 publication gap.**
+- ~~C1.B Apache Camel full-swarm arm~~: SHIP via PR #89 — 5 CRITICAL + 19 IMPROVEMENT + 7 NITPICK across 10 Camel PRs at ~\$3.28; closes the simulator caveat from C1 scout; **§C1 fully closed at signal-grade** (PR #90 lockstep annotation).
+- ~~v2.1.2 release~~: shipped via PR #86 (manifest bump + 8 audit-gap closures) + PR #87 (workflow examples bumped post-tag). Tag + GitHub Release page both published.
 
 Remaining ranked priorities:
 
 If picking just one:
-1. **C1.B Apache Camel arm with full-swarm dispatch** (~\$15-50, 1 day) — closes the simulator caveat from C1 scout; produces measured per-agent attribution.
-2. **C2 Phase 2 signal-grade measured re-run** (~\$15-25) — pending harness change that surfaces per-Agent `usage` in Agent tool return values. The Phase 1 schema + Phase 2 derivation are publishable in the meantime.
-3. **G3 stack-awareness orchestrator logic** ($0, ~1 week eng) — `--parent <PR#>` flag is parsed but no orchestrator logic; IDEA_REPORT positions as Tier-B but blocking for stacked-PR enterprise integrations.
+1. **G3 stack-awareness orchestrator logic** ($0, ~1 week eng) — `--parent <PR#>` flag is parsed but no orchestrator logic; IDEA_REPORT positions as Tier-B but blocking for stacked-PR enterprise integrations. Highest strategic value of the remaining items at $0 cost.
+2. **C2 Phase 2 signal-grade measured re-run** (~\$15-25) — gated on harness change that surfaces per-Agent `usage` in Agent tool return values (not autonomously achievable without harness PR). The Phase 2 derivation is publishable in the meantime.
+3. **C1.C Microsoft-internal monolith / COBOL / PL-SQL dogfood** — gated on access + on graph-code-indexing's COBOL/PL-SQL parser support per §B1. Highest strategic-fit gap remaining (PRD §7 enterprise rebuild).
 
 If picking three over the next month:
-1. C1.B Apache Camel arm
-2. C2 Phase 2 measured + Martian leaderboard submission (B3; auth-gated on PR #65)
-3. C3 corpus expansion ($250-750; de-noises per-language F1 + cost slice)
+1. G3 stack-awareness orchestrator logic
+2. C3 corpus expansion ($250-750; de-noises per-language F1 + cost slice; informs whether Ruby/TS slices reflect real signal vs sample-size artifact)
+3. B3 Martian CRB upstream submission (auth-gated on PR #65; surfaces Soliton's F1=0.313 + cost-normalised F1 in the public leaderboard)
 
 If $0 budget:
-1. G3 stack-awareness eng (long but free)
-2. Re-audit POST_V2_FOLLOWUPS / docs for any remaining drift
-3. Cut v2.1.3 if accumulated docs warrant it
+1. G3 stack-awareness eng (free, ~1 week; closes the stacked-PR enterprise gap)
+2. Re-audit POST_V2_FOLLOWUPS / docs for any remaining drift (3 audit cycles done this session — diminishing returns now)
+3. Cut v2.1.3 if accumulated docs since v2.1.2 warrant it (currently 1 PR worth, below threshold)
 
 Now retired:
-- ~~A4~~ ~~A5~~ ~~A6~~ ~~C1-scout~~ ~~A1~~ ~~A2~~ ~~A3~~ ~~C2~~ ~~D1~~ ~~D2~~ ~~G1~~ ~~G2-fuller~~ — see closure annotations above + per-§ entries.
+- ~~A4~~ ~~A5~~ ~~A6~~ ~~C1-scout~~ ~~C1.B~~ ~~A1~~ ~~A2~~ ~~A3~~ ~~C2~~ ~~D1~~ ~~D2~~ ~~G1~~ ~~G2-fuller~~ — see closure annotations above + per-§ entries. **§C1 enterprise-rebuild dogfood closed at signal-grade (scout + C1.B Camel both SHIP).**
 
 If $0 budget:
 1. A3 Tier-0 default-ON measurement (zero-cost subset of A1)
