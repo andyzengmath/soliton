@@ -35,6 +35,9 @@ feedback_mode: false
 #     enabled: true                # default OFF since v2.1.1 (Phase 5.3 evidence); opt in for production
 #   comment_accuracy:
 #     enabled: true                # default OFF since v2.1.1 (Phase 5.3 evidence); opt in for production
+# stack:
+#   auto_detect: true              # Step 1 Mode B step 4 — auto-detect parent via gt log when --stack-auto and gt on PATH
+#   require_parent_merged_check: true   # error if parent PR not yet merged vs its own base
 ---
 
 # Soliton Configuration

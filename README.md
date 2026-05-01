@@ -151,7 +151,9 @@ AI-Authored Likelihood: MEDIUM
     │
     ├── Step 1: Input Normalization
     │   ├── Local mode: git diff, git log, branch detection
-    │   └── PR mode: gh pr view --json, gh pr diff
+    │   ├── PR mode: gh pr view --json, gh pr diff
+    │   └── Stack-mode (v2, opt-in via --parent <PR#> / --parent-sha / --stack-auto):
+    │       reconstruct delta vs parent PR head per rules/stacked-pr-mode.md
     │
     ├── Step 2: Config Resolution
     │   └── Hardcoded defaults < .claude/soliton.local.md < CLI flags
