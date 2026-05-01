@@ -159,6 +159,19 @@ AI-Authored Likelihood: MEDIUM
     │   ├── Binary/generated files → auto-filtered
     │   └── Deleted-only PRs → reduced agent set
     │
+    ├── Step 2.6: Tier 0 — Deterministic Gate (v2, opt-in via tier0.enabled)
+    │   ├── gitleaks / osv-scanner / semgrep / lang-specific lint
+    │   ├── verdict ∈ {clean, advisory_only, needs_llm, blocked}
+    │   └── clean + skip_llm_on_clean=true → fast-path approve, skip Steps 2.7-5
+    │
+    ├── Step 2.7: Spec Alignment (v2, opt-in via spec_alignment.enabled)
+    │   └── Haiku agent reads REVIEW.md / .claude/specs/ / PR-description checklist
+    │       → emits SPEC_ALIGNMENT_START block + findings for unmet criteria
+    │
+    ├── Step 2.8: Graph Signals (v2, opt-in via graph.enabled)
+    │   └── Reads pre-built graph (full-mode graph-cli, partial-mode code-review-graph)
+    │       → blast radius, dependency breaks, taint paths, co-change, criticality
+    │
     ├── Step 2.75: Large PR Chunking
     │   └── >1000 lines → split into <500-line chunks, reviewed in parallel
     │
@@ -166,10 +179,14 @@ AI-Authored Likelihood: MEDIUM
     │   └── 6 weighted factors → 0-100 score → agent dispatch list
     │
     ├── Step 4: Adaptive Agent Dispatch (parallel)
-    │   └── 2-7 agents based on risk level, all run simultaneously
+    │   └── 2-9 agents based on risk level + content triggers, all run simultaneously
+    │       (silent-failure + comment-accuracy default-OFF since v2.1.1; opt in via local config)
     │
     ├── Step 5: Synthesis
     │   └── Deduplicate, filter by confidence, detect conflicts, categorize
+    │
+    ├── Step 5.5: Realist Check (v2, opt-in via synthesis.realist_check)
+    │   └── Sonnet pressure-tests CRITICAL findings; downgrades require cited Mitigated-by
     │
     └── Step 6: Output
         ├── Markdown (human-readable, default)
