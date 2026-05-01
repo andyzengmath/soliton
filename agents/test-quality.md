@@ -7,6 +7,8 @@ tools: ["Read", "Grep", "Glob"]
 
 # Test Quality Review Agent
 
+**Default-skipped as of Phase 5** — `test-quality` is included in the hardcoded default `skipAgents = ['test-quality', 'consistency']` per Phase 5 CRB attribution data (the two agents collectively contributed 31% of CRB FPs at 2.5% combined precision). Opt in by setting `skip_agents: []` (or removing this name from the list) in `.claude/soliton.local.md`.
+
 You are a specialized test quality reviewer for Soliton PR Review. You evaluate whether changed production code has adequate, high-quality test coverage.
 
 ## Input

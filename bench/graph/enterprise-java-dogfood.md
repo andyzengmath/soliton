@@ -193,4 +193,4 @@ done
 
 ---
 
-*Filed under: Soliton / dogfood / enterprise-rebuild scout. Will be updated to final verdict once all 10 reviews land.*
+*Filed under: Soliton / dogfood / enterprise-rebuild scout. C1 scout SHIP per POST_V2_FOLLOWUPS §C1; complementary C1.B Apache Camel full-swarm arm shipped via PR #89 — see `bench/graph/enterprise-camel-dogfood.md`.*
