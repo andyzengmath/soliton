@@ -72,7 +72,7 @@ elif ! grep -q "cross_file_retrieval_java:" "$LOCAL_CONFIG" 2>/dev/null; then
   echo "warning: $LOCAL_CONFIG does not enable cross_file_retrieval_java;" >&2
   echo "         Phase 6a §2.5 conditional will not fire — this run will" >&2
   echo "         measure Phase 5.2 baseline behavior only." >&2
-elif ! grep -q "cross_file_retrieval_java:" "$LOCAL_CONFIG" -A 2 2>/dev/null | grep -q "enabled: true"; then
+elif ! grep -A 2 "cross_file_retrieval_java:" "$LOCAL_CONFIG" 2>/dev/null | grep -q "enabled: true"; then
   echo "warning: $LOCAL_CONFIG has cross_file_retrieval_java block but" >&2
   echo "         enabled is not set to true — Phase 6a conditional will not fire" >&2
 fi
