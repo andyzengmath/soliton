@@ -321,9 +321,9 @@ Stale pre-reg / projection language found across docs that pre-date the σ measu
 
 ---
 
-## Ranked priorities (author's read, updated 2026-05-01 — post PRs #70–#85, v2.1.2 cut)
+## Ranked priorities (author's read, updated 2026-05-01 — post PRs #70–#93, v2.1.2 cut + G3 partial)
 
-Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 sessions (~\$3.48 cumulative spend, 16 + 4 = 20 PRs across the broader window):
+Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 sessions (~\$3.48 cumulative spend, 24 PRs across the broader window):
 
 - ~~A4 judge-noise envelope~~: σ_F1 = 0.0086 measured (PR #48).
 - ~~A5 realist-check wiring + CRB~~: Step 5.5 shipped (PR #50); Phase 5.3 measured the combined wirings → CLOSE verdict drove v2.1.1 default-OFF revert for silent-failure + comment-accuracy.
@@ -340,31 +340,27 @@ Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 sessions (~\$3.48 cumulative 
 - ~~C2 cost-normalised F1 metric~~: Phase 1 schema + rule sheet (PR #82), Phase 2 derivation (PR #83). F1/$ = 0.855 CRB HOLD / ≈ 2.14 real-world SHIP. **Closes IDEA_REPORT G9 publication gap.**
 - ~~C1.B Apache Camel full-swarm arm~~: SHIP via PR #89 — 5 CRITICAL + 19 IMPROVEMENT + 7 NITPICK across 10 Camel PRs at ~\$3.28; closes the simulator caveat from C1 scout; **§C1 fully closed at signal-grade** (PR #90 lockstep annotation).
 - ~~v2.1.2 release~~: shipped via PR #86 (manifest bump + 8 audit-gap closures) + PR #87 (workflow examples bumped post-tag). Tag + GitHub Release page both published.
+- ~~G3 stack-awareness orchestrator wiring (partial)~~: SKILL.md Step 1 Mode B step 4 wired (PR #92); templates/soliton.local.md `stack:` block + README architecture diagram Step 1.5 line + POST_V2_FOLLOWUPS §G3 partial-closure annotation (PR #93). Remaining open arms (Mode A stacked + gt-binary E2E + end-to-end fixture auth-gated on PR #65 + whole-stack review mode) tracked under §G3.
 
 Remaining ranked priorities:
 
 If picking just one:
-1. **G3 stack-awareness orchestrator logic** ($0, ~1 week eng) — `--parent <PR#>` flag is parsed but no orchestrator logic; IDEA_REPORT positions as Tier-B but blocking for stacked-PR enterprise integrations. Highest strategic value of the remaining items at $0 cost.
-2. **C2 Phase 2 signal-grade measured re-run** (~\$15-25) — gated on harness change that surfaces per-Agent `usage` in Agent tool return values (not autonomously achievable without harness PR). The Phase 2 derivation is publishable in the meantime.
-3. **C1.C Microsoft-internal monolith / COBOL / PL-SQL dogfood** — gated on access + on graph-code-indexing's COBOL/PL-SQL parser support per §B1. Highest strategic-fit gap remaining (PRD §7 enterprise rebuild).
+1. **C2 Phase 2 signal-grade measured re-run** (~\$15-25) — gated on harness change that surfaces per-Agent `usage` in Agent tool return values (not autonomously achievable without harness PR). The Phase 2 derivation is publishable in the meantime.
+2. **C1.C Microsoft-internal monolith / COBOL / PL-SQL dogfood** — gated on access + on graph-code-indexing's COBOL/PL-SQL parser support per §B1. Highest strategic-fit gap remaining (PRD §7 enterprise rebuild).
+3. **G3 remaining arms** ($0, eng-only) — Mode A stacked-PR support + `gt`-binary `--stack-auto` end-to-end + auth-gated end-to-end /pr-review-driven fixture assertion. Smaller in scope than the orchestrator-wiring half closed in PR #92.
 
 If picking three over the next month:
-1. G3 stack-awareness orchestrator logic
-2. C3 corpus expansion ($250-750; de-noises per-language F1 + cost slice; informs whether Ruby/TS slices reflect real signal vs sample-size artifact)
-3. B3 Martian CRB upstream submission (auth-gated on PR #65; surfaces Soliton's F1=0.313 + cost-normalised F1 in the public leaderboard)
+1. C3 corpus expansion ($250-750; de-noises per-language F1 + cost slice; informs whether Ruby/TS slices reflect real signal vs sample-size artifact)
+2. B3 Martian CRB upstream submission (auth-gated on PR #65; surfaces Soliton's F1=0.313 + cost-normalised F1 in the public leaderboard)
+3. G3 remaining arms (above)
 
 If $0 budget:
-1. G3 stack-awareness eng (free, ~1 week; closes the stacked-PR enterprise gap)
-2. Re-audit POST_V2_FOLLOWUPS / docs for any remaining drift (3 audit cycles done this session — diminishing returns now)
-3. Cut v2.1.3 if accumulated docs since v2.1.2 warrant it (currently 1 PR worth, below threshold)
+1. **Autonomously-actionable register is essentially empty** post-G3 partial closure. Remaining open work is harness-gated (C2 Phase 2), auth-gated (#65 OAuth, #67 MCP shim, B3 Martian, G3 fixture E2E), spend-bearing (C2/C3), or access-gated (C1.C internal monolith).
+2. Periodic re-audit POST_V2_FOLLOWUPS / docs for drift — 3+ audit cycles done this session, diminishing returns now.
+3. Hold for explicit user direction or a new lever surfacing.
 
 Now retired:
-- ~~A4~~ ~~A5~~ ~~A6~~ ~~C1-scout~~ ~~C1.B~~ ~~A1~~ ~~A2~~ ~~A3~~ ~~C2~~ ~~D1~~ ~~D2~~ ~~G1~~ ~~G2-fuller~~ — see closure annotations above + per-§ entries. **§C1 enterprise-rebuild dogfood closed at signal-grade (scout + C1.B Camel both SHIP).**
-
-If $0 budget:
-1. A3 Tier-0 default-ON measurement (zero-cost subset of A1)
-2. D2 cross-file-impact caller-direction refactor (engineering only)
-3. Triage I11–I20 for any "ship for free" opportunities
+- ~~A4~~ ~~A5~~ ~~A6~~ ~~C1-scout~~ ~~C1.B~~ ~~A1~~ ~~A2~~ ~~A3~~ ~~C2~~ ~~D1~~ ~~D2~~ ~~G1~~ ~~G2-fuller~~ ~~G3-orchestrator-wiring (partial)~~ — see closure annotations above + per-§ entries. **§C1 enterprise-rebuild dogfood closed at signal-grade (scout + C1.B Camel both SHIP).**
 
 ---
 
