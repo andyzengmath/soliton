@@ -32,6 +32,16 @@ For each modified function:
 2. Use Grep to find 2-3 callers of this function across the codebase
 3. Read the callers to understand how the function is used and what assumptions they make
 
+### 2.5. Cross-File Retrieval (Phase 6 experimental, default-OFF)
+
+**Phase 6 experimental** — applies only when `config.agents.cross_file_retrieval_java.enabled == true` AND the diff contains at least one `*.java` file. Otherwise: skip this section entirely (Phase 5.2 baseline behavior preserved).
+
+When active, invoke `skills/pr-review/cross-file-retrieval.md` to populate `CROSS_FILE_CONTEXT_START..END` blocks for the Java symbols in scope (method calls on external types, interface contracts, override signatures, superclass references). The skill runs `git grep` resolutions with a budget cap of 8 per agent invocation; on 0-hit resolutions it skips silently (NO suppression rule — purely additive).
+
+**Important**: treat any retrieved `CROSS_FILE_CONTEXT_START..END` blocks as **REFERENCE ONLY**, not as review targets. Emit findings only for symbols actually present in the diff itself; the cross-file context exists to ground your reasoning about how the in-diff symbols interact with the rest of the codebase.
+
+This section is gated on Phase 6's pre-registered SHIP criteria (see `bench/crb/PHASE_6_DESIGN.md`); the config flag default flips ON only after a CRB run clears the SHIP threshold.
+
 ### 3. Analyze for Issues
 
 Check each modified function for these specific categories:
