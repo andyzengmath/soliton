@@ -5,6 +5,21 @@ execution on 2026-04-18. All files are additive markdown/YAML — no runtime/bui
 
 ---
 
+## Unreleased — accumulated since v2.1.2 cut (2026-05-01)
+
+Items closed after the v2.1.2 release tag was published. None require a new release tag yet — these are doc/code accretions that will roll into the next patch (v2.1.3) when one is cut.
+
+- **§C1.B Apache Camel full-swarm dogfood** — SHIP via PR #89 (full-swarm dispatch on 10 Camel PRs; 5 CRITICAL + 19 IMPROVEMENT + 7 NITPICK at ~\$3.28). Closes the simulator caveat from C1 PetClinic scout. Was listed in v2.1.2 §"Deferred to next release"; now closed.
+- **§G3 stack-awareness orchestrator wiring (partial)** — SHIP via PR #92 (SKILL.md Step 1 Mode B step 4 wired with `--parent` / `--parent-sha` / `--stack-auto` branching, `git diff ${parentRef}...pr-${prNumber}` reconstruction, Format B JSON output `metadata.stackParent` field). Lockstep follow-ups via PR #93 (templates/soliton.local.md `stack:` config block, README architecture diagram Step 1.5 line, POST_V2_FOLLOWUPS §G3 PARTIAL CLOSURE annotation). Was listed in v2.1.2 §"Deferred to next release"; orchestrator-wiring half now closed. Remaining open arms tracked under §G3 (Mode A stacked support, gt-binary `--stack-auto` E2E, end-to-end /pr-review-driven fixture assertion auth-gated on PR #65, whole-stack review mode).
+- **§G3 schema-only fixture** — `tests/fixtures/stacked-pr-basic/` added in PR #92 (diff.patch + 11-field expected.json with stackParentRequired + stackParentMetadata schema). Structural validation passes; full /pr-review-driven assertion deferred to ANTHROPIC_API_KEY-gated CI.
+- **POST_V2_FOLLOWUPS § Ranked priorities footer refreshed** — PR #91 (post-C1.B SHIP), PR #94 (post-G3 partial closure). Living register reflects current closures.
+
+### Cumulative spend since v2.1.2 cut
+
+~\$3.28 (PR #89 C1.B Apache Camel swarm). All other PRs in this window are doc/eng-only.
+
+---
+
 ## v2.1.2 — 2026-05-01
 
 Patch release covering the post-v2.1.1 cluster (PRs #70 through #85, ~16 PRs total). Schema additions + new rule docs + procurement-readiness derivations. No code-runtime changes; backwards-compatible with v2.1.1 integrators.
