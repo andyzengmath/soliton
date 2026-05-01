@@ -509,6 +509,18 @@ Proceed to **Step 4**.
 
 5. Store final list as `dispatchList`.
 
+6. **Per-agent feature-flag annotations** (Phase 6+ — passed through Step 4.2 prompts):
+
+   For the `correctness` agent specifically (when present in `dispatchList`), compute:
+   - `cross_file_retrieval_java_enabled` — `true` when BOTH conditions hold; otherwise `false`:
+     - `config.agents.cross_file_retrieval_java.enabled` is explicitly set to `true` in `.claude/soliton.local.md` (default `false` per Phase 6 experimental status; see `bench/crb/PHASE_6_DESIGN.md`); AND
+     - The files list contains at least one entry matching `*.java`.
+   - `java_files` — comma-separated list of `*.java` paths from the files list (empty string when the flag above is `false`).
+
+   These pre-resolved values are injected into the correctness agent's Step 4.2 prompt as a `Feature flags` block (see Step 4.2 template). The activation check lives in the orchestrator (where `config` is available); the agent reads the resolved annotation, never `config` itself. This matches the silent_failure / comment_accuracy gating pattern (which decides whether to dispatch the agent at all) — the difference is that Phase 6's flag decides whether the correctness agent invokes its §2.5 sub-skill, not whether the agent dispatches.
+
+   Other agents in `dispatchList` get no `Feature flags` block (Phase 6 only triggers correctness's §2.5).
+
 Display to user:
 ```
 Dispatching <N> review agents...
@@ -542,6 +554,10 @@ Agent tool (for each agent):
     Focus area (from risk scorer):
     Files: <focusArea.files for this agent>
     Hint: <focusArea.hint for this agent>
+
+    Feature flags (orchestrator-resolved from .claude/soliton.local.md, ONLY for correctness agent — omit for all other agents):
+    cross_file_retrieval_java_enabled: <true|false from Step 4.1 step 6>
+    java_files: <comma-separated *.java paths from this diff, or empty>
 
     Follow your agent instructions. Output findings in FINDING_START...FINDING_END format.
     If no issues found, output: FINDINGS_NONE
