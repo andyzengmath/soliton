@@ -1,0 +1,451 @@
+diff --git a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportBaseCommand.java b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportBaseCommand.java
+index db3ce5b0f4e90..a07b0651fea5a 100644
+--- a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportBaseCommand.java
++++ b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportBaseCommand.java
+@@ -103,6 +103,8 @@ public abstract class ExportBaseCommand extends CamelCommand {
+     protected Path exportBaseDir;
+     private MavenDownloader downloader;
+     private Printer quietPrinter;
++    // Map to store deferred symbolic links: target path in BUILD_DIR → original source path
++    private Map<Path, Path> deferredSymlinks = new HashMap<>();
+ 
+     @CommandLine.Parameters(description = "The Camel file(s) to export. If no files is specified then what was last run will be exported.",
+                             arity = "0..9", paramLabel = "<files>", parameterConsumer = FilesConsumer.class)
+@@ -915,17 +917,26 @@ protected void copySourceFiles(
+                     }
+                     if (!java) {
+                         if (kamelet) {
+-                            ExportHelper.safeCopy(source, out, true, symbolicLink);
++                            ExportHelper.safeCopy(source, out, true);
++                            if (symbolicLink) {
++                                deferredSymlinks.put(out, source);
++                            }
+                         } else if (jkube) {
+                             // file should be renamed and moved into src/main/jkube
+                             f = f.replace(".jkube.yaml", ".yaml");
+                             f = f.replace(".jkube.yml", ".yml");
+                             out = srcCamelResourcesDir.getParent().getParent().resolve("jkube/" + f);
+                             Files.createDirectories(out.getParent());
+-                            ExportHelper.safeCopy(source, out, true, symbolicLink);
++                            ExportHelper.safeCopy(source, out, true);
++                            if (symbolicLink) {
++                                deferredSymlinks.put(out, source);
++                            }
+                         } else {
+                             Files.createDirectories(out.getParent());
+-                            ExportHelper.safeCopy(getClass().getClassLoader(), scheme, source, out, true, symbolicLink);
++                            ExportHelper.safeCopy(getClass().getClassLoader(), scheme, source, out, true);
++                            if (symbolicLink) {
++                                deferredSymlinks.put(out, source);
++                            }
+                         }
+                     } else {
+                         // need to append package name in java source file
+@@ -953,7 +964,10 @@ protected void copySourceFiles(
+                             }
+                         }
+                         if (javaLiveReload) {
+-                            ExportHelper.safeCopy(source, out, true, symbolicLink);
++                            ExportHelper.safeCopy(source, out, true);
++                            if (symbolicLink) {
++                                deferredSymlinks.put(out, source);
++                            }
+                         } else {
+                             fos = Files.newOutputStream(out);
+                             for (String line : lines) {
+@@ -1242,7 +1256,43 @@ protected static String jkubeMavenPluginVersion(Path settings, Properties props)
+     // This method is kept for backward compatibility with derived classes
+     @Deprecated
+     protected void safeCopy(java.io.File source, java.io.File target, boolean override) throws Exception {
+-        ExportHelper.safeCopy(source.toPath(), target.toPath(), override, symbolicLink);
++        ExportHelper.safeCopy(source.toPath(), target.toPath(), override);
++    }
++
++    /**
++     * Creates symbolic links for files that were deferred during the copy phase. This method should be called after
++     * copying BUILD_DIR to exportDir and before deleting BUILD_DIR.
++     *
++     * @param  buildDir  the temporary build directory
++     * @param  exportDir the final export directory
++     * @throws Exception if symbolic link creation fails
++     */
++    protected void createDeferredSymlinks(Path buildDir, Path exportDir) throws Exception {
++        if (!symbolicLink || deferredSymlinks.isEmpty()) {
++            return;
++        }
++
++        for (Map.Entry<Path, Path> entry : deferredSymlinks.entrySet()) {
++            Path targetInBuildDir = entry.getKey();
++            Path originalSource = entry.getValue();
++
++            // Compute relative path from buildDir to target
++            Path relativePath = buildDir.relativize(targetInBuildDir);
++
++            // Create symlink in exportDir at same relative path
++            Path linkInExportDir = exportDir.resolve(relativePath);
++
++            // Delete the copied file and create symlink instead
++            if (Files.exists(linkInExportDir)) {
++                Files.delete(linkInExportDir);
++            }
++
++            // Create symbolic link pointing to the original source
++            Path absoluteSource = originalSource.toAbsolutePath();
++            Files.createSymbolicLink(linkInExportDir, absoluteSource);
++        }
++
++        deferredSymlinks.clear();
+     }
+ 
+     // This method is kept for backward compatibility with derived classes
+@@ -1344,7 +1394,7 @@ protected void copyLocalLibDependencies(Set<String> deps) throws Exception {
+                 String n = d.substring(4);
+                 Path sourcePath = Paths.get(n);
+                 Path targetPath = libDirPath.resolve(n);
+-                ExportHelper.safeCopy(sourcePath, targetPath, true, symbolicLink);
++                ExportHelper.safeCopy(sourcePath, targetPath, true);
+             }
+         }
+     }
+@@ -1403,7 +1453,7 @@ protected void copyApplicationPropertiesFiles(Path srcResourcesDir) throws Excep
+                     })
+                     .forEach(p -> {
+                         try {
+-                            ExportHelper.safeCopy(p, srcResourcesDir.resolve(p.getFileName()), true, symbolicLink);
++                            ExportHelper.safeCopy(p, srcResourcesDir.resolve(p.getFileName()), true);
+                         } catch (Exception e) {
+                             throw new RuntimeException(e);
+                         }
+diff --git a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportCamelMain.java b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportCamelMain.java
+index ca3e4b3c3222c..0680db20de6c1 100644
+--- a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportCamelMain.java
++++ b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportCamelMain.java
+@@ -177,6 +177,7 @@ public Integer export() throws Exception {
+         }
+         // copy to export dir and remove work dir
+         PathUtils.copyDirectory(buildDir, Path.of(exportDir));
++        createDeferredSymlinks(buildDir, Path.of(exportDir));
+         PathUtils.deleteDirectory(buildDir);
+ 
+         return 0;
+diff --git a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportHelper.java b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportHelper.java
+index 0134df09ad0a4..c3d18e98e24b4 100644
+--- a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportHelper.java
++++ b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportHelper.java
+@@ -17,7 +17,6 @@
+ 
+ package org.apache.camel.dsl.jbang.core.commands;
+ 
+-import java.io.IOException;
+ import java.io.InputStream;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+@@ -35,13 +34,8 @@ private ExportHelper() {
+         // prevent instantiation of utility class.
+     }
+ 
+-    public static void safeCopy(ClassLoader classLoader, String scheme, Path source, Path target, boolean override)
+-            throws Exception {
+-        safeCopy(classLoader, scheme, source, target, override, false);
+-    }
+-
+     public static void safeCopy(
+-            ClassLoader classLoader, String scheme, Path source, Path target, boolean override, boolean symbolicLink)
++            ClassLoader classLoader, String scheme, Path source, Path target, boolean override)
+             throws Exception {
+         if ("classpath".equals(scheme)) {
+             // in windows the source object contains the windows file separator
+@@ -52,15 +46,11 @@ public static void safeCopy(
+                 IOHelper.copy(ins, outs);
+             }
+         } else {
+-            safeCopy(source, target, override, symbolicLink);
++            safeCopy(source, target, override);
+         }
+     }
+ 
+     public static void safeCopy(Path source, Path target, boolean override) throws Exception {
+-        safeCopy(source, target, override, false);
+-    }
+-
+-    public static void safeCopy(Path source, Path target, boolean override, boolean symbolicLink) throws Exception {
+         if (!Files.exists(source)) {
+             return;
+         }
+@@ -71,7 +61,7 @@ public static void safeCopy(Path source, Path target, boolean override, boolean
+                 stream.filter(Files::isRegularFile)
+                         .forEach(child -> {
+                             try {
+-                                safeCopy(child, target.resolve(child.getFileName()), override, symbolicLink);
++                                safeCopy(child, target.resolve(child.getFileName()), override);
+                             } catch (Exception e) {
+                                 throw new RuntimeException(e);
+                             }
+@@ -80,21 +70,6 @@ public static void safeCopy(Path source, Path target, boolean override, boolean
+             return;
+         }
+ 
+-        if (symbolicLink) {
+-            try {
+-                // must use absolute paths
+-                Path link = target.toAbsolutePath();
+-                Path src = source.toAbsolutePath();
+-                if (Files.exists(link)) {
+-                    Files.delete(link);
+-                }
+-                Files.createSymbolicLink(link, src);
+-                return; // success
+-            } catch (IOException e) {
+-                // ignore
+-            }
+-        }
+-
+         if (!Files.exists(target)) {
+             Files.copy(source, target);
+         } else if (override) {
+diff --git a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportQuarkus.java b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportQuarkus.java
+index 49e40b0edb9fc..8ebbd98d6fb4c 100644
+--- a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportQuarkus.java
++++ b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportQuarkus.java
+@@ -167,6 +167,7 @@ public Integer export() throws Exception {
+         }
+         // copy to export dir and remove work dir
+         PathUtils.copyDirectory(buildDir, Path.of(exportDir));
++        createDeferredSymlinks(buildDir, Path.of(exportDir));
+         PathUtils.deleteDirectory(buildDir);
+ 
+         return 0;
+diff --git a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportSpringBoot.java b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportSpringBoot.java
+index 4c76c2dc68fd9..f1f80c3982ea1 100644
+--- a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportSpringBoot.java
++++ b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/ExportSpringBoot.java
+@@ -171,6 +171,7 @@ public Integer export() throws Exception {
+         }
+         // copy to export dir and remove work dir
+         PathUtils.copyDirectory(buildDir, Paths.get(exportDir));
++        createDeferredSymlinks(buildDir, Paths.get(exportDir));
+         PathUtils.deleteDirectory(buildDir);
+ 
+         return 0;
+diff --git a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/Run.java b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/Run.java
+index 14899275e9122..92ce18df8ec5d 100644
+--- a/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/Run.java
++++ b/dsl/camel-jbang/camel-jbang-core/src/main/java/org/apache/camel/dsl/jbang/core/commands/Run.java
+@@ -1235,7 +1235,10 @@ protected int runSpringBoot() throws Exception {
+ 
+         // export to hidden folder
+         ExportSpringBoot eq = new ExportSpringBoot(getMain());
+-        // Java codes reload is not supported in Spring Boot since it has to be recompiled to trigger the restart
++        // the code reload is not supported, since we use symlink, spring-boot devtools doesn't support symlink
++        if (this.dev) {
++            printer().println("WARN: Code reload is not supported with Spring Boot.");
++        }
+         eq.javaLiveReload = false;
+         eq.symbolicLink = this.dev;
+         eq.mavenWrapper = true;
+diff --git a/dsl/camel-jbang/camel-jbang-core/src/test/java/org/apache/camel/dsl/jbang/core/commands/ExportHelperTest.java b/dsl/camel-jbang/camel-jbang-core/src/test/java/org/apache/camel/dsl/jbang/core/commands/ExportHelperTest.java
+index d4d821d88bcae..f825db685cf5f 100644
+--- a/dsl/camel-jbang/camel-jbang-core/src/test/java/org/apache/camel/dsl/jbang/core/commands/ExportHelperTest.java
++++ b/dsl/camel-jbang/camel-jbang-core/src/test/java/org/apache/camel/dsl/jbang/core/commands/ExportHelperTest.java
+@@ -16,8 +16,15 @@
+  */
+ package org.apache.camel.dsl.jbang.core.commands;
+ 
++import java.io.ByteArrayInputStream;
++import java.io.InputStream;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
+ import org.junit.jupiter.api.Assertions;
+ import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.io.TempDir;
+ 
+ public class ExportHelperTest {
+ 
+@@ -28,4 +35,185 @@ public void testPackageName() {
+         name = ExportHelper.exportPackageName("org.demo", "some-app-2025", null);
+         Assertions.assertEquals("org.demo.someapp2025", name);
+     }
++
++    @Test
++    public void testSafeCopyFileToNewTarget(@TempDir Path tempDir) throws Exception {
++        // Create source file
++        Path source = tempDir.resolve("source.txt");
++        String content = "Hello World";
++        Files.writeString(source, content);
++
++        // Copy to new target
++        Path target = tempDir.resolve("target.txt");
++        ExportHelper.safeCopy(source, target, false);
++
++        // Verify target exists and has correct content
++        Assertions.assertTrue(Files.exists(target));
++        Assertions.assertEquals(content, Files.readString(target));
++    }
++
++    @Test
++    public void testSafeCopyFileWithOverrideTrue(@TempDir Path tempDir) throws Exception {
++        // Create source and target files with different content
++        Path source = tempDir.resolve("source.txt");
++        Path target = tempDir.resolve("target.txt");
++        Files.writeString(source, "New Content");
++        Files.writeString(target, "Old Content");
++
++        // Copy with override=true
++        ExportHelper.safeCopy(source, target, true);
++
++        // Verify target was overwritten
++        Assertions.assertEquals("New Content", Files.readString(target));
++    }
++
++    @Test
++    public void testSafeCopyFileWithOverrideFalse(@TempDir Path tempDir) throws Exception {
++        // Create source and target files with different content
++        Path source = tempDir.resolve("source.txt");
++        Path target = tempDir.resolve("target.txt");
++        Files.writeString(source, "New Content");
++        Files.writeString(target, "Old Content");
++
++        // Copy with override=false
++        ExportHelper.safeCopy(source, target, false);
++
++        // Verify target was NOT overwritten
++        Assertions.assertEquals("Old Content", Files.readString(target));
++    }
++
++    @Test
++    public void testSafeCopyFromDirectory(@TempDir Path tempDir) throws Exception {
++        // Create source directory with multiple files
++        Path sourceDir = tempDir.resolve("sourceDir");
++        Files.createDirectories(sourceDir);
++        Files.writeString(sourceDir.resolve("file1.txt"), "Content 1");
++        Files.writeString(sourceDir.resolve("file2.txt"), "Content 2");
++        Files.writeString(sourceDir.resolve("file3.txt"), "Content 3");
++
++        // Create target directory
++        Path targetDir = tempDir.resolve("targetDir");
++        Files.createDirectories(targetDir);
++
++        // Copy from directory (should flatten files)
++        ExportHelper.safeCopy(sourceDir, targetDir, false);
++
++        // Verify all files were copied to target directory
++        Assertions.assertTrue(Files.exists(targetDir.resolve("file1.txt")));
++        Assertions.assertTrue(Files.exists(targetDir.resolve("file2.txt")));
++        Assertions.assertTrue(Files.exists(targetDir.resolve("file3.txt")));
++        Assertions.assertEquals("Content 1", Files.readString(targetDir.resolve("file1.txt")));
++        Assertions.assertEquals("Content 2", Files.readString(targetDir.resolve("file2.txt")));
++        Assertions.assertEquals("Content 3", Files.readString(targetDir.resolve("file3.txt")));
++    }
++
++    @Test
++    public void testSafeCopyNonExistentSource(@TempDir Path tempDir) throws Exception {
++        // Try to copy from non-existent source
++        Path source = tempDir.resolve("nonexistent.txt");
++        Path target = tempDir.resolve("target.txt");
++
++        // Should not throw exception, just return
++        ExportHelper.safeCopy(source, target, false);
++
++        // Verify target was not created
++        Assertions.assertFalse(Files.exists(target));
++    }
++
++    @Test
++    public void testSafeCopyFromInputStream(@TempDir Path tempDir) throws Exception {
++        // Create input stream with content
++        String content = "Stream Content";
++        InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
++
++        // Copy to target
++        Path target = tempDir.resolve("subdir").resolve("target.txt");
++        ExportHelper.safeCopy(inputStream, target);
++
++        // Verify target exists and has correct content
++        Assertions.assertTrue(Files.exists(target));
++        Assertions.assertEquals(content, Files.readString(target));
++    }
++
++    @Test
++    public void testSafeCopyFromInputStreamCreatesParentDirectories(@TempDir Path tempDir) throws Exception {
++        // Create input stream
++        InputStream inputStream = new ByteArrayInputStream("Content".getBytes(StandardCharsets.UTF_8));
++
++        // Copy to target in nested directories that don't exist
++        Path target = tempDir.resolve("level1").resolve("level2").resolve("target.txt");
++        ExportHelper.safeCopy(inputStream, target);
++
++        // Verify parent directories were created
++        Assertions.assertTrue(Files.exists(target.getParent()));
++        Assertions.assertTrue(Files.exists(target));
++    }
++
++    @Test
++    public void testSafeCopyFromNullInputStream(@TempDir Path tempDir) throws Exception {
++        // Try to copy from null input stream
++        Path target = tempDir.resolve("target.txt");
++
++        // Should not throw exception, just return
++        ExportHelper.safeCopy(null, target);
++
++        // Verify target was not created
++        Assertions.assertFalse(Files.exists(target));
++    }
++
++    @Test
++    public void testSafeCopyFromInputStreamDoesNotOverwrite(@TempDir Path tempDir) throws Exception {
++        // Create existing target file
++        Path target = tempDir.resolve("target.txt");
++        Files.writeString(target, "Existing Content");
++
++        // Try to copy from input stream
++        InputStream inputStream = new ByteArrayInputStream("New Content".getBytes(StandardCharsets.UTF_8));
++        ExportHelper.safeCopy(inputStream, target);
++
++        // Verify target was NOT overwritten
++        Assertions.assertEquals("Existing Content", Files.readString(target));
++    }
++
++    @Test
++    public void testSafeCopyWithClassLoaderNonClasspathScheme(@TempDir Path tempDir) throws Exception {
++        // Create source file
++        Path source = tempDir.resolve("source.txt");
++        Files.writeString(source, "File Content");
++
++        // Copy with non-classpath scheme (should delegate to Path version)
++        Path target = tempDir.resolve("target.txt");
++        ExportHelper.safeCopy(getClass().getClassLoader(), "file", source, target, false);
++
++        // Verify target exists and has correct content
++        Assertions.assertTrue(Files.exists(target));
++        Assertions.assertEquals("File Content", Files.readString(target));
++    }
++
++    @Test
++    public void testSafeCopyWithClassLoaderClasspathScheme(@TempDir Path tempDir) throws Exception {
++        // Copy from classpath resource
++        Path target = tempDir.resolve("log4j2.properties");
++
++        // Use a known classpath resource (log4j2.properties exists in src/main/resources)
++        Path source = Path.of("log4j2.properties");
++        ExportHelper.safeCopy(getClass().getClassLoader(), "classpath", source, target, false);
++
++        // Verify target exists and has content
++        Assertions.assertTrue(Files.exists(target));
++        Assertions.assertTrue(Files.size(target) > 0);
++    }
++
++    @Test
++    public void testSafeCopyWithClassLoaderClasspathSchemeWindowsPath(@TempDir Path tempDir) throws Exception {
++        // Test that Windows-style path separators are handled correctly
++        Path target = tempDir.resolve("log4j2.properties");
++
++        // Use Windows-style path separator (should be converted to Unix style)
++        Path source = Path.of("log4j2.properties");
++        ExportHelper.safeCopy(getClass().getClassLoader(), "classpath", source, target, false);
++
++        // Verify target exists
++        Assertions.assertTrue(Files.exists(target));
++    }
+ }

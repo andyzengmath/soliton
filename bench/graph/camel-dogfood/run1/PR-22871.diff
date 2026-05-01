@@ -1,0 +1,62 @@
+diff --git a/components/camel-ftp/pom.xml b/components/camel-ftp/pom.xml
+index 9cb237067884a..77cd5f6c9c206 100644
+--- a/components/camel-ftp/pom.xml
++++ b/components/camel-ftp/pom.xml
+@@ -131,12 +131,6 @@
+             <version>${mina-version}</version>
+             <scope>test</scope>
+         </dependency>
+-        <dependency>
+-            <groupId>net.i2p.crypto</groupId>
+-            <artifactId>eddsa</artifactId>
+-            <version>${eddsa-version}</version>
+-            <scope>test</scope>
+-        </dependency>
+ 
+         <dependency>
+             <groupId>org.mockito</groupId>
+diff --git a/components/camel-jsch/pom.xml b/components/camel-jsch/pom.xml
+index a1b76bfa1dae6..70c7608089e91 100644
+--- a/components/camel-jsch/pom.xml
++++ b/components/camel-jsch/pom.xml
+@@ -86,11 +86,5 @@
+             <version>${bouncycastle-version}</version>
+             <scope>test</scope>
+         </dependency>
+-        <dependency>
+-            <groupId>net.i2p.crypto</groupId>
+-            <artifactId>eddsa</artifactId>
+-            <version>${eddsa-version}</version>
+-            <scope>test</scope>
+-        </dependency>
+     </dependencies>
+ </project>
+diff --git a/components/camel-ssh/pom.xml b/components/camel-ssh/pom.xml
+index 2bc529ea31063..cd146f988dc3c 100644
+--- a/components/camel-ssh/pom.xml
++++ b/components/camel-ssh/pom.xml
+@@ -55,12 +55,6 @@
+             <artifactId>bcpkix-jdk18on</artifactId>
+             <version>${bouncycastle-version}</version>
+         </dependency>
+-        <dependency>
+-            <groupId>net.i2p.crypto</groupId>
+-            <artifactId>eddsa</artifactId>
+-            <version>${eddsa-version}</version>
+-            <optional>true</optional>
+-        </dependency>
+ 
+         <!-- test dependencies -->
+         <dependency>
+diff --git a/parent/pom.xml b/parent/pom.xml
+index 7120c7b78ec98..02aa5a854b3ff 100644
+--- a/parent/pom.xml
++++ b/parent/pom.xml
+@@ -151,7 +151,6 @@
+         <docling-java-version>0.5.1</docling-java-version>
+         <docker-java-version>3.7.1</docker-java-version>
+         <dropbox-version>7.0.0</dropbox-version>
+-        <eddsa-version>0.3.0</eddsa-version>
+         <egit-github-core-version>2.1.5</egit-github-core-version>
+         <ehcache3-version>3.12.0</ehcache3-version>
+         <!-- github-api (kohsuke) for camel-github2 -->

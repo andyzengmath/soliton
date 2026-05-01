@@ -1,0 +1,634 @@
+diff --git a/components/camel-aws/camel-aws2-s3/src/main/java/org/apache/camel/component/aws2/s3/AWS2S3Producer.java b/components/camel-aws/camel-aws2-s3/src/main/java/org/apache/camel/component/aws2/s3/AWS2S3Producer.java
+index 7dfc50df801b0..45e2a00ccf8f3 100644
+--- a/components/camel-aws/camel-aws2-s3/src/main/java/org/apache/camel/component/aws2/s3/AWS2S3Producer.java
++++ b/components/camel-aws/camel-aws2-s3/src/main/java/org/apache/camel/component/aws2/s3/AWS2S3Producer.java
+@@ -44,6 +44,7 @@
+ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
++import software.amazon.awssdk.awscore.AwsResponse;
+ import software.amazon.awssdk.core.ResponseInputStream;
+ import software.amazon.awssdk.core.sync.RequestBody;
+ import software.amazon.awssdk.core.sync.ResponseTransformer;
+@@ -313,6 +314,7 @@ public void processMultiPart(final Exchange exchange) throws Exception {
+         if (ObjectHelper.isNotEmpty(uploadResult.versionId())) {
+             message.setHeader(AWS2S3Constants.VERSION_ID, uploadResult.versionId());
+         }
++        populateHttpResponseCode(uploadResult, message);
+ 
+         if (ObjectHelper.isNotEmpty(filePayload) && getConfiguration().isDeleteAfterWrite()) {
+             FileUtil.deleteFile(filePayload);
+@@ -470,6 +472,7 @@ private void doPutObject(
+         if (ObjectHelper.isNotEmpty(putObjectResult.versionId())) {
+             message.setHeader(AWS2S3Constants.VERSION_ID, putObjectResult.versionId());
+         }
++        populateHttpResponseCode(putObjectResult, message);
+     }
+ 
+     private void copyObject(S3Client s3Client, Exchange exchange) throws InvalidPayloadException {
+@@ -483,6 +486,7 @@ private void copyObject(S3Client s3Client, Exchange exchange) throws InvalidPayl
+                 CopyObjectResponse result = s3Client.copyObject(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             if (ObjectHelper.isEmpty(bucketNameDestination)) {
+@@ -544,6 +548,7 @@ private void copyObject(S3Client s3Client, Exchange exchange) throws InvalidPayl
+             }
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(copyObjectResult, message);
+         }
+     }
+ 
+@@ -554,18 +559,20 @@ private void deleteObject(S3Client s3Client, Exchange exchange) throws InvalidPa
+         if (getConfiguration().isPojoRequest()) {
+             Object payload = exchange.getIn().getMandatoryBody();
+             if (payload instanceof DeleteObjectRequest req) {
+-                s3Client.deleteObject(req);
++                DeleteObjectResponse result = s3Client.deleteObject(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(true);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             DeleteObjectRequest.Builder deleteObjectRequest = DeleteObjectRequest.builder().bucket(bucketName).key(keyName);
+-            s3Client.deleteObject(deleteObjectRequest.build());
++            DeleteObjectResponse result = s3Client.deleteObject(deleteObjectRequest.build());
+ 
+             Message message = getMessageForResponse(exchange);
+             message.setBody(true);
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -574,6 +581,7 @@ private void listBuckets(S3Client s3Client, Exchange exchange) {
+ 
+         Message message = getMessageForResponse(exchange);
+         message.setBody(bucketsList.buckets());
++        populateHttpResponseCode(bucketsList, message);
+     }
+ 
+     private void deleteBucket(S3Client s3Client, Exchange exchange) throws InvalidPayloadException {
+@@ -585,6 +593,7 @@ private void deleteBucket(S3Client s3Client, Exchange exchange) throws InvalidPa
+                 DeleteBucketResponse resp = s3Client.deleteBucket(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(resp);
++                populateHttpResponseCode(resp, message);
+             }
+         } else {
+             DeleteBucketRequest.Builder deleteBucketRequest = DeleteBucketRequest.builder().bucket(bucketName);
+@@ -592,6 +601,7 @@ private void deleteBucket(S3Client s3Client, Exchange exchange) throws InvalidPa
+ 
+             Message message = getMessageForResponse(exchange);
+             message.setBody(resp);
++            populateHttpResponseCode(resp, message);
+         }
+     }
+ 
+@@ -655,6 +665,7 @@ private void getObjectRange(S3Client s3Client, Exchange exchange) throws Invalid
+                         = s3Client.getObject(req, ResponseTransformer.toInputStream());
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(res);
++                populateHttpResponseCode(res.response(), message);
+             }
+         } else {
+             if (ObjectHelper.isEmpty(rangeStart) || ObjectHelper.isEmpty(rangeEnd)) {
+@@ -670,6 +681,7 @@ private void getObjectRange(S3Client s3Client, Exchange exchange) throws Invalid
+             message.setBody(res);
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(res.response(), message);
+         }
+     }
+ 
+@@ -682,6 +694,7 @@ private void listObjects(S3Client s3Client, Exchange exchange) throws InvalidPay
+                 ListObjectsResponse objectList = s3Client.listObjects(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(objectList.contents());
++                populateHttpResponseCode(objectList, message);
+             }
+         } else {
+             final String delimiter
+@@ -699,6 +712,7 @@ private void listObjects(S3Client s3Client, Exchange exchange) throws InvalidPay
+ 
+             Message message = getMessageForResponse(exchange);
+             message.setBody(objectList.contents());
++            populateHttpResponseCode(objectList, message);
+         }
+     }
+ 
+@@ -762,6 +776,7 @@ private void headBucket(S3Client s3Client, Exchange exchange) {
+             if (!getConfiguration().isIgnoreBody()) {
+                 message.setBody(headBucketResponse);
+             }
++            populateHttpResponseCode(headBucketResponse, message);
+         } catch (NoSuchBucketException e) {
+             exists = false;
+         }
+@@ -779,6 +794,7 @@ private void headObject(S3Client s3Client, Exchange exchange) {
+ 
+         Message message = getMessageForResponse(exchange);
+         message.setBody(headObjectResponse);
++        populateHttpResponseCode(headObjectResponse, message);
+     }
+ 
+     private void deleteObjects(S3Client s3Client, Exchange exchange) throws InvalidPayloadException {
+@@ -790,6 +806,7 @@ private void deleteObjects(S3Client s3Client, Exchange exchange) throws InvalidP
+                 DeleteObjectsResponse result = s3Client.deleteObjects(deleteObjectsRequest);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             List<String> keysToDelete = exchange.getIn().getHeader(AWS2S3Constants.KEYS_TO_DELETE, List.class);
+@@ -812,6 +829,7 @@ private void deleteObjects(S3Client s3Client, Exchange exchange) throws InvalidP
+ 
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -825,6 +843,7 @@ private void restoreObject(S3Client s3Client, Exchange exchange) throws InvalidP
+                 RestoreObjectResponse result = s3Client.restoreObject(restoreObjectRequest);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             Integer days = exchange.getIn().getHeader(AWS2S3Constants.RESTORE_DAYS, 1, Integer.class);
+@@ -850,6 +869,7 @@ private void restoreObject(S3Client s3Client, Exchange exchange) throws InvalidP
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -863,6 +883,7 @@ private void getObjectTagging(S3Client s3Client, Exchange exchange) throws Inval
+                 GetObjectTaggingResponse result = s3Client.getObjectTagging(getObjectTaggingRequest);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result.tagSet());
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             GetObjectTaggingRequest request = GetObjectTaggingRequest.builder()
+@@ -876,6 +897,7 @@ private void getObjectTagging(S3Client s3Client, Exchange exchange) throws Inval
+             message.setBody(result.tagSet());
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -889,6 +911,7 @@ private void putObjectTagging(S3Client s3Client, Exchange exchange) throws Inval
+                 PutObjectTaggingResponse result = s3Client.putObjectTagging(putObjectTaggingRequest);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             Map<String, String> tags = exchange.getIn().getHeader(AWS2S3Constants.OBJECT_TAGS, Map.class);
+@@ -914,6 +937,7 @@ private void putObjectTagging(S3Client s3Client, Exchange exchange) throws Inval
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -927,6 +951,7 @@ private void deleteObjectTagging(S3Client s3Client, Exchange exchange) throws In
+                 DeleteObjectTaggingResponse result = s3Client.deleteObjectTagging(deleteObjectTaggingRequest);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             DeleteObjectTaggingRequest request = DeleteObjectTaggingRequest.builder()
+@@ -940,6 +965,7 @@ private void deleteObjectTagging(S3Client s3Client, Exchange exchange) throws In
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -953,6 +979,7 @@ private void getObjectAcl(S3Client s3Client, Exchange exchange) throws InvalidPa
+                 GetObjectAclResponse result = s3Client.getObjectAcl(getObjectAclRequest);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             GetObjectAclRequest request = GetObjectAclRequest.builder()
+@@ -966,6 +993,7 @@ private void getObjectAcl(S3Client s3Client, Exchange exchange) throws InvalidPa
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -979,6 +1007,7 @@ private void putObjectAcl(S3Client s3Client, Exchange exchange) throws InvalidPa
+                 PutObjectAclResponse result = s3Client.putObjectAcl(putObjectAclRequest);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             String cannedAcl = exchange.getIn().getHeader(AWS2S3Constants.CANNED_ACL, String.class);
+@@ -999,6 +1028,7 @@ private void putObjectAcl(S3Client s3Client, Exchange exchange) throws InvalidPa
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_KEY, keyName);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1085,6 +1115,7 @@ private void createBucket(S3Client s3Client, Exchange exchange) throws InvalidPa
+                 CreateBucketResponse result = s3Client.createBucket(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             CreateBucketRequest.Builder requestBuilder = CreateBucketRequest.builder().bucket(bucketName);
+@@ -1103,6 +1134,7 @@ private void createBucket(S3Client s3Client, Exchange exchange) throws InvalidPa
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1115,6 +1147,7 @@ private void getBucketTagging(S3Client s3Client, Exchange exchange) throws Inval
+                 GetBucketTaggingResponse result = s3Client.getBucketTagging(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result.tagSet());
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             GetBucketTaggingRequest request = GetBucketTaggingRequest.builder()
+@@ -1126,6 +1159,7 @@ private void getBucketTagging(S3Client s3Client, Exchange exchange) throws Inval
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result.tagSet());
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1138,6 +1172,7 @@ private void putBucketTagging(S3Client s3Client, Exchange exchange) throws Inval
+                 PutBucketTaggingResponse result = s3Client.putBucketTagging(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             Map<String, String> tags = exchange.getIn().getHeader(AWS2S3Constants.BUCKET_TAGS, Map.class);
+@@ -1161,6 +1196,7 @@ private void putBucketTagging(S3Client s3Client, Exchange exchange) throws Inval
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1173,6 +1209,7 @@ private void deleteBucketTagging(S3Client s3Client, Exchange exchange) throws In
+                 DeleteBucketTaggingResponse result = s3Client.deleteBucketTagging(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             DeleteBucketTaggingRequest request = DeleteBucketTaggingRequest.builder()
+@@ -1184,6 +1221,7 @@ private void deleteBucketTagging(S3Client s3Client, Exchange exchange) throws In
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1196,6 +1234,7 @@ private void getBucketVersioning(S3Client s3Client, Exchange exchange) throws In
+                 GetBucketVersioningResponse result = s3Client.getBucketVersioning(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             GetBucketVersioningRequest request = GetBucketVersioningRequest.builder()
+@@ -1207,6 +1246,7 @@ private void getBucketVersioning(S3Client s3Client, Exchange exchange) throws In
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1219,6 +1259,7 @@ private void putBucketVersioning(S3Client s3Client, Exchange exchange) throws In
+                 PutBucketVersioningResponse result = s3Client.putBucketVersioning(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             String versioningStatus = exchange.getIn().getHeader(AWS2S3Constants.VERSIONING_STATUS, String.class);
+@@ -1244,6 +1285,7 @@ private void putBucketVersioning(S3Client s3Client, Exchange exchange) throws In
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1256,6 +1298,7 @@ private void getBucketPolicy(S3Client s3Client, Exchange exchange) throws Invali
+                 GetBucketPolicyResponse result = s3Client.getBucketPolicy(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result.policy());
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             GetBucketPolicyRequest request = GetBucketPolicyRequest.builder()
+@@ -1267,6 +1310,7 @@ private void getBucketPolicy(S3Client s3Client, Exchange exchange) throws Invali
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result.policy());
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1279,6 +1323,7 @@ private void putBucketPolicy(S3Client s3Client, Exchange exchange) throws Invali
+                 PutBucketPolicyResponse result = s3Client.putBucketPolicy(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             String policy = exchange.getIn().getHeader(AWS2S3Constants.BUCKET_POLICY, String.class);
+@@ -1296,6 +1341,7 @@ private void putBucketPolicy(S3Client s3Client, Exchange exchange) throws Invali
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1308,6 +1354,7 @@ private void deleteBucketPolicy(S3Client s3Client, Exchange exchange) throws Inv
+                 DeleteBucketPolicyResponse result = s3Client.deleteBucketPolicy(req);
+                 Message message = getMessageForResponse(exchange);
+                 message.setBody(result);
++                populateHttpResponseCode(result, message);
+             }
+         } else {
+             DeleteBucketPolicyRequest request = DeleteBucketPolicyRequest.builder()
+@@ -1319,6 +1366,7 @@ private void deleteBucketPolicy(S3Client s3Client, Exchange exchange) throws Inv
+             Message message = getMessageForResponse(exchange);
+             message.setBody(result);
+             message.setHeader(AWS2S3Constants.PRODUCED_BUCKET_NAME, bucketName);
++            populateHttpResponseCode(result, message);
+         }
+     }
+ 
+@@ -1354,6 +1402,13 @@ private static void populateMetadata(ResponseInputStream<GetObjectResponse> res,
+         message.setHeader(AWS2S3Constants.REPLICATION_STATUS, res.response().replicationStatus());
+         message.setHeader(AWS2S3Constants.STORAGE_CLASS, res.response().storageClass());
+         message.setHeader(AWS2S3Constants.METADATA, res.response().metadata());
++        populateHttpResponseCode(res.response(), message);
++    }
++
++    private static void populateHttpResponseCode(AwsResponse response, Message message) {
++        if (response != null && response.sdkHttpResponse() != null) {
++            message.setHeader(Exchange.HTTP_RESPONSE_CODE, response.sdkHttpResponse().statusCode());
++        }
+     }
+ 
+     protected AWS2S3Configuration getConfiguration() {
+diff --git a/components/camel-aws/camel-aws2-s3/src/main/java/org/apache/camel/component/aws2/s3/stream/AWS2S3StreamUploadProducer.java b/components/camel-aws/camel-aws2-s3/src/main/java/org/apache/camel/component/aws2/s3/stream/AWS2S3StreamUploadProducer.java
+index 01b30709e5d16..26e9078c8b53f 100644
+--- a/components/camel-aws/camel-aws2-s3/src/main/java/org/apache/camel/component/aws2/s3/stream/AWS2S3StreamUploadProducer.java
++++ b/components/camel-aws/camel-aws2-s3/src/main/java/org/apache/camel/component/aws2/s3/stream/AWS2S3StreamUploadProducer.java
+@@ -45,6 +45,7 @@
+ import org.apache.camel.util.URISupport;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
++import software.amazon.awssdk.awscore.AwsResponse;
+ import software.amazon.awssdk.core.sync.RequestBody;
+ import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+ import software.amazon.awssdk.services.s3.model.BucketCannedACL;
+@@ -210,6 +211,7 @@ private void processWithoutTimestampGrouping(final Exchange exchange) throws Exc
+                         if (uploadResult.versionId() != null) {
+                             message.setHeader(AWS2S3Constants.VERSION_ID, uploadResult.versionId());
+                         }
++                        populateHttpResponseCode(uploadResult, message);
+                     }
+                     continue;
+                 }
+@@ -277,6 +279,7 @@ private void processWithoutTimestampGrouping(final Exchange exchange) throws Exc
+                     if (uploadResult.versionId() != null) {
+                         message.setHeader(AWS2S3Constants.VERSION_ID, uploadResult.versionId());
+                     }
++                    populateHttpResponseCode(uploadResult, message);
+                     state = null;
+                     continue;
+                 }
+@@ -404,6 +407,7 @@ private void processWithTimestampGrouping(final Exchange exchange) throws Except
+                     if (uploadResult.versionId() != null) {
+                         message.setHeader(AWS2S3Constants.VERSION_ID, uploadResult.versionId());
+                     }
++                    populateHttpResponseCode(uploadResult, message);
+                 }
+ 
+             } catch (Exception e) {
+@@ -627,6 +631,12 @@ public static Message getMessageForResponse(final Exchange exchange) {
+         return exchange.getMessage();
+     }
+ 
++    private static void populateHttpResponseCode(AwsResponse response, Message message) {
++        if (response != null && response.sdkHttpResponse() != null) {
++            message.setHeader(Exchange.HTTP_RESPONSE_CODE, response.sdkHttpResponse().statusCode());
++        }
++    }
++
+     private class UploadState {
+         int index;
+         int multipartIndex;
+diff --git a/components/camel-aws/camel-aws2-s3/src/test/java/org/apache/camel/component/aws2/s3/AWS2S3ProducerHttpResponseCodeTest.java b/components/camel-aws/camel-aws2-s3/src/test/java/org/apache/camel/component/aws2/s3/AWS2S3ProducerHttpResponseCodeTest.java
+new file mode 100644
+index 0000000000000..5cf82aecc5b67
+--- /dev/null
++++ b/components/camel-aws/camel-aws2-s3/src/test/java/org/apache/camel/component/aws2/s3/AWS2S3ProducerHttpResponseCodeTest.java
+@@ -0,0 +1,170 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.camel.component.aws2.s3;
++
++import org.apache.camel.Exchange;
++import org.apache.camel.impl.DefaultCamelContext;
++import org.apache.camel.support.DefaultExchange;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.mockito.Mock;
++import org.mockito.MockitoAnnotations;
++import software.amazon.awssdk.http.SdkHttpResponse;
++import software.amazon.awssdk.services.s3.S3Client;
++import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
++import software.amazon.awssdk.services.s3.model.CreateBucketResponse;
++import software.amazon.awssdk.services.s3.model.DeleteBucketPolicyRequest;
++import software.amazon.awssdk.services.s3.model.DeleteBucketPolicyResponse;
++import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
++import software.amazon.awssdk.services.s3.model.DeleteBucketResponse;
++import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
++import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
++import software.amazon.awssdk.services.s3.model.ListBucketsResponse;
++import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
++import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.Mockito.when;
++
++/**
++ * Tests that verify the {@link Exchange#HTTP_RESPONSE_CODE} header is populated on the producer response, allowing
++ * routes to react to the HTTP status code returned by S3.
++ */
++public class AWS2S3ProducerHttpResponseCodeTest {
++
++    @Mock
++    private AWS2S3Endpoint endpoint;
++
++    @Mock
++    private AWS2S3Configuration configuration;
++
++    @Mock
++    private S3Client s3Client;
++
++    private AWS2S3Producer producer;
++    private DefaultCamelContext camelContext;
++
++    @BeforeEach
++    public void setUp() {
++        MockitoAnnotations.openMocks(this);
++        camelContext = new DefaultCamelContext();
++
++        when(endpoint.getConfiguration()).thenReturn(configuration);
++        when(endpoint.getCamelContext()).thenReturn(camelContext);
++        when(endpoint.getS3Client()).thenReturn(s3Client);
++        when(configuration.getBucketName()).thenReturn("test-bucket");
++
++        producer = new AWS2S3Producer(endpoint);
++    }
++
++    private static SdkHttpResponse httpStatus(int statusCode) {
++        return SdkHttpResponse.builder().statusCode(statusCode).build();
++    }
++
++    @Test
++    public void deleteObjectShouldSetHttpResponseCode() throws Exception {
++        when(configuration.getOperation()).thenReturn(AWS2S3Operations.deleteObject);
++        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
++                .thenReturn((DeleteObjectResponse) DeleteObjectResponse.builder()
++                        .sdkHttpResponse(httpStatus(204))
++                        .build());
++
++        Exchange exchange = new DefaultExchange(camelContext);
++        exchange.getIn().setHeader(AWS2S3Constants.KEY, "my-key");
++
++        producer.process(exchange);
++
++        assertEquals(204, exchange.getMessage().getHeader(Exchange.HTTP_RESPONSE_CODE));
++    }
++
++    @Test
++    public void deleteBucketShouldSetHttpResponseCode() throws Exception {
++        when(configuration.getOperation()).thenReturn(AWS2S3Operations.deleteBucket);
++        when(s3Client.deleteBucket(any(DeleteBucketRequest.class)))
++                .thenReturn((DeleteBucketResponse) DeleteBucketResponse.builder()
++                        .sdkHttpResponse(httpStatus(204))
++                        .build());
++
++        Exchange exchange = new DefaultExchange(camelContext);
++
++        producer.process(exchange);
++
++        assertEquals(204, exchange.getMessage().getHeader(Exchange.HTTP_RESPONSE_CODE));
++    }
++
++    @Test
++    public void createBucketShouldSetHttpResponseCode() throws Exception {
++        when(configuration.getOperation()).thenReturn(AWS2S3Operations.createBucket);
++        when(configuration.getRegion()).thenReturn("us-east-1");
++        when(s3Client.createBucket(any(CreateBucketRequest.class)))
++                .thenReturn((CreateBucketResponse) CreateBucketResponse.builder()
++                        .sdkHttpResponse(httpStatus(200))
++                        .build());
++
++        Exchange exchange = new DefaultExchange(camelContext);
++
++        producer.process(exchange);
++
++        assertEquals(200, exchange.getMessage().getHeader(Exchange.HTTP_RESPONSE_CODE));
++    }
++
++    @Test
++    public void listObjectsShouldSetHttpResponseCode() throws Exception {
++        when(configuration.getOperation()).thenReturn(AWS2S3Operations.listObjects);
++        when(s3Client.listObjects(any(ListObjectsRequest.class)))
++                .thenReturn((ListObjectsResponse) ListObjectsResponse.builder()
++                        .sdkHttpResponse(httpStatus(200))
++                        .build());
++
++        Exchange exchange = new DefaultExchange(camelContext);
++
++        producer.process(exchange);
++
++        assertEquals(200, exchange.getMessage().getHeader(Exchange.HTTP_RESPONSE_CODE));
++    }
++
++    @Test
++    public void listBucketsShouldSetHttpResponseCode() throws Exception {
++        when(configuration.getOperation()).thenReturn(AWS2S3Operations.listBuckets);
++        when(s3Client.listBuckets())
++                .thenReturn((ListBucketsResponse) ListBucketsResponse.builder()
++                        .sdkHttpResponse(httpStatus(200))
++                        .build());
++
++        Exchange exchange = new DefaultExchange(camelContext);
++
++        producer.process(exchange);
++
++        assertEquals(200, exchange.getMessage().getHeader(Exchange.HTTP_RESPONSE_CODE));
++    }
++
++    @Test
++    public void deleteBucketPolicyShouldSetHttpResponseCode() throws Exception {
++        when(configuration.getOperation()).thenReturn(AWS2S3Operations.deleteBucketPolicy);
++        when(s3Client.deleteBucketPolicy(any(DeleteBucketPolicyRequest.class)))
++                .thenReturn((DeleteBucketPolicyResponse) DeleteBucketPolicyResponse.builder()
++                        .sdkHttpResponse(httpStatus(204))
++                        .build());
++
++        Exchange exchange = new DefaultExchange(camelContext);
++
++        producer.process(exchange);
++
++        assertEquals(204, exchange.getMessage().getHeader(Exchange.HTTP_RESPONSE_CODE));
++    }
++}
