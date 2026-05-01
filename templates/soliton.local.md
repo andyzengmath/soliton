@@ -35,6 +35,8 @@ feedback_mode: false
 #     enabled: true                # default OFF since v2.1.1 (Phase 5.3 evidence); opt in for production
 #   comment_accuracy:
 #     enabled: true                # default OFF since v2.1.1 (Phase 5.3 evidence); opt in for production
+#   cross_file_retrieval_java:
+#     enabled: true                # default OFF (Phase 6 experimental, awaiting CRB SHIP); opt in only for Phase 6b $140 measurement run. See bench/crb/PHASE_6_DESIGN.md.
 # stack:
 #   auto_detect: true              # Step 1 Mode B step 4 — auto-detect parent via gt log when --stack-auto and gt on PATH
 #   require_parent_merged_check: true   # error if parent PR not yet merged vs its own base
@@ -64,6 +66,7 @@ Place it at `.claude/soliton.local.md` in your project root.
 - **synthesis.realist_check**: Run Step 5.5 post-synth Sonnet pressure-test of CRITICAL findings. Downgrades require cited "Mitigated by:" rationale.
 - **agents.silent_failure.enabled**: Dispatch the `silent-failure` agent when the diff touches error-handling code (try/catch/Promise/optional-chaining patterns). **Default OFF since v2.1.1** — Phase 5.3 CRB measurement showed default-ON regressed F1 by 0.045. Opt in for production review where the specialist findings have UX value.
 - **agents.comment_accuracy.enabled**: Dispatch the `comment-accuracy` agent when the diff modifies comment-marker lines. **Default OFF since v2.1.1** — same Phase 5.3 evidence as silent_failure. Opt in for production review.
+- **agents.cross_file_retrieval_java.enabled**: When `correctness` agent runs on a diff containing `*.java` files, invoke `skills/pr-review/cross-file-retrieval.md` to populate `CROSS_FILE_CONTEXT` blocks (method calls / interface contracts / overrides / superclass refs resolved via `git grep`, capped at 8 resolutions/agent). **Default OFF (Phase 6 experimental, awaiting CRB SHIP)** — opt in only for the Phase 6b $140 measurement run. See `bench/crb/PHASE_6_DESIGN.md` for pre-registered SHIP/HOLD/CLOSE criteria. Purely additive (no `NOT_FOUND_IN_TREE` suppression rule, unlike the reverted Phase 4a skill).
 
 ## Example — full v2 dogfood config
 
