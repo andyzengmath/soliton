@@ -1,6 +1,6 @@
 # Soliton CRB Results
 
-Canonical phase log. Numbers of record: **Phase 5.2 F1 = 0.313** (CRB number of record per § Phase 5.2 below). Phase 5.3 (combined v2.1.0 wirings, F1=0.268) was a CLOSE-verdict negative-result experiment whose evidence drove the v2.1.1 revert of silent-failure + comment-accuracy defaults; its full writeup lives at [`PHASE_5_3_WRITEUP.md`](PHASE_5_3_WRITEUP.md) for context. **Cost-normalised F1**: see [`cost-normalised-f1.md`](cost-normalised-f1.md) for §C2 Phase 2 derivation pairing Phase 5.2's 0.313 with projected per-PR cost.
+Canonical phase log. Numbers of record: **Phase 5.2 F1 = 0.313** (CRB number of record per § Phase 5.2 below). Phase 5.3 (combined v2.1.0 wirings, F1=0.268) was a CLOSE-verdict negative-result experiment whose evidence drove the v2.1.1 revert of silent-failure + comment-accuracy defaults; its full writeup lives at [`PHASE_5_3_WRITEUP.md`](PHASE_5_3_WRITEUP.md) for context. **Cost-normalised F1**: see [`cost-normalised-f1.md`](cost-normalised-f1.md) for §C2 Phase 2 derivation pairing Phase 5.2's 0.313 with projected per-PR cost. **Next planned phase (design-only as of v2.1.2)**: [`PHASE_6_DESIGN.md`](PHASE_6_DESIGN.md) — Java-only L5 cross-file retrieval re-integration without the NOT_FOUND_IN_TREE suppression; pre-registered SHIP at aggregate F1 ≥ 0.322 + Java F1 ≥ 0.318. Single bounded ~$140 run; awaiting explicit go-ahead.
 
 ## Phase 2 · POC (5 PRs, language-diverse)
 
