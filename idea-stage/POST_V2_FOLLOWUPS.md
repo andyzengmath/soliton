@@ -345,9 +345,10 @@ Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 sessions (~\$3.48 cumulative 
 Remaining ranked priorities:
 
 If picking just one:
-1. **C2 Phase 2 signal-grade measured re-run** (~\$15-25) — gated on harness change that surfaces per-Agent `usage` in Agent tool return values (not autonomously achievable without harness PR). The Phase 2 derivation is publishable in the meantime.
-2. **C1.C Microsoft-internal monolith / COBOL / PL-SQL dogfood** — gated on access + on graph-code-indexing's COBOL/PL-SQL parser support per §B1. Highest strategic-fit gap remaining (PRD §7 enterprise rebuild).
-3. **G3 remaining arms** ($0, eng-only) — Mode A stacked-PR support + `gt`-binary `--stack-auto` end-to-end + auth-gated end-to-end /pr-review-driven fixture assertion. Smaller in scope than the orchestrator-wiring half closed in PR #92.
+1. **Phase 6 Java-only L5 cross-file retrieval re-run** (~\$140) — design doc landed at `bench/crb/PHASE_6_DESIGN.md`. Pre-registered SHIP criteria: aggregate F1 ≥ 0.322, Java F1 ≥ 0.318, no language regression > 2σ_lang. Hypothesis: Phase 4c.1's Java +0.046 at 2.6σ_lang was real signal; removing the NOT_FOUND_IN_TREE suppression (the Go regression driver) lets the L5 mechanism land cleanly. Expected aggregate lift: +0.009. Single bounded run, no exploratory iterations. **Gates Strategic Option B from 2026-05-01 audit.**
+2. **C2 Phase 2 signal-grade measured re-run** (~\$15-25) — gated on harness change that surfaces per-Agent `usage` in Agent tool return values (not autonomously achievable without harness PR). The Phase 2 derivation is publishable in the meantime.
+3. **C1.C Microsoft-internal monolith / COBOL / PL-SQL dogfood** — gated on access + on graph-code-indexing's COBOL/PL-SQL parser support per §B1. Highest strategic-fit gap remaining (PRD §7 enterprise rebuild).
+4. **G3 remaining arms** ($0, eng-only) — Mode A stacked-PR support + `gt`-binary `--stack-auto` end-to-end + auth-gated end-to-end /pr-review-driven fixture assertion. Smaller in scope than the orchestrator-wiring half closed in PR #92.
 
 If picking three over the next month:
 1. C3 corpus expansion ($250-750; de-noises per-language F1 + cost slice; informs whether Ruby/TS slices reflect real signal vs sample-size artifact)
