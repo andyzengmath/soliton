@@ -27,6 +27,16 @@ Require the corresponding feature flag enabled in `.claude/soliton.local.md`.
 
 Each v2 fixture's `expected.json` adds `tier0Verdict`, `llmSwarmSkipped`, `blockReason` (optional), `confidenceThresholdBumpedTo` (optional), or `wiringChecksFailed` (for spec-alignment) on top of the base fields.
 
+### Stacked-PR fixtures (PR #92 — `--parent` / `--parent-sha` / `--stack-auto`)
+
+Exercise the Mode B stacked-PR orchestrator wiring landed in `skills/pr-review/SKILL.md` Step 1 Mode B step 4. End-to-end /pr-review-driven assertion is auth-gated; structural validation runs unconditionally.
+
+| Fixture | Flag | Notes |
+|---------|------|-------|
+| stacked-pr-basic | (no flag — use `/pr-review --parent <N>` or `--parent-sha <SHA>` or `--stack-auto`) | Child PR adds `revoke_session()` to src/auth/session.py; parent PR (referenced via `--parent N`) adds `now: Date` parameter to `validate_session()`. Diff scoping must be `git diff <PARENT_HEAD>...pr-<N>` (delta-only, NOT base-vs-head). Risk score MEDIUM (auth/ sensitive-paths hit + new function in security-sensitive area). |
+
+Each stacked-PR fixture's `expected.json` carries: `stackParentRequired` (bool), `stackParentMetadata` (dict with `pr`/`headSha`/`title`), `diffScopedAgainst` (string describing scoping), `prDescriptionAugmented` (bool), `expectedPrDescriptionPrefix` (string), `agentTriggerHint` (string — the canonical "don't flag missing function from parent PR" scenario from `rules/stacked-pr-mode.md` § PR-description augmentation).
+
 ### Phase 4b fixtures (hallucination-AST pre-check)
 
 End-to-end tests for the `lib/hallucination-ast/` package integration via `agents/hallucination.md` §2.5. Each fixture's `expected.json` carries a `phase4bExpected` block with the exact rule + symbol + confidence the deterministic pre-check must emit.
@@ -119,7 +129,7 @@ Two of the three runner modes are now wired. CI workflow at `.github/workflows/f
 
 | Mode | Coverage | Auth needed? |
 |---|---|---|
-| `structural` | All 11 fixtures: validates `diff.patch` non-empty + `expected.json` schema (riskRange shape, expectedFindings type, severity allowed values, optional v2 fields). | None |
+| `structural` | All 16 fixtures: validates `diff.patch` non-empty + `expected.json` schema (riskRange shape, expectedFindings type, severity allowed values, optional v2 fields including Tier-0, phase4b, and stacked-PR field type-checks). | None |
 | `phase4b` | The 2 phase4b fixtures (`hallucinated-import`, `signature-mismatch`): subprocesses `python -m hallucination_ast --diff <fixture>/diff.patch`, asserts the emitted finding matches `phase4bExpected.rule` + `.symbol` (+ `.suggestedFix` / `.confidence` when present). The CLI exits 1 on CRITICAL findings by design (fail-loud CI convention); the runner parses stdout regardless of exit code. | None — uses local CLI only |
 
 Run locally:
@@ -132,7 +142,7 @@ python tests/run_fixtures.py --mode phase4b      # exercise hallucination-ast CL
 
 ## Deferred
 
-The full /pr-review-driven runner — asserting risk ranges, finding counts, expected categories, and severity bands across all 11 fixtures — is still deferred. It requires Anthropic API auth in CI (same blocker as the Soliton-Review dogfood workflow). When `ANTHROPIC_API_KEY` (or the OAuth-token equivalent) lands in repo secrets, this runner can grow a `--mode pr-review` arm that subprocesses Claude Code with `--plugin-dir .` and parses the markdown output's emoji-prefixed finding lines.
+The full /pr-review-driven runner — asserting risk ranges, finding counts, expected categories, severity bands, and stacked-PR diff scoping / prDescription augmentation across all 16 fixtures — is still deferred. It requires Anthropic API auth in CI (same blocker as the Soliton-Review dogfood workflow). When `ANTHROPIC_API_KEY` (or the OAuth-token equivalent) lands in repo secrets, this runner can grow a `--mode pr-review` arm that subprocesses Claude Code with `--plugin-dir .` and parses the markdown output's emoji-prefixed finding lines.
 
 Additional deferred items tracked for the same follow-up:
 
