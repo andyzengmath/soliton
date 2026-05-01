@@ -1,6 +1,6 @@
 # Post-v2.0.1 follow-ups — needs-attention register
 
-**Status:** v2.0.1 shipped 2026-04-22 with Phase 5.2 CRB number F1=0.313, 13 agents, Step 2.6/2.7/2.8 feature-flagged, hallucination-AST library standalone-validated, MCP-backend interop documented.
+**Status:** v2.1.2 (latest) cuts the post-v2.1.1 cluster of 16 PRs (#70-#85) into a release: §C2 cost-normalised F1 schema (PR #82) + derivation (PR #83) + new `rules/model-pricing.md`; §C1 PetClinic enterprise-Java dogfood SHIP (PR #71); §A1+§A2+§A3 derivations (PRs #74+#76); §G2-fuller fixture coverage (PR #81); §D1 strip-footnote-titles.py KEEP decision; manifest sync + Java Tier-0 install cheatsheet + architecture-diagram refresh + ci-cd-integration v2 features. CRB number of record stays Phase 5.2's F1=0.313. v2.1.0 wired realist-check + silent-failure + comment-accuracy; v2.1.1 reverted silent-failure + comment-accuracy defaults to OFF (Phase 5.3 evidence). 13 agents (9 review + 4 infrastructure: risk-scorer, spec-alignment, realist-check, synthesizer); Steps 2.6/2.7/2.8/5.5 feature-flagged; hallucination-AST library standalone-validated; MCP-backend interop documented.
 
 This file tracks everything still open across the project. Items are grouped by category, then ranked by combination of *blocker severity*, *strategic fit*, and *cost*.
 
@@ -302,29 +302,43 @@ Stale pre-reg / projection language found across docs that pre-date the σ measu
 
 ---
 
-## Ranked priorities (author's read, updated 2026-04-29 evening — post PRs #48–#51)
+## Ranked priorities (author's read, updated 2026-05-01 — post PRs #70–#85, v2.1.2 cut)
 
-Closed in the 2026-04-29 session (~$45 spend, 4 PRs):
-- A4 judge-noise envelope: σ_F1 = 0.0086 measured (PR #48).
-- σ-aware pre-reg doctrine codified (PR #49).
-- realist-check Step 5.5 wiring (PR #50).
-- silent-failure + comment-accuracy Step 4.1 wiring (PR #51).
+Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 sessions (~\$3.48 cumulative spend, 16 + 4 = 20 PRs across the broader window):
+
+- ~~A4 judge-noise envelope~~: σ_F1 = 0.0086 measured (PR #48).
+- ~~A5 realist-check wiring + CRB~~: Step 5.5 shipped (PR #50); Phase 5.3 measured the combined wirings → CLOSE verdict drove v2.1.1 default-OFF revert for silent-failure + comment-accuracy.
+- ~~A6 combined Phase 5.3 CRB run~~: F1=0.268, CLOSE verdict (PR #68); Phase 5.2's 0.313 remains CRB number of record.
+- ~~σ-aware pre-reg doctrine~~ codified (PR #49).
+- ~~C1 enterprise-rebuild dogfood scout (PetClinic)~~: SHIP via PR #71 (4 oracle-grade catches, simulator caveat).
+- ~~A1 Tier-0 LLM-skip rate~~: 60% on PetClinic real-world stream (PR #74 derivation); SHIP.
+- ~~A2 Spec-Alignment ≥1 SPEC_ALIGNMENT block~~: 8 of 10 PRs emitted blocks (PR #74); SHIP.
+- ~~A3 Tier-0 default-ON measurement on phase5_2-reviews/~~: 0% on CRB corpus (PR #76 derivation; informational).
+- ~~D1 strip-footnote-titles.py keep/retire~~: KEEP (PR #78).
+- ~~D2 cross-file-impact graphSignals consumption~~: shipped (PR #61).
+- ~~G1 hallucination-ast CI~~: shipped.
+- ~~G2-fuller fixture coverage~~: 4 v2.1.0 wiring fixtures added (PR #81).
+- ~~C2 cost-normalised F1 metric~~: Phase 1 schema + rule sheet (PR #82), Phase 2 derivation (PR #83). F1/$ = 0.855 CRB HOLD / ≈ 2.14 real-world SHIP. **Closes IDEA_REPORT G9 publication gap.**
 
 Remaining ranked priorities:
 
 If picking just one:
-1. **C1 enterprise-rebuild dogfood** — closes the strategic moat gap; nothing else does.
-2. **A6 combined Phase 5.3 CRB run** — measures all three newly wired agents (realist-check + silent-failure + comment-accuracy) in one shot. Combined napkin lift +0.010 to +0.022 sits near the ship threshold; informational at minimum, signal-grade if it clears 0.337.
-3. **A1 Tier-0 dogfood** — substantiates the cost-efficiency story which is half the v2 pitch.
+1. **C1.B Apache Camel arm with full-swarm dispatch** (~\$15-50, 1 day) — closes the simulator caveat from C1 scout; produces measured per-agent attribution.
+2. **C2 Phase 2 signal-grade measured re-run** (~\$15-25) — pending harness change that surfaces per-Agent `usage` in Agent tool return values. The Phase 1 schema + Phase 2 derivation are publishable in the meantime.
+3. **G3 stack-awareness orchestrator logic** ($0, ~1 week eng) — `--parent <PR#>` flag is parsed but no orchestrator logic; IDEA_REPORT positions as Tier-B but blocking for stacked-PR enterprise integrations.
 
 If picking three over the next month:
-1. C1 enterprise dogfood
-2. A6 combined Phase 5.3 CRB run (N=1 → conditional N=3 expansion if Hold band)
-3. A1 + A2 — Tier-0 + Spec Alignment dogfood (~$10 combined; finishes the v2 mechanism validation)
+1. C1.B Apache Camel arm
+2. C2 Phase 2 measured + Martian leaderboard submission (B3; auth-gated on PR #65)
+3. C3 corpus expansion ($250-750; de-noises per-language F1 + cost slice)
+
+If $0 budget:
+1. G3 stack-awareness eng (long but free)
+2. Re-audit POST_V2_FOLLOWUPS / docs for any remaining drift
+3. Cut v2.1.3 if accumulated docs warrant it
 
 Now retired:
-- ~~A4 judge-noise quantification~~ — done (PR #48)
-- ~~A5 realist-check WIRING~~ — done (PR #50). A5 CRB measurement folded into A6.
+- ~~A4~~ ~~A5~~ ~~A6~~ ~~C1-scout~~ ~~A1~~ ~~A2~~ ~~A3~~ ~~C2~~ ~~D1~~ ~~D2~~ ~~G1~~ ~~G2-fuller~~ — see closure annotations above + per-§ entries.
 
 If $0 budget:
 1. A3 Tier-0 default-ON measurement (zero-cost subset of A1)

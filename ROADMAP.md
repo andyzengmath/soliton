@@ -7,27 +7,15 @@ Status legend: 🟢 in progress · 🟡 next up · ⚪ backlog · ✅ shipped.
 
 ---
 
-## In progress
+## Shipped
 
-### A · Martian Code Review Bench publication (I9)
+### A · Martian Code Review Bench publication (I9) — ✅ shipped via Phase 5.2 + §C2 cost-normalised F1
 
-🟢 **Goal**: run Soliton against `withmartian/code-review-benchmark` and publish F1 +
-**cost-normalised F1** (F1 per dollar) — closes the biggest procurement-readiness gap
-(every leader in the 2026 landscape has a CRB number; Soliton has none).
+✅ **Status**: F1=0.313 published (Phase 5.2, GPT-5.2 judge, n=50, 2026-04-21) — Soliton's CRB number of record. **Cost-normalised F1** derivation shipped 2026-05-01 (PR #83): \$0.366/PR mean / \$1.17 per F1 unit / F1/$ = 0.855 (HOLD on CRB) + real-world projection F1/$ ≈ 2.14 (SHIP) per `bench/crb/cost-normalised-f1.md`. **Closes IDEA_REPORT G9** procurement-readiness gap.
 
-**Status**: POC branch `feat/crb-benchmark-poc`. Infrastructure setup in progress.
-
-**Phase 1 (this session)**:
-- [ ] Clone / review the CRB harness
-- [ ] Adapt Soliton invocation to CRB's expected reviewer-API shape
-- [ ] Run a 5-10 PR proof-of-concept sample
-- [ ] Compute initial F1 + per-PR cost numbers
-- [ ] Commit a `bench/crb/` directory with the adapter + POC results
-
-**Phase 2 (future session)**:
-- [ ] Full-corpus run
-- [ ] Publish blog post / repo README benchmark section
-- [ ] Submit to `withmartian/code-review-benchmark` leaderboard if they accept external entries
+**Remaining open arms** (all multi-day or spend-bearing):
+- Signal-grade Phase 2 measured re-run (~\$15-25) — pending harness instrumentation that surfaces per-Agent `usage` in Agent tool return values. Schema declared in v2.1.2 (PR #82); orchestrator currently falls back to a length-based heuristic.
+- Submit to `withmartian/code-review-benchmark` leaderboard if they accept external entries — auth-gated (PR #65 blocking).
 
 ---
 
