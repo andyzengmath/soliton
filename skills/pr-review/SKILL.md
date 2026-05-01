@@ -555,13 +555,21 @@ Agent tool (for each agent):
     Files: <focusArea.files for this agent>
     Hint: <focusArea.hint for this agent>
 
-    Feature flags (orchestrator-resolved from .claude/soliton.local.md, ONLY for correctness agent — omit for all other agents):
-    cross_file_retrieval_java_enabled: <true|false from Step 4.1 step 6>
-    java_files: <comma-separated *.java paths from this diff, or empty>
-
     Follow your agent instructions. Output findings in FINDING_START...FINDING_END format.
     If no issues found, output: FINDINGS_NONE
 ```
+
+**v2 Phase-6 feature-flag pass-through** (ONLY for the `correctness` agent — omit entirely for all other agents):
+
+For the `correctness` agent specifically, insert the following block immediately before the closing trailer line (`Follow your agent instructions...`) of its Step 4.2 prompt:
+
+```
+    Feature flags (orchestrator-resolved from .claude/soliton.local.md):
+    cross_file_retrieval_java_enabled: <true|false from Step 4.1 step 6>
+    java_files: <comma-separated *.java paths from this diff, or empty>
+```
+
+If the agent being dispatched is NOT `correctness`, omit this block entirely. Do not send `cross_file_retrieval_java_enabled` or `java_files` to any other agent. (Phase 6's §2.5 conditional only fires inside the correctness agent; other agents have no logic reading these fields.)
 
 **v2 graph-signal pass-through** (only when `graphSignals` is present from Step 2.8):
 
