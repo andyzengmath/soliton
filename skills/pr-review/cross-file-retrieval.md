@@ -6,11 +6,12 @@
 
 ## When to call
 
-Caller agents (currently `correctness` only) invoke this skill when:
-1. `config.agents.cross_file_retrieval_java.enabled == true`, AND
-2. `diff` contains at least one `*.java` file modification.
+Caller agents (currently `correctness` only) invoke this skill when BOTH of the following hold (read from the orchestrator-resolved "Feature flags" block injected into the agent's prompt by SKILL.md Step 4.1 step 6 + Step 4.2 — **NOT** read from `config.*` directly):
 
-Otherwise: skip (Phase 5.2 baseline behavior preserved).
+1. `cross_file_retrieval_java_enabled` (Feature flags block) is `true`; AND
+2. `java_files` (Feature flags block) is non-empty.
+
+The orchestrator pre-resolves these by checking `config.agents.cross_file_retrieval_java.enabled` from `.claude/soliton.local.md` AND scanning the files list for `*.java` paths; the agent never reads `config.*` itself. This mirrors the silent_failure / comment_accuracy gating pattern. Otherwise: skip (Phase 5.2 baseline behavior preserved).
 
 ## Input
 
