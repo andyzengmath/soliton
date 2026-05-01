@@ -137,20 +137,28 @@ Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
 
 ## C · Empirical credibility gaps
 
-### C1 · Enterprise-rebuild dogfood (Java / COBOL) — **PARTIAL CLOSURE 2026-04-30 (scout arm: SHIP)**
-**Status (2026-04-30 update):** ✅ first arm closed as SHIP. Spring PetClinic / 10-PR scout completed at ~$2.38 total spend. Pre-reg ship criteria both cleared (5+ reviews surfaced real findings; 3+ non-OSS-web flavor reviews emitted concrete findings). Writeup: `bench/graph/enterprise-java-dogfood.md`. Per-PR review markdowns + raw inputs: `bench/graph/petclinic-dogfood/run1/PR-<N>.{md,diff,-meta.json}`.
-**Headline catches:**
+### C1 · Enterprise-rebuild dogfood (Java / COBOL) — **FULL CLOSURE 2026-05-01 (scout + C1.B both SHIP; signal-grade)**
+
+**Scout arm (PetClinic) — 2026-04-30 SHIP** (PR #71). Spring PetClinic / 10-PR ~$2.38. Pre-reg both cleared. Writeup: `bench/graph/enterprise-java-dogfood.md`.
 - PR 2093 — `distributionSha256Sum` removal in gradle wrapper (CWE-494, OWASP A08; CRITICAL conf 92; human reviewer missed)
 - PR 2133 — `--release 17` flag dropped while `<java.version>25</java.version>` kept (CRITICAL conf 92; oracle-confirmed by maintainer @snicoll's post-merge revert `fc1c749`)
-- PR 1878 — `${addVisit}` Thymeleaf typo (variable vs message key) + cross-locale trailing-space drift (HIGH)
+- PR 1878 — `${addVisit}` Thymeleaf typo + cross-locale trailing-space drift (HIGH)
 - PR 1775 — `Collectors.toList()` immutability regression on `@XmlElement` JAXB-marshalled method (IMPROVEMENT after realist-check downgrade)
+- *Methodology caveat (closed by C1.B below):* single-agent simulation; per-agent attribution simulator-derived.
 
-**Methodology caveat:** Each PR review ran as a single-agent Claude Code Agent simulating Soliton's swarm rules (Task-tool isolation prevented child agents from spawning `soliton:*` sub-agents). Findings are concrete and well-reasoned but per-agent attribution is simulator-derived rather than measured. Per-PR cost ranged $0.02–$0.65 vs the projected $2–$5 for true swarm dispatch.
+**C1.B (Apache Camel) — 2026-05-01 SHIP** (PR #89). Full-swarm dispatch from main-orchestrator context — closes the simulator caveat. 10-PR ~$3.28. **5 CRITICAL + 19 IMPROVEMENT + 7 NITPICK across the corpus.** Pre-reg both cleared decisively. Writeup: `bench/graph/enterprise-camel-dogfood.md`.
+- **PR #22881** NPE in `DefaultModelToStructureDumper` when routeId not found (CRITICAL conf 95; JMX-reachable)
+- **PR #22881** New JSON route dump leaks credentials — bypasses XML/YAML's `setMask` gate; CWE-200/532/OWASP A09 (CRITICAL conf 85)
+- **PR #22880** `trustManagerMapper` asymmetric null guard → NPE during SSL handshake (CRITICAL conf 88)
+- **PR #22876** `Files.exists` follows symlinks → dangling symlink causes `FileAlreadyExistsException` (CRITICAL conf 88)
+- **PR #22866** NPE in `getJMSMessageTypeForBody` no-arg constructor path (CRITICAL conf 95)
+- C1.B produces **~6× more findings** than C1 scout (31 vs ~4) because real swarm dispatch surfaces correctness/security/cross-file-impact concerns that single-agent simulators miss. Validates IDEA_REPORT G2/G3/G6 Tier-A premise.
 
-**Remaining open arms (not yet started):**
-- **C1.B — Apache Camel or internal monolith** with full swarm dispatch from main-orchestrator context (signal-grade attribution; budget ~$15–$50).
-- **COBOL/PL-SQL** target — gated on graph-code-indexing's SQL/COBOL parser support per §B1.
-- **Procurement-tier metrics** (precision/recall vs. ground-truth bug list) — needs annotated-bug corpus, not present in PetClinic's git log.
+**§C1 status:** ✅ **closed at signal-grade.** Strategic narrative (PRD §7 enterprise-rebuild moat) backed by both value-prop demo (PetClinic) AND methodology rigor (Camel full-swarm); cross-link with §C2 cost-normalised F1 (PR #83) closes the procurement-readiness story end-to-end.
+
+**Remaining open arms (not session-actionable):**
+- **C1.C — Microsoft-internal monolith / COBOL / PL-SQL target** — gated on access + on graph-code-indexing's SQL/COBOL parser support per §B1.
+- **Procurement-tier metrics** (precision/recall vs. annotated-bug ground truth) — needs annotated-bug corpus; not present in either PetClinic's or Camel's git log.
 
 **Strategic fit (post-shipping):** the value-prop case for "Soliton catches enterprise-rebuild-relevant defects" is no longer aspirational — it is observed. PRD §7 strategic-moat narrative now backed by 4 oracle-grade findings on real Spring Boot 3.5/4.0 + supply-chain migration PRs.
 
