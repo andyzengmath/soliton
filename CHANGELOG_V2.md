@@ -24,11 +24,20 @@ Remaining 3 gaps blocked: #1 needs sibling repo `graph-cli` binary, #2 partially
 
 ### Phase 6 prep — Java-only L5 cross-file retrieval (Strategic Option B)
 
-Following the strategic audit's recommendation, three PRs landed the **Phase 6** infrastructure (default-OFF; benchmark validation gated on user authorization):
+Following the strategic audit's recommendation, the **Phase 6** infrastructure landed in three primary PRs plus a **3-pass self-validation cluster** that caught two CRITICAL bugs and one IMPROVEMENT before any \$140 CRB authorization. All default-OFF; benchmark validation gated on user authorization.
 
+**Primary infrastructure**:
 - **PR #102** — `bench/crb/PHASE_6_DESIGN.md` (158 lines): scope-before-build design with σ-aware pre-registered SHIP/HOLD/CLOSE criteria. Hypothesis: Phase 4c.1's Java +0.046 at 2.6σ_lang was real signal; removing the `NOT_FOUND_IN_TREE` suppression (the Go regression driver) recovers the lift cleanly. Expected aggregate: +0.009 → ~0.322.
 - **PR #104** — Phase 6a code: new `skills/pr-review/cross-file-retrieval.md` (Java-only, 97 lines, **NO suppression rule**), `agents/correctness.md` Section 2.5 conditional, config flag `agents.cross_file_retrieval_java.enabled` (default OFF). Behavioral default unchanged.
 - **PR #105** — Phase 6b scripts: `dispatch-phase6.sh` + `run-phase6-pipeline.sh` (scaffolding only, no spend triggered).
+
+**Self-validation cluster** (Soliton's review pipeline catches its own bugs):
+- **PR #107** (CRITICAL caught by code-reviewer subagent on PRs #104+#105): SKILL.md Step 2 didn't parse the YAML key `agents.cross_file_retrieval_java.enabled` into `config.*`. Without this fix, the Phase 6b $140 run would have measured Phase 5.2 baseline + zero differential. Also added `.gitignore` entry for `phase6-reviews/` and fixed `dispatch-phase6.sh:75` grep flag-ordering bug.
+- **PR #108** (CRITICAL conf=97 caught by /pr-review correctness agent on PR #104 — first true Soliton self-dogfood CRITICAL): even with PR #107's Step 2 fix, SKILL.md Step 4.2 prompt template never passed `config` to dispatched agents. The agent's §2.5 conditional (`config.agents.cross_file_retrieval_java.enabled == true`) had no way to evaluate the variable. Fix: added Step 4.1 step 6 to pre-compute per-agent feature-flag annotations, extended Step 4.2 template with a Feature flags block, rewrote `agents/correctness.md` §2.5 to read from the orchestrator-resolved flag instead of `config.*`.
+- **PR #109** (MEDIUM caught by code-reviewer on PR #108): `skills/pr-review/cross-file-retrieval.md:10` "When to call" section still described activation via `config.*`; updated to reflect the post-PR-#108 prompt-pass-through architecture.
+- **PR #110** (IMPROVEMENT conf=82 caught by both /pr-review and code-reviewer on PR #108): Feature flags block in PR #108 was inside the shared Step 4.2 template, gated only by inline prose comment. Moved to a separate conditional override paragraph mirroring the existing graph-signal pass-through pattern (lines 566-573). Eliminates inline-comment fragility.
+
+The 3-pass validation (code-reviewer → /pr-review → code-reviewer + /pr-review) demonstrates Soliton's review pipeline reliably catches its own bugs at multiple severity tiers — strong dogfood evidence for procurement / publishing posture.
 
 Phase 6b CRB measurement (~\$140 single bounded run) awaits explicit user `ship Phase 6b` authorization.
 
