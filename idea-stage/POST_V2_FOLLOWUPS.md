@@ -216,6 +216,20 @@ lives at `bench/crb/strip-footnote-titles.py`; v2.0.1 shipped a tightened versio
 **Status:** Phase 5.1 counterfactual ruled this out (lost 3 real Low/Medium TPs for +0.002 F1). Decision was "leave LLM-soft-enforcement; accept ~6 % leak". File for completeness.
 **What it takes:** if revisited, cost is ~$140 to re-measure. Author leans **don't pursue** — already falsified once.
 
+### D4 · Evidence Chain per finding — never built (surfaced by 2026-05-01 second-pass audit)
+**Status:** ⚪ open. CHANGELOG_V2.md lines 300-301 promise "Include an Evidence Chain section under each critical finding (graph edges + Tier-0 source citations + prior-PR comment mine hits, where applicable)" in Step 5 synthesis. Grep against `skills/pr-review/SKILL.md` for "Evidence Chain" returns zero matches. Not previously tracked; the second-pass audit on 2026-05-01 surfaced this orphan promise in the master register.
+
+**Why it matters:** identified in the strategic audit as one of 5 "plan-vs-shipped" gaps. Was a competitive differentiator vs CodeRabbit / Greptile in the original PRD positioning ("provenance-rich findings with evidence chain"). Currently SKILL.md emits LLM-reasoned findings with no deterministic evidence citation block — architectural drift from planned design.
+
+**What it takes:** multi-week feature work with three sub-components:
+1. **Graph-edge citations** — depend on graph signals being live (currently always `GRAPH_SIGNALS_UNAVAILABLE`; gated on §B1 sibling repo `graph-cli` binary).
+2. **Tier-0 source citations** — Tier-0 deterministic gate findings (gitleaks rule ID, semgrep rule ID, etc.) need to flow through synthesis rather than being mixed into the standard finding format.
+3. **Prior-PR comment mining** — I15 from IDEA_REPORT § 5; not started.
+
+**Cost:** $0 API + multi-week engineering (3-6 weeks; component 1 itself is gated externally).
+
+**Recommendation:** Author leans **defer until §B1 graph-cli binary ships**, since component 1 is the most differentiating slice and has no replacement path. Components 2-3 could be shipped independently as a "partial Evidence Chain" but their value drops without the graph edges.
+
 ---
 
 ## G · Test / CI / engineering gaps (NEW 2026-04-29 audit)

@@ -110,6 +110,19 @@ Significantly cheaper than Phase 4 (which was 1.5-2 weeks for full L5 + hallucin
 3. **Phase 6b — CRB validation** (one ~$140 run): 50 PRs under same GPT-5.2 judge. Measure against ship criteria above. **Bounded spend — one run, no exploratory iterations.**
 4. **Phase 6c — Decision** (no spend): SHIP (merge to main + update RESULTS.md), HOLD (per-component evaluate), or CLOSE (close PR + update IMPROVEMENTS.md).
 
+### HOLD resolution protocol (pre-registered per 2026-05-01 second-pass audit)
+
+The 2026-05-01 strategic audit's NEW-3 finding flagged that HOLD is ambiguous without a resolution protocol. Pre-register:
+
+**HOLD verdict at N=1 → treat as CLOSE.** Do NOT trigger an N=2 re-run at additional \$140 (total \$280). This matches the established Soliton CRB pattern: every prior phase (Phase 3.5, 3.6, 3.7, 4c, 4c.1, 3.5.1, 5, 5.2, 5.3) was single-bounded; HOLD outcomes were documented as "ambiguous, don't merge" without re-runs. Bounded spend is the consistent doctrine.
+
+Rationale:
+- Per `bench/crb/cost-normalised-f1.md` σ analysis, σ_F1=0.0086 means an N=2 mean shifts σ by only 1/√2 ≈ 0.71×. The HOLD-band width (0.305-0.321) is wider than 2× this reduction, so an N=2 re-run rarely converts HOLD→SHIP without genuine signal change.
+- Per the audit's risk decomposition, ~50% of HOLD outcomes come from spurious per-language regression trips (~13% on neutral languages), not from genuine null effects. An N=2 re-run on the same diffs / same judge / same Soliton config can't resolve a noise-vs-signal call on per-language slices at n=10.
+- $280 cumulative is past the autonomous-loop spend boundary; the architectural pivot to I19 sandbox or corpus expansion (§C3) is a higher-EV use of the next $140 than a Phase 6 re-run.
+
+**Per-component evaluation on HOLD:** If aggregate clears the SHIP threshold (≥ 0.322) but Java doesn't (Java < 0.318), evaluate whether the gain came from non-Java languages (unlikely given Phase 6 only modifies Java code paths but possible from judge noise). If Java clears but aggregate doesn't, the per-language win can be documented as evidence the L5 mechanism works for Java even though aggregate-SHIP requires the Go recovery component to materialize. Either case = document and don't merge as the new published number.
+
 ## Risk register
 
 | Risk | Mitigation |
