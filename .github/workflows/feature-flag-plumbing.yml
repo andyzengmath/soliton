@@ -1,0 +1,58 @@
+# Soliton feature-flag plumbing regression check.
+#
+# Runs tests/check_feature_flag_plumbing.py to assert that every
+# `agents.<name>.enabled` flag declared in templates/soliton.local.md
+# has both a Step 2 mapping in skills/pr-review/SKILL.md AND at least
+# one downstream consumer (orchestrator config read OR resolved
+# annotation in Step 4.1/4.2).
+#
+# Closes NEW-1 from the 2026-05-01 second-pass strategic audit. PRs #107
+# and #108 each demonstrated the same two-point failure: PR #107 caught
+# Step 2 missing; PR #108 caught Step 4.2 missing. Both bugs would have
+# wasted the Phase 6b $140 CRB measurement. This check guards against
+# regressions when future feature flags are added.
+
+name: feature-flag plumbing check
+
+on:
+  pull_request:
+    paths:
+      - "templates/soliton.local.md"
+      - "skills/pr-review/SKILL.md"
+      - "tests/check_feature_flag_plumbing.py"
+      - ".github/workflows/feature-flag-plumbing.yml"
+  push:
+    branches: [main]
+    paths:
+      - "templates/soliton.local.md"
+      - "skills/pr-review/SKILL.md"
+      - "tests/check_feature_flag_plumbing.py"
+      - ".github/workflows/feature-flag-plumbing.yml"
+
+concurrency:
+  group: feature-flag-plumbing-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  check:
+    name: assert feature-flag plumbing is complete
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Run feature-flag plumbing check
+        run: python tests/check_feature_flag_plumbing.py
