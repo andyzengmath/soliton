@@ -111,6 +111,20 @@ def check_plumbing(flag: str, skill_md_text: str) -> tuple[bool, str]:
     )
 
 
+def find_orphan_skill_md_flags(template_flags: list[str], skill_md_text: str) -> list[str]:
+    """Return flag names referenced in SKILL.md but absent from the template.
+
+    Catches the inverse failure mode of `check_plumbing`: SKILL.md wires a
+    `config.agents.<name>.enabled` consumer or maps a `<name>_enabled`
+    annotation, but `templates/soliton.local.md` doesn't expose the flag to
+    integrators. Reported as WARN (informational), not FAIL — orphaned wiring
+    is a discoverability defect, not a runtime bug.
+    """
+    referenced = set(re.findall(r"config\.agents\.(\w+)\.enabled", skill_md_text))
+    template_set = set(template_flags)
+    return sorted(referenced - template_set)
+
+
 def main() -> int:
     if not TEMPLATE.is_file():
         print(f"error: template not found at {TEMPLATE}", file=sys.stderr)
@@ -141,6 +155,25 @@ def main() -> int:
         if not ok:
             failures += 1
 
+    # Reverse scan: surface any flags wired in SKILL.md but missing from the
+    # template (orphaned wiring → discoverability defect, WARN-only). Closes
+    # the third MEDIUM follow-up from the code-reviewer pass on PR #113.
+    orphans = find_orphan_skill_md_flags(flags, skill_md_text)
+    if orphans:
+        print()
+        print(
+            f"# Orphaned wiring check ({len(orphans)} flag(s) in SKILL.md but "
+            f"NOT in templates/soliton.local.md)"
+        )
+        for orphan in orphans:
+            print(
+                f"  [WARN] agents.{orphan}.enabled: referenced in SKILL.md "
+                f"(\\`config.agents.{orphan}.enabled\\`) but not exposed to "
+                f"integrators via the template. Add a stanza under the v2 "
+                f"feature-flag block in templates/soliton.local.md so "
+                f"integrators can opt in."
+            )
+
     print()
     if failures:
         print(f"FAILED ({failures} of {len(flags)} flag(s) lack required plumbing)")
@@ -150,6 +183,13 @@ def main() -> int:
             "against."
         )
         return 1
+    if orphans:
+        print(
+            f"OK (with {len(orphans)} orphaned-wiring warning(s)) — all "
+            f"{len(flags)} template flag(s) have both Step 2 mapping and "
+            f"downstream consumer"
+        )
+        return 0
     print(f"OK — all {len(flags)} feature flag(s) have both Step 2 mapping and downstream consumer")
     return 0
 
