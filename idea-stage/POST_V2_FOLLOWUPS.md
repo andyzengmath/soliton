@@ -182,8 +182,12 @@ Combined napkin lift (per agent docs + Hora & Robbes 2026 references):
 
 ## D · Engineering refinements
 
-### D1 · Strip-footnote-titles.py — keep or retire
-**Status:** lives at `bench/crb/strip-footnote-titles.py`; v2.0.1 shipped a tightened version (Phase 5.2.1). The SKILL.md fix from Phase 5.2 prevents the leak prospectively, so this script only matters for retroactive counterfactuals.
+### D1 · Strip-footnote-titles.py — keep or retire — **CLOSED 2026-05-01 (KEEP)**
+**Status:** ✅ closed. Decision: KEEP `bench/crb/strip-footnote-titles.py`. Rationale: zero maintenance cost (no imports, no test surface, no integration with the rest of the bench/crb pipeline); clearly Phase-specific filename signals to maintainers that it's archaeological. v2.0.1 shipped the tightened version (Phase 5.2.1) and the SKILL.md fix from Phase 5.2 prevents the underlying leak prospectively, so the script is now only useful for retroactive counterfactual analysis (e.g. "what would CRB F1 look like if footnote-strip had been applied to Phase 4c reviews?"). That retroactive utility is occasionally cited in writeups; retiring it would force future authors to re-derive the strip logic. Status now informational; this entry stays in §D for posterity.
+
+**(Pre-2026-05-01 status preserved for context:)**
+
+lives at `bench/crb/strip-footnote-titles.py`; v2.0.1 shipped a tightened version (Phase 5.2.1). The SKILL.md fix from Phase 5.2 prevents the leak prospectively, so this script only matters for retroactive counterfactuals.
 **What it takes:** decision call. Keep (as archaeology / future-counterfactual support) vs. retire (commits noise, confuses maintainers). Author leans **keep** — zero maintenance cost; clearly Phase-specific filename.
 
 ### D2 · `agents/cross-file-impact.md` caller-direction refactor — **CLOSED 2026-04-29 via PR #61**
