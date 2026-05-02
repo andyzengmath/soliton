@@ -37,7 +37,7 @@ feedback_mode: false
 #     enabled: true                # default OFF since v2.1.1 (Phase 5.3 evidence); opt in for production
 #   cross_file_retrieval_java:
 #     enabled: true                # default OFF (Phase 6 experimental, awaiting CRB SHIP); opt in only for Phase 6b $140 measurement run. See bench/crb/PHASE_6_DESIGN.md.
-# stack:
+# stack:                                # NOTE: stack-mode is currently CLI-only (--stack-auto / --parent <N> / --parent-sha <SHA> per SKILL.md Step 1 Mode B). The fields below are placeholders for a future SKILL.md Step 2 mapping; uncommenting them today does NOT enable behavior. Tracked under POST_V2_FOLLOWUPS §G3 (orchestrator partial-closure remaining arms).
 #   auto_detect: true              # Step 1 Mode B step 4 — auto-detect parent via gt log when --stack-auto and gt on PATH
 #   require_parent_merged_check: true   # error if parent PR not yet merged vs its own base
 ---
