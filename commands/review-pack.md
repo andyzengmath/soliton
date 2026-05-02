@@ -1,5 +1,5 @@
 ---
-description: Inspect Soliton's risk-adaptive context pack for a PR or local diff (Step 1 + Step 2.75 only; no agent dispatch)
+description: Inspect Soliton's risk-adaptive context pack for a PR or local diff (Step 1 + Step 2 + Step 2.5 + Step 2.75; no agent dispatch)
 ---
 
 # /review-pack
@@ -56,9 +56,11 @@ PR description (truncated to first 200 chars):
 Recommended dispatch (from risk-scorer; not yet run):
 [ Skipped — `/review-pack` does not run risk-scorer; pass `--with-risk-score` for the full preview. ]
 
-Estimated cost (per rules/model-pricing.md per-tier projections):
-~$0.15 - $0.40 if dispatched at LOW/MEDIUM risk
-~$0.40 - $1.00 if dispatched at HIGH/CRITICAL risk
+Cost reference points (no published per-tier aggregate band; see source files):
+- IDEA_REPORT target band: $0.10–$0.40 per PR (rules/model-pricing.md line 75)
+- MEDIUM-PR projection: ~$0.22 after I5 Haiku-tiering (rules/model-tiers.md line 68)
+- Per-MTok rate sheet for Opus/Sonnet/Haiku: rules/model-pricing.md
+- Caveat: orchestrator emits `metadata.costUsd` only under a harness that surfaces per-Agent `usage` blocks; Claude Code's Agent tool currently does not, so the value is an estimate-from-markdown-length, not measured.
 
 To proceed with the full review:
   /pr-review <ref>
