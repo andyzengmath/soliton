@@ -22,9 +22,9 @@ This is a degraded-mode standalone surface of Soliton's existing logic. When the
    - Strip the input file itself from the count
 
 3. **Compute sensitive-paths hit** (same as `risk-scorer` Factor 3):
-   - Default sensitive patterns: `auth/`, `security/`, `payment/`, `*.env`, `*migration*`, `*secret*`, `*credential*`, `*token*`, `*.pem`, `*.key`
-   - Apply each glob to the input file path
+   - Apply each pattern from `rules/sensitive-paths.md` (and any `config.sensitivePaths` overrides from `.claude/soliton.local.md`) to the input file path
    - Mark hit if any pattern matches
+   - Note: do NOT inline the pattern list in this command's output — read the canonical source so future updates to `rules/sensitive-paths.md` propagate automatically.
 
 4. **Output a compact summary**:
 

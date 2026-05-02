@@ -4,7 +4,7 @@ description: List files that historically co-change with a target (git log heuri
 
 # /co-change
 
-List the files that have historically been changed in the same commits as a target file. Uses `git log` as a degraded-mode CO_CHANGE proxy — same logic as the `historical-context` agent's pattern when CO_CHANGE graph edges are unavailable (today's default; runtime never reads `GRAPH_SIGNALS` per POST_V2_FOLLOWUPS §B1).
+List the files that have historically been changed in the same commits as a target file. Uses `git log` as a degraded-mode CO_CHANGE proxy — a standalone heuristic inspired by CO_CHANGE graph semantics (note: the `historical-context` agent uses git history for bug-fix frequency / churn / blame patterns, NOT for co-occurrence; this command introduces the per-file co-change query separately). Will upgrade to true CO_CHANGE graph edges when available per POST_V2_FOLLOWUPS §B1.
 
 ## Argument
 
