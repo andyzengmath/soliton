@@ -352,44 +352,81 @@ CLI flags always override config file values. A sample template is at `templates
 
 ```
 .claude-plugin/
-  plugin.json                  Claude Code plugin manifest
+  plugin.json                  Claude Code plugin manifest (agents + skills + commands arrays)
   marketplace.json             Marketplace listing metadata
 .cursor-plugin/plugin.json     Cursor Marketplace manifest
 skills/pr-review/
   SKILL.md                     Main orchestrator (input → risk → dispatch → synthesize → output)
-  graph-signals.md             Tier-1 cross-file queries (blast-radius, dep-diff, …) — gated on
-                               graph-cli ecosystem
-agents/
+  graph-signals.md             Tier-1 cross-file queries — gated on graph-cli ecosystem (sibling repo)
+  cross-file-retrieval.md      Phase 6 Java-only L5 retrieval (default-OFF; awaiting CRB SHIP)
+agents/                        9 review + 4 infrastructure agents (default install dispatches up to 5
+                               at CRITICAL; up to 9 with silent-failure + comment-accuracy opted in)
   risk-scorer.md               Risk scoring engine (6 weighted factors)
-  correctness.md               Logic & correctness reviewer
+  correctness.md               Logic & correctness reviewer (Phase 6 §2.5 conditional)
   security.md                  OWASP Top 10 security reviewer (Opus)
   hallucination.md             AI hallucination detector (Opus)
-  test-quality.md              Test coverage & quality reviewer
-  consistency.md               Code style & convention reviewer
+  test-quality.md / consistency.md  Default-skipped per Phase 5 attribution evidence
   cross-file-impact.md         Cross-file breakage detector
   historical-context.md        Git history risk analyzer
+  spec-alignment.md            Step 2.7 spec-vs-PR alignment (Haiku, opt-in)
+  silent-failure.md / comment-accuracy.md  Default-OFF since v2.1.1 (Phase 5.3 evidence)
+  realist-check.md             Step 5.5 critical-finding pressure-test (Sonnet, opt-in)
   synthesizer.md               Finding merger & deduplicator
+commands/                      Slash commands (Phase 6+; A2 §1.4 — 3 of 7 shippable today)
+  blast-radius.md              /blast-radius <file> — grep-based importer count + sensitive flag
+  co-change.md                 /co-change <file> — git-log heuristic for CO_CHANGE candidates
+  review-pack.md               /review-pack <ref> — Step 1+2+2.5+2.75 preview (no agent dispatch)
+hooks/                         Optional Claude Code hooks (default-OFF; user-installed via settings.json)
+  blast-radius-warning.sh      Hook C — PostToolUse advisory on Edit/Write (grep-backed)
 lib/hallucination-ast/         Standalone Python package implementing Khati 2026's deterministic
-                               AST hallucination pre-check. Passes the paper's 200-sample
-                               corpus gate at F1=0.968. Not wired into the agent pipeline as
-                               of 2026-04-20 (see bench/crb/RESULTS.md § Phase 4c for the
-                               negative-result CRB run that motivated the revert). Retained
-                               for future isolation experiments.
+                               AST hallucination pre-check. F1=0.968 standalone; NOT wired into
+                               agents/hallucination.md (Phase 4 revert; tracked under POST_V2_FOLLOWUPS §D5).
 rules/
   risk-factors.md              Factor definitions and weights
   sensitive-paths.md           Default sensitive file patterns
   generated-file-patterns.md   Auto-generated/binary file patterns
+  model-pricing.md             Per-MTok rate sheet + costUsd algorithm
+  model-tiers.md               Step-by-step Haiku/Sonnet/Opus assignments
+  stacked-pr-mode.md           --parent / --parent-sha / --stack-auto orchestrator spec
+  tier0-tools.md               Tier-0 deterministic gate tool catalog
 templates/
-  soliton.local.md             Sample config file
+  soliton.local.md             Sample config file (tier0 + spec_alignment + graph + agents.* flags)
 examples/workflows/
   soliton-review.yml           GitHub Actions — plugin directory (recommended)
   soliton-review-direct.yml    GitHub Actions — direct prompt (fallback)
   soliton-review-gated.yml     GitHub Actions — CI gate (block on critical)
   soliton-review-interactive.yml GitHub Actions — auto + @claude mentions
-docs/
+docs/                          User-facing documentation
   ci-cd-integration.md         Full CI/CD integration guide
-tests/fixtures/                5 test fixtures with synthetic diffs
+  hooks-integration.md         Hook wiring guide (Hook C; Hooks A & B deferred)
+  prd-soliton.md               Product requirements doc
+  pr-faq-soliton.md            Internal PR-FAQ
+  self-validation-evidence.md  Catalog of self-validation events (procurement-grade artifact)
+bench/crb/                     CRB benchmark infrastructure + writeups
+  RESULTS.md                   Canonical phase log (Phase 5.2 F1=0.313 = number of record)
+  IMPROVEMENTS.md              Levers-tried catalog with σ-floor + subtraction-wins doctrine
+  PHASE_6_DESIGN.md            Java-only L5 design (pre-registered ship criteria)
+  cost-normalised-f1.md        F1/$ derivation (CRB 0.855 / real-world 2.14; first-mover claim)
+  martian-submission-template.md  §B3 upstream submission template (auth-gated on PR #65)
+  sphinx-actionability-spec.md Judge-prompt addendum spec (sibling-repo work)
+  judge-noise-envelope.md      σ_F1 = 0.0086 calibration (PR #48)
+  dispatch-phase6.sh / run-phase6-pipeline.sh  Phase 6b dispatch + scoring scripts
+tests/                         Test infrastructure
+  fixtures/                    16 fixtures (v1: 5 + v2 wirings: 4 + Tier-0/Spec/Phase-6: 7)
+  run_fixtures.py              Fixture runner (--mode structural | phase4b | all)
+  check_feature_flag_plumbing.py  Regression check for agents.*.enabled flag wiring
+.github/workflows/             CI workflows
+  fixture-runner.yml           Runs tests/run_fixtures.py on PR + push
+  feature-flag-plumbing.yml    Runs tests/check_feature_flag_plumbing.py on PR + push
+  hallucination-ast-tests.yml  pytest gate for lib/hallucination-ast/
 ```
+
+**Independent quality-signal stack** (procurement-relevant, as of v2.1.2 + cross-walk delivery):
+
+1. **F1 = 0.313** — Martian CRB Phase 5.2 (50-PR offline, GPT-5.2 judge) — see `bench/crb/RESULTS.md`
+2. **F1/$ = 2.14 real-world** / **0.855 CRB** — first-mover claim per 2026-05-01 SOTA research; no competitor publishes F1/$ — see `bench/crb/cost-normalised-f1.md`
+3. **Self-validation evidence catalog** — 8 documented dogfood events where Soliton's review pipeline caught its own bugs at multiple severity tiers — see `docs/self-validation-evidence.md`
+4. **Sphinx actionability spec** — pre-registered judge-prompt addendum measuring "would the developer actually change code?" — see `bench/crb/sphinx-actionability-spec.md`
 
 ## Contributing
 
