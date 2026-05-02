@@ -87,6 +87,15 @@ After this cluster, Soliton ships **four independent quality signals** for procu
 
 All four are autonomous from a Soliton-side perspective; signals 2-4 do NOT require additional benchmark spend.
 
+### Living-register sync + cross-ref hygiene + README refresh (post-PR-#127)
+
+Final session-close housekeeping after the cross-walk delivery cluster:
+
+- **PR #128** — `CHANGELOG_V2.md` Unreleased section captures the cross-walk cluster (PRs #118-#127) with severity-tier + cause-of-discovery context.
+- **PR #129** — `POST_V2_FOLLOWUPS.md` § Ranked priorities footer refreshed for PRs #102-#128. Closures list extended with 6 new ~~struck-through~~ entries (Phase 6 cluster, plan-vs-shipped audit, feature-flag plumbing regression check, B3 Martian template pre-stage, Logical_inference cross-walk cluster, CHANGELOG refresh sequence). "If $0 budget" reframed from "essentially empty" to "genuinely empty".
+- **PR #130** — Cross-ref hygiene: 2 unqualified short-name references in new docs (`docs/self-validation-evidence.md` "SKILL.md" → `skills/pr-review/SKILL.md`; `bench/crb/martian-submission-template.md` "POST_V2_FOLLOWUPS.md" → `idea-stage/POST_V2_FOLLOWUPS.md`) qualified for click-through accuracy on GitHub.
+- **PR #131** — `README.md` Project Structure section refreshed (added `commands/`, `hooks/`, `bench/crb/` subsection, `tests/` subsection, `.github/workflows/` subsection, `docs/` subsection; corrected stale "5 fixtures" → "16 fixtures"; annotated default-skipped + default-OFF agents). NEW Independent quality-signal stack callout below Project Structure surfaces the 4-signal procurement narrative (F1 / F1/$ / self-validation / Sphinx actionability) for buyers landing on the GitHub front page.
+
 ### Cumulative spend since v2.1.2 cut
 
 ~\$3.28 (PR #89 C1.B Apache Camel swarm). All other PRs in this window are doc/eng-only — no LLM dispatch spend.
