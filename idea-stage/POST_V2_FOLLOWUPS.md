@@ -360,9 +360,9 @@ Stale pre-reg / projection language found across docs that pre-date the σ measu
 
 ---
 
-## Ranked priorities (author's read, updated 2026-05-01 — post PRs #70–#93, v2.1.2 cut + G3 partial)
+## Ranked priorities (author's read, updated 2026-05-02 — post PRs #70–#128, v2.1.2 cut + cross-walk delivery)
 
-Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 sessions (~\$3.48 cumulative spend, 24 PRs across the broader window):
+Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 / 2026-05-02 sessions (~\$6.76 cumulative spend, 58 PRs across the broader window):
 
 - ~~A4 judge-noise envelope~~: σ_F1 = 0.0086 measured (PR #48).
 - ~~A5 realist-check wiring + CRB~~: Step 5.5 shipped (PR #50); Phase 5.3 measured the combined wirings → CLOSE verdict drove v2.1.1 default-OFF revert for silent-failure + comment-accuracy.
@@ -380,6 +380,12 @@ Closed in the 2026-04-29 / 2026-04-30 / 2026-05-01 sessions (~\$3.48 cumulative 
 - ~~C1.B Apache Camel full-swarm arm~~: SHIP via PR #89 — 5 CRITICAL + 19 IMPROVEMENT + 7 NITPICK across 10 Camel PRs at ~\$3.28; closes the simulator caveat from C1 scout; **§C1 fully closed at signal-grade** (PR #90 lockstep annotation).
 - ~~v2.1.2 release~~: shipped via PR #86 (manifest bump + 8 audit-gap closures) + PR #87 (workflow examples bumped post-tag). Tag + GitHub Release page both published.
 - ~~G3 stack-awareness orchestrator wiring (partial)~~: SKILL.md Step 1 Mode B step 4 wired (PR #92); templates/soliton.local.md `stack:` block + README architecture diagram Step 1.5 line + POST_V2_FOLLOWUPS §G3 partial-closure annotation (PR #93). Remaining open arms (Mode A stacked + gt-binary E2E + end-to-end fixture auth-gated on PR #65 + whole-stack review mode) tracked under §G3.
+- ~~Phase 6 cluster (design + 6a code + 6b scripts + 4 dogfood fix-ups)~~: PR #102 design + #104 6a code + #105 6b scripts + #107 first critical config-plumbing fix + #108 second critical Step 4.2 fix + #109 skill spec consistency + #110 structural pattern fix. Phase 6 is the canonical narrow-per-language re-integration prototype. **Phase 6b $140 measurement remains the spend gate** (awaits explicit `ship Phase 6b`).
+- ~~Plan-vs-shipped audit (3-agent cross-check)~~: PR #118 closed 5 of 6 audit drifts (model-tiers fiction caveat; IDEA_REPORT § 6.1 Evidence Chain DEFERRED markers; new §D5 hallucination-AST orphan tracking; §G15 + §G19 IDEA_REPORT register asymmetry close; A1 derivation-grade annotation). I2 graph signals deferred per user. PR #119 closed CRITICAL dispatch-phase6.sh SHIM_DIR config-injection bug. PR #120 closed 2 NEW delta drifts (README "up to 5" + stack template annotation).
+- ~~Feature-flag plumbing regression check~~: PR #113 (`tests/check_feature_flag_plumbing.py` + CI workflow); PR #114 + #115 closed 3 code-review follow-ups (LOW + 2 MEDIUM + reverse-scan completeness). Bidirectional coverage: forward FAIL + reverse WARN.
+- ~~B3 Martian leaderboard submission template~~: pre-staged (PR #116 — Soliton row + cost-normalised F1 first-mover claim + methodology citations + pre-flight checklist). Auth-gated on PR #65 OAuth.
+- ~~Logical_inference cross-walk cluster (5 of 5 $0 items)~~: PR #121 subtraction-wins doctrine codified; PR #122 + #123 three slash commands per A2 §1.4 (`/blast-radius`, `/co-change`, `/review-pack`); PR #124 self-validation evidence catalog (`docs/self-validation-evidence.md` — 6 documented dogfood events); PR #125 + #126 Hook C blast-radius warning + integration guide; PR #127 Sphinx actionability metric spec.
+- ~~CHANGELOG_V2.md Unreleased section~~: refreshed via PR #95 (initial), #106 (Phase 6 cluster), #111 (self-validation cluster), #117 (Phase 6 prep + audit cluster + Martian prep), #128 (cross-walk cluster). Captures 58 PRs across the post-v2.1.2 window with severity-tier and cause-of-discovery context.
 
 Remaining ranked priorities:
 
@@ -395,12 +401,12 @@ If picking three over the next month:
 3. G3 remaining arms (above)
 
 If $0 budget:
-1. **Autonomously-actionable register is essentially empty** post-G3 partial closure. Remaining open work is harness-gated (C2 Phase 2), auth-gated (#65 OAuth, #67 MCP shim, B3 Martian, G3 fixture E2E), spend-bearing (C2/C3), or access-gated (C1.C internal monolith).
-2. Periodic re-audit POST_V2_FOLLOWUPS / docs for drift — 3+ audit cycles done this session, diminishing returns now.
+1. **Autonomously-actionable register is genuinely empty** post-cross-walk delivery (PRs #121-#127). Remaining open work is harness-gated (C2 Phase 2), auth-gated (#65 OAuth, #67 MCP shim, B3 Martian, G3 fixture E2E, Sphinx actionability Phase 3 ~$15 re-judge), spend-bearing (Phase 6b $140, C3 corpus expansion $250-750), access-gated (C1.C internal monolith), external-dep-gated (graph-cli binary from sibling repo), or multi-week-eng (Strategic Option A I19 sandbox).
+2. Periodic re-audit POST_V2_FOLLOWUPS / docs for drift — 5+ audit cycles done this session (3-agent + delta + 4-doc cross-walk + dogfood reviews), diminishing returns now.
 3. Hold for explicit user direction or a new lever surfacing.
 
 Now retired:
-- ~~A4~~ ~~A5~~ ~~A6~~ ~~C1-scout~~ ~~C1.B~~ ~~A1~~ ~~A2~~ ~~A3~~ ~~C2~~ ~~D1~~ ~~D2~~ ~~G1~~ ~~G2-fuller~~ ~~G3-orchestrator-wiring (partial)~~ — see closure annotations above + per-§ entries. **§C1 enterprise-rebuild dogfood closed at signal-grade (scout + C1.B Camel both SHIP).**
+- ~~A4~~ ~~A5~~ ~~A6~~ ~~C1-scout~~ ~~C1.B~~ ~~A1~~ ~~A2~~ ~~A3~~ ~~C2~~ ~~D1~~ ~~D2~~ ~~G1~~ ~~G2-fuller~~ ~~G3-orchestrator-wiring (partial)~~ ~~Phase 6 cluster (design + 6a + 6b scripts + 4 dogfood fix-ups)~~ ~~Plan-vs-shipped audit~~ ~~Feature-flag plumbing regression check~~ ~~Logical_inference cross-walk cluster~~ ~~CHANGELOG_V2.md Unreleased~~ — see closure annotations above + per-§ entries. **§C1 enterprise-rebuild dogfood closed at signal-grade (scout + C1.B Camel both SHIP). Independent quality-signal stack now ships 4 procurement-grade signals: F1=0.313 / F1/$ = 2.14 real-world / self-validation evidence catalog (8 dogfood events) / Sphinx actionability spec (pre-registered, ~$15 to measure).**
 
 ---
 
