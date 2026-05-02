@@ -61,6 +61,32 @@ A second strategic checkpoint on 2026-05-01 ran 3 parallel audit agents and surf
 - **PR #115** — closes the 3rd MEDIUM from PR #113 review: orphan-flag reverse scan. Script now reports SKILL.md-referenced flags absent from template as WARN-only (orphaned wiring is a discoverability defect, not a runtime bug). Bidirectional coverage complete: forward FAIL on missing plumbing + reverse WARN on orphaned wiring.
 - **PR #116** — pre-stages §B3 Martian CRB upstream submission template at `bench/crb/martian-submission-template.md` (~97 lines). Soliton row + cost-normalised F1 first-mover claim (F1/\$ = 2.14 real-world / 0.855 CRB; verified unmatched in 2026-05-01 SOTA research) + methodology citations + pre-flight checklist. When PR #65 OAuth clears + steps (b)-(d) of §B3 run, the upstream PR can launch in <10 min.
 
+### Plan-vs-shipped audit + Logical_inference cross-walk (post-PR-#117)
+
+A 3-agent plan-vs-implementation cross-check on 2026-05-01 verified all CLOSED items in POST_V2_FOLLOWUPS §A-D (14/14 with merged PRs + extant files), surfaced 3 drifts (graph signals deferred per user; hallucination-AST orphan; Evidence Chain promise) + 2 register asymmetries + 1 cosmetic. PR #118 closed 5 of 6 non-graph items. A delta cross-check on 2026-05-02 (post-PR-#118+#119) found 2 additional drifts (README agent-count framing + template stack-mode key annotation), closed in PR #120.
+
+A separate 4-agent cross-walk on 2026-05-02 reviewed 7 strategy docs in `Logical_inference/docs/strategy/` (A1 current state, A2 agent-integration architecture, A3 debug + new usecases, A4 literature delta, A5 OSS landscape, A6 investor features, strategic-review-synthesis). The synthesis flagged 3 conflicts with Soliton's measured evidence (recommended hooks-injection / new agent additions despite Phase 5.3 −0.045 regression evidence; recommended graph-wiring without F1 measurement; recommended use-case expansion against the "subtraction wins, addition fails" pattern from 8 measured CRB phases). All actionable items from the cross-walk shipped at $0:
+
+- **PR #118** — 5 non-graph audit closures (model-tiers fiction caveat, IDEA_REPORT § 6.1 Evidence Chain DEFERRED markers, new POST_V2_FOLLOWUPS §D5 hallucination-AST orphan tracking + §G15/§G19 register asymmetry close, A1 derivation-grade annotation).
+- **PR #119** — `dispatch-phase6.sh` SHIM_DIR config-injection bug fix (CRITICAL Phase 6b pre-flight catch — without this, the would-be $140 measurement run would have measured Phase 5.2 baseline behavior instead of any Phase 6 differential).
+- **PR #120** — 2 NEW drifts from delta cross-check: README line 26 "up to 7 of 9 review agents" → "up to 5" (matches the line-223 effective-default clarification); template `stack:` keys annotated as CLI-only with no Step 2 mapping (deferred per §G3).
+- **PR #121** — codifies "subtraction wins, addition fails" pre-reg discipline in `bench/crb/IMPROVEMENTS.md`. 4-rule guardrail: σ-aware bands; default-OFF for new wirings; HOLD = CLOSE at N=1; strategy-doc additions MUST cite this gate.
+- **PR #122 + #123** — A2 §1.4 three slash commands shipped (`/blast-radius`, `/co-change`, `/review-pack`); 4 follow-ups from code-review (HIGH fabricated cost numbers, MEDIUM canonical-source drift / overclaim, LOW frontmatter inconsistency) closed in #123. Other 4 of 7 commands (`/trace-caller`, `/trace-data-flow`, `/regression-risk`, `/graph-explain`) deferred — graph-cli gated.
+- **PR #124** — `docs/self-validation-evidence.md` standalone procurement artifact catalogues 6 documented dogfood events this session; frames Soliton vs Anthropic Managed Code Review / CodeRabbit competitive context.
+- **PR #125 + #126** — A2 §6.1 Hook C blast-radius warning + integration guide shipped; 6 code-review follow-ups (HIGH non-numeric threshold, 3 MEDIUM JSON-spacing / abs-vs-rel-path / overbroad token glob, 2 LOW comment + Windows path) closed in #126. Hooks A & B deferred — graph-cli gated.
+- **PR #127** — `bench/crb/sphinx-actionability-spec.md` proposes a CRB judge-prompt addendum measuring actionability (would the developer actually change code?) alongside match-F1. Pre-registered interpretation bands. Sibling-repo harness work + ~$15 re-judge spend gated separately. Gives buyers a third quality signal alongside F1 and F1/$.
+
+### Independent quality-signal stack (as of 2026-05-02)
+
+After this cluster, Soliton ships **four independent quality signals** for procurement audiences:
+
+1. **F1 = 0.313** on Martian CRB Phase 5.2 (raw match accuracy)
+2. **F1/$ = 2.14 real-world** (cost-normalised, first-mover claim per 2026-05-01 SOTA research)
+3. **Self-validation evidence catalog** (`docs/self-validation-evidence.md` — 6 documented dogfood events)
+4. **Sphinx actionability spec** (`bench/crb/sphinx-actionability-spec.md` — pre-registered slice ready for $15 measurement)
+
+All four are autonomous from a Soliton-side perspective; signals 2-4 do NOT require additional benchmark spend.
+
 ### Cumulative spend since v2.1.2 cut
 
 ~\$3.28 (PR #89 C1.B Apache Camel swarm). All other PRs in this window are doc/eng-only — no LLM dispatch spend.
