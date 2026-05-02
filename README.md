@@ -421,12 +421,12 @@ tests/                         Test infrastructure
   hallucination-ast-tests.yml  pytest gate for lib/hallucination-ast/
 ```
 
-**Independent quality-signal stack** (procurement-relevant, as of v2.1.2 + cross-walk delivery):
+**Independent quality-signal stack** (procurement-relevant, as of v2.1.2 + cross-walk delivery + Sphinx Phase 3 measurement):
 
 1. **F1 = 0.313** — Martian CRB Phase 5.2 (50-PR offline, GPT-5.2 judge) — see `bench/crb/RESULTS.md`
 2. **F1/$ = 2.14 real-world** / **0.855 CRB** — first-mover claim per 2026-05-01 SOTA research; no competitor publishes F1/$ — see `bench/crb/cost-normalised-f1.md`
 3. **Self-validation evidence catalog** — 8 documented dogfood events where Soliton's review pipeline caught its own bugs at multiple severity tiers — see `docs/self-validation-evidence.md`
-4. **Sphinx actionability spec** — pre-registered judge-prompt addendum measuring "would the developer actually change code?" — see `bench/crb/sphinx-actionability-spec.md`
+4. **Sphinx actionability — measured 30.6 % (LOW band)** — pre-registered judge-prompt addendum measuring "would the developer actually change code?" The LOW verdict surfaces a diagnose-without-prescribe pattern in Soliton's TPs: findings are correct against goldens but typically don't name the specific code change. Concreteness prompt-tuning becomes a known-cheap experiment candidate. See `bench/crb/RESULTS.md` § Sphinx Actionability + `bench/crb/sphinx-actionability-spec.md`.
 
 ## Contributing
 
