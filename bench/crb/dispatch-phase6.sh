@@ -125,6 +125,17 @@ run_one () {
   local out="$OUTPUT_DIR/$slug.md"
   local log="$OUTPUT_DIR/.$slug.log"
 
+  # Phase 6b config-injection: run-poc-review.sh cd's into a SHIM_DIR which has
+  # no .claude/ folder, so SKILL.md Step 2's cwd-relative `.claude/soliton.local.md`
+  # check would miss the Phase 6 opt-in flag in REPO_ROOT/.claude/. Copy it
+  # into the SHIM_DIR before launching claude -p.
+  local shim_root="$(dirname "$REPO_ROOT")/soliton-poc-work"
+  local shim_dir="$shim_root/$slug-shim"
+  mkdir -p "$shim_dir/.claude"
+  if [ -f "$REPO_ROOT/.claude/soliton.local.md" ]; then
+    cp "$REPO_ROOT/.claude/soliton.local.md" "$shim_dir/.claude/soliton.local.md"
+  fi
+
   echo "  → [$upstream#$pr_num → $slug] starting"
   OUTPUT_DIR="bench/crb/phase6-reviews" \
     bash "$REPO_ROOT/bench/crb/run-poc-review.sh" \
