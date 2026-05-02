@@ -19,7 +19,7 @@ The Phase 6 design cluster (Java-only L5 cross-file retrieval, gated on a future
 
 ### PR #107 — CRITICAL caught by code-reviewer subagent on PRs #104 + #105
 
-**What was wrong**: SKILL.md Step 2 (Configuration Resolution) didn't parse the new YAML key `agents.cross_file_retrieval_java.enabled` into `config.*`. Without this, the orchestrator's later config lookup would always be undefined, the Phase 6a §2.5 conditional in `agents/correctness.md` would always evaluate false, and the planned $140 Phase 6b CRB run would have measured pure Phase 5.2 baseline behavior with **zero Phase 6 differential** — a no-op spend.
+**What was wrong**: `skills/pr-review/SKILL.md` Step 2 (Configuration Resolution) didn't parse the new YAML key `agents.cross_file_retrieval_java.enabled` into `config.*`. Without this, the orchestrator's later config lookup would always be undefined, the Phase 6a §2.5 conditional in `agents/correctness.md` would always evaluate false, and the planned $140 Phase 6b CRB run would have measured pure Phase 5.2 baseline behavior with **zero Phase 6 differential** — a no-op spend.
 
 **Reviewer**: `code-reviewer` subagent, run on the Phase 6a code (PR #104) + dispatch scripts (PR #105).
 

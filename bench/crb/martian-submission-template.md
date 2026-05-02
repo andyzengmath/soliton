@@ -2,7 +2,7 @@
 
 **Purpose**: ready-to-use template for §B3 (Martian CRB upstream leaderboard submission). Pre-staged so the submission PR can launch quickly after the auth gate clears (PR #65 OAuth → claude-code-action Console auth).
 
-**Status as of 2026-05-01**: prep work only. The actual submission requires §B3 steps (a)-(e) per `POST_V2_FOLLOWUPS.md` — steps (b)-(d) need auth + CI dogfood; this doc covers step (e) so it's ready to open.
+**Status as of 2026-05-01**: prep work only. The actual submission requires §B3 steps (a)-(e) per `idea-stage/POST_V2_FOLLOWUPS.md` — steps (b)-(d) need auth + CI dogfood; this doc covers step (e) so it's ready to open.
 
 ---
 
