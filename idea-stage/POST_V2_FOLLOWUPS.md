@@ -10,7 +10,7 @@ Entries reference `idea-stage/IDEA_REPORT.md` idea numbers (I1–I20) where appl
 
 ## A · Validation gaps (highest leverage; mostly $0)
 
-### A1 · Tier-0 (Step 2.6) end-to-end dogfood — **CLOSED 2026-05-01 (SHIP — derived from C1)**
+### A1 · Tier-0 (Step 2.6) end-to-end dogfood — **CLOSED 2026-05-01 (SHIP — derivation-grade, derived from C1)**
 **Status:** ✅ closed via derivation. The C1 PetClinic dogfood (PR #71) recorded Tier-0 verdicts on 10 PRs. Re-aggregating: 6 of 10 PRs (60 %) hit `clean` verdict, well above the §A1 30 % LLM-skip threshold. Two known-unflagged CRITICAL classes the LLM swarm caught (PR 2093 gradle-wrapper sha256 removal, PR 1878 Thymeleaf `${addVisit}` typo) bound the escape-rate observation; both are Tier-0-rule-extension opportunities tracked as §C1.B follow-ups. Writeup: `bench/graph/a1-a2-derivation.md`. Methodology caveat: simulator-derived (single-agent C1 dogfood); a signal-grade re-run with full swarm dispatch projects ~$15-25 — deferred to §C1.B.
 
 **(Pre-2026-05-01 status preserved for context:)**
@@ -230,6 +230,17 @@ lives at `bench/crb/strip-footnote-titles.py`; v2.0.1 shipped a tightened versio
 
 **Recommendation:** Author leans **defer until §B1 graph-cli binary ships**, since component 1 is the most differentiating slice and has no replacement path. Components 2-3 could be shipped independently as a "partial Evidence Chain" but their value drops without the graph edges.
 
+### D5 · IDEA_REPORT I4 (Hallucination-AST) orphaned from agent integration — **OPEN (surfaced by 2026-05-01 plan-vs-impl audit)**
+**Status:** ⚪ open. The standalone library `lib/hallucination-ast/` is shipped + Khati-validated (F1=0.968, 130 tests, CI-gated). The agent integration that would invoke it (`agents/hallucination.md` §2.5 pre-check) was REVERTED in PR #28 (Phase 4 close-out) and never re-added. Grep against `agents/hallucination.md` for `hallucination-ast` / `hallucination_ast` / `§2.5` returns zero matches.
+
+**Why it matters:** The Phase 4 design's projected "80% of Opus calls replaced by deterministic AST check" is unrealized. `rules/model-tiers.md:40` historically described the pre-check as "deterministic" without flagging the wiring gap — the model-tiers row is now annotated with an explicit "currently NOT wired" caveat (this PR — post-2026-05-01 plan-vs-impl audit follow-up), but the underlying re-integration work remains.
+
+**What it takes:** narrower per-language re-integration than Phase 4b's broad §2.5. Phase 6 (Java-only L5 cross-file retrieval) is the prototype for this pattern: re-introduce a deterministic helper for ONE language at a time, gated on a CRB measurement. If Phase 6 ships clean, the same per-language pattern can be applied to hallucination-AST (start with Python since the lib supports Python-only today; add JS/TS later if the lib is extended).
+
+**Cost:** $0 API + ~1 dev-week per language for the re-integration + ~$140 CRB measurement per language.
+
+**Recommendation:** **defer until Phase 6 SHIPs.** Phase 6's pre-registered exit criteria validate whether per-language narrow re-integration is the right pattern. CLOSE on Phase 6 = pattern is questioned, hallucination-AST stays standalone indefinitely. SHIP on Phase 6 = unblocks Python-only §2.5 retry as the natural successor.
+
 ---
 
 ## G · Test / CI / engineering gaps (NEW 2026-04-29 audit)
@@ -269,6 +280,20 @@ SKILL.md § "Supported Flags" documents `--parent <PR#>`, `--parent-sha <SHA>`, 
 **Cost:** $0 API + ~1 week engineering.
 
 **Net G-section recommendation:** address G1 first (small, $0, blocks regression), then G2 (medium, structural ROI), then G3 (week-scale; tied to C1 enterprise dogfood validation since stacked-PR review is the critical path for that use case).
+
+### G15 · Calibrated token-level confidence — **OPEN (cross-ref from IDEA_REPORT G-table; surfaced by 2026-05-01 audit register-asymmetry check)**
+**Status:** ⚪ open. IDEA_REPORT § Gap table row G15 ("Calibrated token-level confidence") was previously absent from POST_V2_FOLLOWUPS, creating a register asymmetry. Adding here for symmetric tracking. No implementation; no ship target.
+
+**Why it matters:** future polish for finding-confidence calibration. Each agent currently emits a 0-100 confidence integer based on prompt-level heuristics. A token-level approach (logit-derived per-finding confidence, possibly via a separate calibration model) would tighten the precision-recall trade-off but adds significant infrastructure.
+
+**Cost:** Tier-C backlog. Multi-week + open-ended research; not on current roadmap.
+
+### G19 · Cross-run state / auto-resolution — **OPEN (cross-ref from IDEA_REPORT G-table; surfaced by 2026-05-01 audit register-asymmetry check)**
+**Status:** ⚪ open. IDEA_REPORT § Gap table row G19 ("Cross-run state / auto-resolution") was previously absent from POST_V2_FOLLOWUPS, creating a register asymmetry. Distinct from I16 learnings loop (which tracks dismissed-finding suppression). No implementation; no ship target.
+
+**Why it matters:** state persistence across review runs would enable: (a) auto-resolution when a finding from PR N is fixed in PR N+1, (b) regression detection when a previously-clean module starts triggering findings, (c) cross-PR cumulative metrics. Requires a state store outside the current stateless-skill architecture.
+
+**Cost:** Tier-C backlog. Architecturally significant — adds first state-bearing component to a stateless plugin. Out of current scope.
 
 ---
 
