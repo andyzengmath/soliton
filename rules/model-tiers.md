@@ -37,7 +37,7 @@ less than wide-context reasoning, so the cheapest model that can do structured w
 | `correctness` | **Sonnet** | Needs reasoning about logic / edge cases |
 | `security` | **Opus** | Deepest reasoning; data-flow + threat modelling |
 | `hallucination` | **Opus** | API existence verification across poly-version ecosystems — hard |
-| `hallucination AST pre-check` (I4) | deterministic | Khati-2026 zero-LLM; 80 % of cases |
+| `hallucination AST pre-check` (I4) | deterministic | Khati-2026 zero-LLM; 80 % of cases — **note: lib at `lib/hallucination-ast/` is shipped + Khati-validated standalone (F1=0.968), but currently NOT wired into `agents/hallucination.md` (Phase 4 revert removed §2.5 integration; never re-added). See POST_V2_FOLLOWUPS §D5 for re-integration tracking.** |
 | `test-quality` | **Sonnet** | Mock / coverage reasoning |
 | `consistency` | **Haiku** | Mostly CLAUDE.md / REVIEW.md rule matching |
 | `cross-file-impact` | **Sonnet** | Reasons about call-site breakage from graph-signals |

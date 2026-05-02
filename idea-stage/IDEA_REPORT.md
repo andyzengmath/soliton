@@ -318,11 +318,11 @@ PR event (local or GitHub Actions)
  │ ══════════════ Tier 3 — Synthesis + Realist Check ═══════════════════════════
  ├── Dedup + conflict detection (unchanged)
  ├── NEW: Realist Check on every CRITICAL — "Mitigated by:" required for downgrade
- ├── NEW: Evidence Chain block — every finding carries graph edges + Tier-0 source citations
+ ├── NEW: Evidence Chain block — every finding carries graph edges + Tier-0 source citations  [**DEFERRED** — see POST_V2_FOLLOWUPS §D4; not implemented in current SKILL.md as of v2.1.2]
  ├── Confidence filter (default ≥ 80)
  │
  │ ══════════════ Step 6: Output (extended) ════════════════════════════════════
- ├── markdown (default, + Evidence Chain section)
+ ├── markdown (default, + Evidence Chain section [**DEFERRED** — see POST_V2_FOLLOWUPS §D4])
  ├── JSON (machine-readable, extends schema with tier0Findings[] + graphSignals{})
  ├── --feedback (AgentInstruction[], unchanged)
  └── --crossmodel (optional, sends to Codex/Gemini SDK in parallel for second opinion)
