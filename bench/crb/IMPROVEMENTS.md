@@ -13,6 +13,16 @@
 >
 > **Load-bearing update**: "aggressive precision" levers (L1 atomicity, v2.2 compression, v2.3 dedup widening) have consistently cut recall more than they help precision — the CRB step3 judge is recall-hungry. Any future lever that reduces matching surface area downstream should be treated with skepticism.
 >
+> **🚨 SUBTRACTION WINS, ADDITION FAILS (added 2026-05-02 after 4-doc strategy cross-walk)** — empirical pattern across 8 measured CRB phases since Phase 3: every published SHIP came from REMOVING something (Phase 3.5 dropped nitpicks + threshold 80→85; Phase 5 dropped test-quality + consistency from default skipAgents; Phase 5.2 stripped footnote-title regex leak). Every ADDITION regressed: Phase 3.6 description compression (−0.021), Phase 3.7 synthesizer dedup widening (−0.022), Phase 4c L5 + §2.5 (−0.016), Phase 3.5.1 prose-heavy gate (−0.034), Phase 5.3 four combined v2.1.0 wirings (−0.045). Five consecutive CLOSE post-Phase-3.5 confirms prompt/wiring-level surface-area expansion is at a local maximum.
+>
+> **Pre-registration discipline for any new lever that ADDS surface area** (new agent dispatch, new pass-through hook, new prompt section, new orchestrator step):
+> 1. Pre-register σ-aware SHIP/HOLD/CLOSE bands using σ_F1=0.0086 / σ_Δ paired=0.0122
+> 2. Default-OFF in any release with the new wiring (the v2.1.0→v2.1.1 silent_failure / comment_accuracy revert is the model)
+> 3. Bounded N=1 measurement; HOLD = CLOSE at N=1 (per `bench/crb/PHASE_6_DESIGN.md` HOLD-resolution protocol — no $280 re-run)
+> 4. If any v2 strategy doc, integration architecture, or "killer feature" pitch suggests adding hooks / agents / pass-throughs without an experiment, this doctrine MUST be cited as the gate.
+>
+> Architectural changes that escape this constraint require a different kind of evidence — full-codebase retrieval (cubic-style), execution sandbox (I19), or per-language narrow re-integration (Phase 6 pattern). These are NOT prompt tweaks and the σ-aware pre-reg still applies.
+>
 > Phase 3.5 (F1 = 0.277) is the current published best. The next realistic push is **Phase 4** (design doc at `bench/crb/PHASE_4_DESIGN.md`): agent-level cross-file retrieval + ROADMAP D hallucination-AST, not more prompt tweaks. See `RESULTS.md` §§"Phase 3.5 / 3.6 / 3.7" for the full story.
 
 ---
