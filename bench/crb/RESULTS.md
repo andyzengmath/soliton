@@ -1049,3 +1049,86 @@ Running `bench/crb/analyze-phase5.py` on the Phase 5 data revealed **51 FP candi
 Implementation: single paragraph added to `skills/pr-review/SKILL.md` Step 6 Format A under "Suppressed footnote" explicitly instructing "emit the count only; do NOT list suppressed titles." Orchestrator adherence tested via the `bench/crb/strip-footnote-titles.py` counterfactual (confirms +0.013 F1 without touching TPs).
 
 The remaining 37 UNMATCHED FPs are step2 over-extraction artifacts (paraphrased sub-issues from long Soliton finding bodies) — harder to target and probably per-PR variance rather than a systematic lever. Flagged for future work.
+
+---
+
+## Sphinx Actionability · Phase 5.2 corpus re-judge (50 PRs, GPT-5.2 judge — 2026-05-02)
+
+Re-judge of the Phase 5.2 corpus with the Sphinx actionability addendum from `bench/crb/sphinx-actionability-spec.md`. Adds an `actionable | non_actionable | uncertain` rating to every TP, distinguishing "wrong" from "correct-but-vague" findings. The Sphinx metric supplements F1 with a real-bug-rate signal — F1 conflates fabrication and vagueness; this metric splits them.
+
+### Headline (Sphinx run)
+
+| Metric | Value |
+|--------|------:|
+| F1 (sphinx prompt run) | **0.330** (P = 0.240, R = 0.529) |
+| Total TPs | 72 |
+| **actionable** | **22** |
+| **non_actionable** | **50** |
+| uncertain | 0 |
+| **actionable_TP_rate** | **30.6 %** |
+| Pre-registered band | **LOW** (rate < 50 %) |
+| Verdict per spec | re-evaluate F1 meaningfulness; concreteness-prompt experiment becomes a candidate |
+
+Pre-registered interpretation bands per `bench/crb/sphinx-actionability-spec.md` § Pre-registration:
+
+- `rate >= 70 %` → HIGH actionability; cite alongside F1 in publishable narrative
+- `50 % ≤ rate < 70 %` → MIXED; concrete-prompt experiment (~$140 CRB run) is a candidate
+- `rate < 50 %` → LOW; re-evaluate F1 meaningfulness; may need stronger judge filter
+
+### Per-severity breakdown
+
+| Severity | TP | actionable | non_actionable | uncertain | actionable_rate |
+|----------|---:|-----------:|---------------:|----------:|----------------:|
+| Critical | 8 | 2 | 6 | 0 | 25.0 % |
+| High | 26 | 5 | 21 | 0 | 19.2 % |
+| Medium | 25 | 10 | 15 | 0 | 40.0 % |
+| Low | 13 | 5 | 8 | 0 | 38.5 % |
+
+Critical/High severity slices have the LOWEST actionability rates (19-25 %). Medium/Low slices, somewhat counterintuitively, have HIGHER actionability rates (38-40 %). One reading: severe findings tend to identify systemic concerns ("this whole flow has a race condition") that the judge counts as non-actionable for lacking a one-line code prescription, whereas Medium/Low findings ("this loop allocates unnecessarily") are more often paired with a concrete suggestion. **This is hypothesis-grade — single bounded run; no σ envelope on actionability rate yet.**
+
+### Sample non-actionable TPs (judge reasons)
+
+All 10 first non-actionable TPs share a near-identical reason structure: *"It identifies the problem and impact but does not specify a concrete code change (e.g., …)."* Examples (full data in `evaluations_sphinx.json`):
+
+- `[High] keycloak#37634` — judge: "It identifies the problem but does not specify the concrete code change (e.g., fix substring(4,6) and return true on match)"
+- `[Critical] keycloak#40940` — judge: "It identifies the problem and impact but does not propose a specific code change (e.g., return 0L or throw)"
+- `[High] keycloak#37038` — judge: "It identifies the flaw and impact but does not specify a concrete code change (e.g., which scope/resource check to replace)"
+
+The pattern: **Soliton's review style is diagnose-without-prescribe**. Findings correctly point to issues (which the standard match-judge accepts as TP) but stop short of naming the specific code-line change that would resolve them.
+
+### F1 delta caveat (sphinx prompt vs standard prompt)
+
+This run measured F1 = 0.330 with the sphinx-extended prompt, vs the published Phase 5.2 F1 = 0.313 with the standard prompt. Δ = +0.017 ≈ +1.98 σ_F1 (per the σ envelope from PR #48: σ_F1 = 0.0086). Within the 2σ noise envelope, but on the high edge.
+
+Interpretation: the sphinx prompt's added context ("did the developer actually change code") may bias the LLM toward leniency on the match decision, slightly inflating TP. The actionability rate (30.6 %) is the primary metric here and is independent of this drift — even at the high TP count, the non_actionable share dominates.
+
+**The actionability rate is robust against this drift**: even if 4 of the 22 actionable TPs are spuriously matched (a generous 18 % FP rate on top of a +2 σ inflation), the rate would only fall to 25 %, still solidly LOW.
+
+### Procurement implications
+
+The Sphinx finding is the third independent quality signal in Soliton's procurement stack:
+
+1. **F1 = 0.313** on Martian CRB Phase 5.2 — match-quality against goldens (raw bench accuracy).
+2. **F1/$ = 2.14** real-world / 0.855 CRB — cost-normalised efficiency (first-mover claim per 2026-05-01 SOTA research).
+3. **Sphinx actionable_TP_rate = 30.6 %** — characterises the F1 numerator quality.
+
+**Combined narrative**: Soliton scores F1 = 0.313 cheaply ($0.146/PR projected real-world). Of those true positives, ~30 % drive a code change as-written; the remaining ~70 % are correct-but-vague — they identify the problem without prescribing the specific fix. This is consistent with Soliton's measured behavior in dogfood (8 self-validation events catalogued in `docs/self-validation-evidence.md`) — Soliton's *internal* PR review (small scope, rich context) IS actionable; its CRB review (curated PRs, isolated context) trends to diagnosis-only.
+
+**Strategic implication**: the precision problem is NOT fabrication (those would be "wrong" matches caught by step3 and not surface as TPs). It IS vagueness in the *correct* findings. Concreteness prompt-tuning is therefore a **known-cheap lever** — adding "name the specific code change you're suggesting" guidance to the agent prompts could move the actionable rate without architectural surgery. This becomes a live experiment candidate per the LOW-band pre-registered action.
+
+### Reproduction (Sphinx)
+
+```bash
+# Sibling-repo prerequisite: branch feat/sphinx-actionability-judge in
+# ../code-review-benchmark with --sphinx flag wired into step3_judge_comments.py
+# (Phase 2 of the spec — sibling-repo PR pending).
+bash bench/crb/run-sphinx-actionability.sh    # Phase 3 — ~$10-15 spend, ~3 min
+python3 bench/crb/analyze-sphinx.py            # Phase 4 — $0
+```
+
+### Sphinx caveats
+
+- **Single bounded run**: actionable_TP_rate = 30.6 % from a single dispatch. No σ envelope on the actionability metric (only on F1).
+- **Judge bias**: gpt-5.2 is the same model used as judge for the original F1 measurement. Different judges may score actionability differently.
+- **Spec-as-pre-registration**: the interpretation bands were committed in PR #127 *before* this run; the LOW verdict is locked-in by the spec's pre-registration discipline (per the σ-aware doctrine in `bench/crb/IMPROVEMENTS.md` § Subtraction wins, addition fails).
+- **F1 drift**: +0.017 between sphinx-prompt and standard-prompt runs (within 2 σ). Future work could re-baseline the standard F1 with the sphinx prompt's match leniency to make the comparison fully apples-to-apples.

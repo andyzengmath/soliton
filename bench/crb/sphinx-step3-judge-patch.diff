@@ -1,0 +1,247 @@
+diff --git a/offline/code_review_benchmark/step3_judge_comments.py b/offline/code_review_benchmark/step3_judge_comments.py
+index 03172f4..8378540 100644
+--- a/offline/code_review_benchmark/step3_judge_comments.py
++++ b/offline/code_review_benchmark/step3_judge_comments.py
+@@ -43,6 +43,42 @@ Respond with ONLY a JSON object:
+ {{"reasoning": "brief explanation", "match": true/false, "confidence": 0.0-1.0}}"""
+ 
+ 
++# Sphinx actionability addendum (per Soliton bench/crb/sphinx-actionability-spec.md).
++# When --sphinx is set, the judge returns the same match decision PLUS an actionability
++# rating distinguishing "wrong" findings from "correct but vague / non-actionable" findings.
++JUDGE_PROMPT_SPHINX = """You are evaluating AI code review tools.
++Determine (1) if the candidate issue matches the golden (expected) comment, and
++(2) whether the candidate is ACTIONABLE — i.e., specific enough that a developer
++would actually change code in response to it.
++
++Golden Comment (the issue we're looking for):
++{golden_comment}
++
++Candidate Issue (from the tool's review):
++{candidate}
++
++Match instructions (same as standard judge):
++- Determine if the candidate identifies the SAME underlying issue as the golden comment
++- Accept semantic matches - different wording is fine if it's the same problem
++- Focus on whether they point to the same bug, concern, or code issue
++
++Actionability instructions (Sphinx-style; applies whether or not match is true):
++Mark actionability="actionable" when ALL of:
++  - The finding names a specific code change (e.g., "replace X with Y", "add null check at line N")
++  - The change has a concrete impact (fixes a bug, prevents a regression, improves a measurable quality)
++  - A typical reviewer would request this change before merge
++Mark actionability="non_actionable" when ANY of:
++  - The finding says "consider X" / "you might want to" without a concrete change
++  - The finding is style-only (formatting, naming, ordering) without citing a specific style-guide rule
++  - The suggestion is overly broad, speculative, or would not pass code review
++  - The fix would not change observable behavior or maintainability
++  - The finding is correct but redundant with documentation already visible at the change site
++Mark actionability="uncertain" only when the candidate is too truncated or ambiguous to judge.
++
++Respond with ONLY a JSON object:
++{{"reasoning": "brief explanation of match decision", "match": true/false, "confidence": 0.0-1.0, "actionability": "actionable"|"non_actionable"|"uncertain", "actionability_reason": "1-sentence reason"}}"""
++
++
+ @dataclass
+ class EvaluationState:
+     """Track evaluation progress for restarts."""
+@@ -99,23 +135,17 @@ def get_model_dir() -> Path:
+ 
+ 
+ class LLMJudge:
+-    def __init__(self, structured_output: bool = False):
++    def __init__(self, structured_output: bool = False, sphinx_mode: bool = False):
+         load_dotenv()
+ 
+-        api_key = os.environ.get("MARTIAN_API_KEY")
+-        base_url = os.environ.get("MARTIAN_BASE_URL", "https://api.withmartian.com/v1")
+-
+-        if not api_key:
+-            raise ValueError("MARTIAN_API_KEY environment variable required")
+-
+-        self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+-        self.model = os.environ.get("MARTIAN_MODEL", "openai/gpt-4o-mini")
++        from .llm_client import make_async_client  # Phase 3 Azure OpenAI support
++        self.client, self.model = make_async_client()
+         self.structured_output = structured_output
+-
+-        print(f"Judge model: {self.model}")
+-        print(f"Base URL: {base_url}")
++        self.sphinx_mode = sphinx_mode
+         if structured_output:
+             print("Structured output: enabled")
++        if sphinx_mode:
++            print("Sphinx actionability mode: enabled")
+ 
+     async def call_llm(self, prompt: str, max_retries: int = 3) -> dict:
+         for attempt in range(max_retries):
+@@ -132,6 +162,19 @@ class LLMJudge:
+                     "temperature": 0.0,
+                 }
+                 if self.structured_output:
++                    schema_props = {
++                        "reasoning": {"type": "string"},
++                        "match": {"type": "boolean"},
++                        "confidence": {"type": "number"},
++                    }
++                    required = ["reasoning", "match", "confidence"]
++                    if self.sphinx_mode:
++                        schema_props["actionability"] = {
++                            "type": "string",
++                            "enum": ["actionable", "non_actionable", "uncertain"],
++                        }
++                        schema_props["actionability_reason"] = {"type": "string"}
++                        required = ["reasoning", "match", "confidence", "actionability", "actionability_reason"]
+                     kwargs["response_format"] = {
+                         "type": "json_schema",
+                         "json_schema": {
+@@ -139,12 +182,8 @@ class LLMJudge:
+                             "strict": True,
+                             "schema": {
+                                 "type": "object",
+-                                "properties": {
+-                                    "reasoning": {"type": "string"},
+-                                    "match": {"type": "boolean"},
+-                                    "confidence": {"type": "number"},
+-                                },
+-                                "required": ["reasoning", "match", "confidence"],
++                                "properties": schema_props,
++                                "required": required,
+                                 "additionalProperties": False,
+                             },
+                         },
+@@ -183,7 +222,8 @@ class LLMJudge:
+         return {"error": "Max retries exceeded"}
+ 
+     async def match_comment(self, golden_comment: str, candidate: str) -> dict:
+-        prompt = JUDGE_PROMPT.format(golden_comment=golden_comment, candidate=candidate)
++        template = JUDGE_PROMPT_SPHINX if self.sphinx_mode else JUDGE_PROMPT
++        prompt = template.format(golden_comment=golden_comment, candidate=candidate)
+         return await self.call_llm(prompt)
+ 
+ 
+@@ -315,6 +355,10 @@ async def evaluate_review(
+             golden_matched[golden]["best_confidence"] = result["confidence"]
+             golden_matched[golden]["matched_candidate"] = candidate
+             golden_matched[golden]["reasoning"] = result.get("reasoning")
++            # Sphinx mode: capture actionability for the matched (best) candidate
++            if judge.sphinx_mode:
++                golden_matched[golden]["actionability"] = result.get("actionability")
++                golden_matched[golden]["actionability_reason"] = result.get("actionability_reason")
+             candidate_matched[candidate] = True
+             # Propagate to duplicate siblings so they aren't counted as FPs
+             for sibling in sibling_map.get(candidate, set()):
+@@ -326,15 +370,17 @@ async def evaluate_review(
+ 
+     for golden, info in golden_matched.items():
+         if info["matched"]:
+-            true_positives.append(
+-                {
+-                    "golden_comment": golden,
+-                    "severity": info["severity"],
+-                    "matched_candidate": info["matched_candidate"],
+-                    "confidence": info["best_confidence"],
+-                    "reasoning": info.get("reasoning"),
+-                }
+-            )
++            tp_entry = {
++                "golden_comment": golden,
++                "severity": info["severity"],
++                "matched_candidate": info["matched_candidate"],
++                "confidence": info["best_confidence"],
++                "reasoning": info.get("reasoning"),
++            }
++            if judge.sphinx_mode:
++                tp_entry["actionability"] = info.get("actionability")
++                tp_entry["actionability_reason"] = info.get("actionability_reason")
++            true_positives.append(tp_entry)
+         else:
+             false_negatives.append(
+                 {
+@@ -389,6 +435,14 @@ async def main():
+         metavar="FILE",
+         help="Override the default evaluations.json output path (useful for comparison runs)",
+     )
++    parser.add_argument(
++        "--sphinx",
++        action="store_true",
++        help="Sphinx actionability mode — extends judge prompt+schema to also rate TP "
++             "actionability (actionable | non_actionable | uncertain). Per Soliton "
++             "bench/crb/sphinx-actionability-spec.md. Recommended: pair with "
++             "--evaluations-file evaluations_sphinx.json to keep results separate.",
++    )
+     args = parser.parse_args()
+ 
+     load_dotenv()
+@@ -443,7 +497,7 @@ async def main():
+     already_done = sum(len(tools) for tools in state.completed.values())
+     print(f"Resuming: {already_done} evaluations completed")
+ 
+-    judge = LLMJudge(structured_output=args.structured)
++    judge = LLMJudge(structured_output=args.structured, sphinx_mode=args.sphinx)
+ 
+     # Build work items list
+     work_items = []
+@@ -520,12 +574,26 @@ async def main():
+             if result.get("skipped"):
+                 continue
+             if tool not in tool_metrics:
+-                tool_metrics[tool] = {"tp": 0, "fp": 0, "fn": 0, "errors": 0, "count": 0}
++                tool_metrics[tool] = {
++                    "tp": 0, "fp": 0, "fn": 0, "errors": 0, "count": 0,
++                    "tp_actionable": 0, "tp_non_actionable": 0, "tp_uncertain": 0, "tp_unrated": 0,
++                }
+             tool_metrics[tool]["tp"] += result.get("tp", 0)
+             tool_metrics[tool]["fp"] += result.get("fp", 0)
+             tool_metrics[tool]["fn"] += result.get("fn", 0)
+             tool_metrics[tool]["errors"] += result.get("errors_count", 0)
+             tool_metrics[tool]["count"] += 1
++            # Sphinx: tally actionability across this tool's TPs
++            for tp in result.get("true_positives", []):
++                rating = tp.get("actionability")
++                if rating == "actionable":
++                    tool_metrics[tool]["tp_actionable"] += 1
++                elif rating == "non_actionable":
++                    tool_metrics[tool]["tp_non_actionable"] += 1
++                elif rating == "uncertain":
++                    tool_metrics[tool]["tp_uncertain"] += 1
++                else:
++                    tool_metrics[tool]["tp_unrated"] += 1
+             for err in result.get("errors", []):
+                 error_details.append({"tool": tool, "pr": golden_url, "error": err.get("error", "unknown")})
+ 
+@@ -539,6 +607,34 @@ async def main():
+         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+         print(f"{tool:<12} {precision:>10.1%} {recall:>10.1%} {f1:>10.1%} {m['count']:>8} {m['errors']:>8}")
+ 
++    # Sphinx actionability table — only print when at least one TP carries an actionability rating
++    has_sphinx = any(
++        m["tp_actionable"] + m["tp_non_actionable"] + m["tp_uncertain"] > 0
++        for m in tool_metrics.values()
++    )
++    if has_sphinx:
++        print("\nSphinx actionability split (per Soliton bench/crb/sphinx-actionability-spec.md):")
++        header = f"{'Tool':<12} {'TP':>6} {'Actionable':>11} {'NonAct':>8} {'Uncertain':>10} {'Unrated':>8} {'ActRate':>9}"
++        print(header)
++        print("-" * len(header))
++        for tool in sorted(tool_metrics.keys()):
++            m = tool_metrics[tool]
++            total_tp = m["tp"]
++            rated = m["tp_actionable"] + m["tp_non_actionable"] + m["tp_uncertain"]
++            act_rate = m["tp_actionable"] / rated if rated > 0 else 0.0
++            print(
++                f"{tool:<12} {total_tp:>6} "
++                f"{m['tp_actionable']:>11} {m['tp_non_actionable']:>8} "
++                f"{m['tp_uncertain']:>10} {m['tp_unrated']:>8} "
++                f"{act_rate:>9.1%}"
++            )
++        print(
++            "\nInterpretation bands (pre-registered in spec):"
++            "\n  actionable_TP_rate >= 70%  → high actionability; cite alongside F1"
++            "\n  50% <= rate < 70%          → mixed; concrete-prompt experiment is a candidate"
++            "\n  rate < 50%                 → low actionability; re-evaluate F1 meaningfulness"
++        )
++
+     if error_details:
+         print(f"\nError details ({len(error_details)} total):")
+         print("-" * 60)

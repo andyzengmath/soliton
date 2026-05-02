@@ -82,10 +82,10 @@ After this cluster, Soliton ships **four independent quality signals** for procu
 
 1. **F1 = 0.313** on Martian CRB Phase 5.2 (raw match accuracy)
 2. **F1/$ = 2.14 real-world** (cost-normalised, first-mover claim per 2026-05-01 SOTA research)
-3. **Self-validation evidence catalog** (`docs/self-validation-evidence.md` — 6 documented dogfood events)
-4. **Sphinx actionability spec** (`bench/crb/sphinx-actionability-spec.md` — pre-registered slice ready for $15 measurement)
+3. **Self-validation evidence catalog** (`docs/self-validation-evidence.md` — documented dogfood events)
+4. **Sphinx actionability spec** (`bench/crb/sphinx-actionability-spec.md` — pre-registered slice; **measured 30.6 % LOW** post-PR-#132 — see § Sphinx actionability measurement below)
 
-All four are autonomous from a Soliton-side perspective; signals 2-4 do NOT require additional benchmark spend.
+All four are autonomous from a Soliton-side perspective; signals 2-3 do NOT require additional benchmark spend; signal 4 has been measured at ~$11 actual.
 
 ### Living-register sync + cross-ref hygiene + README refresh (post-PR-#127)
 
@@ -96,9 +96,30 @@ Final session-close housekeeping after the cross-walk delivery cluster:
 - **PR #130** — Cross-ref hygiene: 2 unqualified short-name references in new docs (`docs/self-validation-evidence.md` "SKILL.md" → `skills/pr-review/SKILL.md`; `bench/crb/martian-submission-template.md` "POST_V2_FOLLOWUPS.md" → `idea-stage/POST_V2_FOLLOWUPS.md`) qualified for click-through accuracy on GitHub.
 - **PR #131** — `README.md` Project Structure section refreshed (added `commands/`, `hooks/`, `bench/crb/` subsection, `tests/` subsection, `.github/workflows/` subsection, `docs/` subsection; corrected stale "5 fixtures" → "16 fixtures"; annotated default-skipped + default-OFF agents). NEW Independent quality-signal stack callout below Project Structure surfaces the 4-signal procurement narrative (F1 / F1/$ / self-validation / Sphinx actionability) for buyers landing on the GitHub front page.
 
+### Sphinx actionability measurement (post-PR-#132)
+
+Phase 3 of the Sphinx actionability spec landed via this PR. Signal 4 of the procurement quality-signal stack moves from "pre-registered" to "measured" — the **first benchmark spend post-Phase-5.3** (~\$11 Azure judge cost vs the spec's \$15 budget).
+
+**Headline**: actionable_TP_rate = **30.6 %** → **LOW band** per pre-registered spec interpretation. Soliton produces 72 TPs against the Phase 5.2 corpus; 22 are actionable, 50 are correct-but-vague, 0 uncertain.
+
+- **Per-severity rates**: Critical 25 % · High 19 % · Medium 40 % · Low 38 %. Counterintuitively, the most-severe slices are the LEAST actionable.
+- **Diagnose-without-prescribe pattern**: judge reasons cluster around *"identifies the problem and impact but does not specify a concrete code change."*
+- **Strategic implication**: the precision problem is NOT fabrication — TPs are *correct* against goldens; they're just *vague*. Concreteness prompt-tuning becomes a known-cheap lever (live experiment candidate per the LOW-band action).
+- **F1 drift caveat**: sphinx-prompt run measured F1 = 0.330 vs published Phase 5.2's 0.313 (+0.017 ≈ +1.98 σ). Within 2σ but worth noting; actionability rate is robust against this drift.
+
+Full writeup in `bench/crb/RESULTS.md` § Sphinx Actionability with reproduction recipe + caveats. Raw evaluations archived in-repo at `bench/crb/sphinx-evaluations-phase5_2.json` for reproducibility-from-Soliton-alone. Sibling-repo step3 changes captured as `bench/crb/sphinx-step3-judge-patch.diff` for later upstream PR (depends on user's authorization to push to `withmartian/code-review-benchmark`).
+
+New artifacts shipped this PR:
+
+- `bench/crb/run-sphinx-actionability.sh` — re-judge pipeline orchestrator (~3 min, ~\$11 spend)
+- `bench/crb/analyze-sphinx.py` — per-severity actionability + sample non-actionable TPs reporter
+- `bench/crb/sphinx-evaluations-phase5_2.json` — raw judge output (182 KB)
+- `bench/crb/sphinx-step3-judge-patch.diff` — sibling-repo step3 changes (Sphinx + small Azure refactor)
+- `bench/crb/RESULTS.md` § Sphinx Actionability — publishable writeup with pre-registered band verdict
+
 ### Cumulative spend since v2.1.2 cut
 
-~\$3.28 (PR #89 C1.B Apache Camel swarm). All other PRs in this window are doc/eng-only — no LLM dispatch spend.
+~\$3.28 + ~\$11 Sphinx Phase 3 = **~\$14.28 cumulative**. (PR #89 C1.B Apache Camel swarm + this PR's Sphinx re-judge. All other PRs in this window are doc/eng-only — no LLM dispatch spend.)
 
 ---
 
