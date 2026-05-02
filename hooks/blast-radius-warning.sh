@@ -41,13 +41,21 @@ set -e
 
 THRESHOLD="${SOLITON_BLAST_THRESHOLD:-10}"
 
+# Validate THRESHOLD is numeric. Non-numeric values would cause `[ ... -lt ... ]`
+# to fail under `set -e`, killing the script and surfacing a confusing error to
+# the Claude Code hook system. Silently bail on misconfiguration (consistent with
+# the script's "always exit 0; never block" advisory contract).
+case "$THRESHOLD" in
+    ''|*[!0-9]*) exit 0 ;;
+esac
+
 # Skip immediately if quiet mode is requested
 [ -n "${SOLITON_BLAST_QUIET:-}" ] && exit 0
 
 # Read payload from stdin (non-blocking; exit silently if no input)
 PAYLOAD=""
 if [ -t 0 ]; then
-    # No stdin; nothing to do
+    # stdin is a terminal (no piped data from Claude Code's hook system); nothing to do
     exit 0
 fi
 PAYLOAD="$(cat)"
@@ -72,13 +80,15 @@ except Exception:
     sys.exit(0)
 " 2>/dev/null) || exit 0
 else
-    # Fallback parse. Grep for "file_path":"..." pattern. Less robust but
-    # works on systems without python3.
+    # Fallback parse. Grep for "file_path"..."..." pattern (allowing optional
+    # whitespace around the JSON colon — standard JSON serializers including
+    # Python's `json.dumps` produce a space after the colon). Less robust than
+    # python3 but works on systems without it.
     case "$PAYLOAD" in
-        *'"tool":"Edit"'*|*'"tool":"Write"'*) ;;
+        *'"tool"'*'"Edit"'*|*'"tool"'*'"Write"'*) ;;
         *) exit 0 ;;
     esac
-    FILE_PATH=$(printf '%s' "$PAYLOAD" | grep -oE '"file_path":"[^"]+"' | head -1 | sed 's/"file_path":"\([^"]*\)"/\1/')
+    FILE_PATH=$(printf '%s' "$PAYLOAD" | grep -oE '"file_path"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 | sed -E 's/"file_path"[[:space:]]*:[[:space:]]*"([^"]*)"/\1/')
 fi
 
 # Bail if extraction failed or file doesn't exist
@@ -100,7 +110,16 @@ fi
 # Count importers via git grep. Strip the file itself from the result set.
 # The `--fixed-strings` flag prevents regex meta-characters in the basename
 # from causing false positives.
-IMPORTER_COUNT=$(git grep -l --fixed-strings "$SYMBOL" 2>/dev/null | grep -v -F "$FILE_PATH" | wc -l | tr -d ' ')
+#
+# Normalize FILE_PATH to its repo-relative form before the self-exclusion grep —
+# `git grep -l` outputs repo-relative paths, so an absolute FILE_PATH from the
+# JSON payload would never match and the edited file would be incorrectly
+# included in the importer count. `git ls-files --full-name` resolves abs/rel
+# correctly when the path is tracked; falls back to the input if untracked.
+REL_PATH=$(git ls-files --full-name "$FILE_PATH" 2>/dev/null || true)
+[ -z "$REL_PATH" ] && REL_PATH="$FILE_PATH"
+
+IMPORTER_COUNT=$(git grep -l --fixed-strings "$SYMBOL" 2>/dev/null | grep -v -F "$REL_PATH" | wc -l | tr -d ' ')
 
 # Bail under threshold
 if [ "$IMPORTER_COUNT" -lt "$THRESHOLD" ]; then
@@ -111,8 +130,11 @@ fi
 # defaults; inlined here for hook self-containment, intentionally a forked copy
 # since hooks should be portable single-file scripts)
 SENSITIVE="clean"
+# Note: `*token*` was narrowed to `*token/*|*tokens/*|*.token` to avoid false
+# positives on routine files like `tokenizer.py`, `token-list.ts`, `css-tokens.md`.
+# The `*credential*` and `*secret*` patterns still cover real token-storage files.
 case "$FILE_PATH" in
-    *auth/*|*security/*|*payment/*|*.env|*migration*|*secret*|*credential*|*token*|*.pem|*.key)
+    *auth/*|*security/*|*payment/*|*.env|*migration*|*secret*|*credential*|*token/*|*tokens/*|*.token|*.pem|*.key)
         SENSITIVE="hit (sensitive path)" ;;
 esac
 

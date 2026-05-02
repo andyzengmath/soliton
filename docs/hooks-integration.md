@@ -46,6 +46,8 @@ Add a `PostToolUse` hook entry to `~/.claude/settings.json` (user-level) or `.cl
 
 Replace `/abs/path/to/soliton/` with the absolute path to your Soliton repo clone. The hook script reads its input as JSON on stdin (Claude Code's standard hook contract) and emits its advisory to stderr — both visible in your Claude Code session.
 
+**Windows note**: use the full Windows path (e.g., `C:\\Users\\you\\soliton\\hooks\\blast-radius-warning.sh`) or run under WSL / Git Bash where `bash` resolves the script directly. The script is portable POSIX shell + `git grep`; works on macOS, Linux, and WSL/Git Bash on Windows.
+
 ### Configuration
 
 The script reads two environment variables. Set them in your shell profile or in the hook command line:
