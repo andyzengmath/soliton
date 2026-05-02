@@ -34,5 +34,10 @@
   ],
   "skills": [
     "./skills/"
+  ],
+  "commands": [
+    "./commands/blast-radius.md",
+    "./commands/co-change.md",
+    "./commands/review-pack.md"
   ]
 }
