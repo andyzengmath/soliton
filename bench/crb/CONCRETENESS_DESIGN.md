@@ -12,9 +12,11 @@
 
 **H1 (primary)**: Soliton's diagnose-without-prescribe pattern is driven by *vague* `suggestion`-field content (the agents emit findings whose suggestion text is prose like "consider X" rather than a literal code patch). Replacing the vague `suggestion`-field placeholder with a concrete-patch-only requirement will move actionable_TP_rate up without depressing F1. **This experiment touches ONLY the `suggestion` field; the `description` field is preserved unchanged** — see § 1.1 for the Phase 3.6 prior-art carve-out.
 
-**H1 prediction (σ-aware, post 3-5× IMPROVEMENTS.md discount)**: actionable_TP_rate moves to 35-50 % (Δ +5-20pp); F1 moves within ±1σ of Phase 5.2 sphinx-prompt baseline (0.321-0.339).
+**H1 prediction (σ-aware, post 3-5× IMPROVEMENTS.md discount)**: actionable_TP_rate moves to **34-37 %** (Δ +3-7pp post-discount). The naive prompt expectation would be +10-20pp from "diagnose-without-prescribe" → "literal patch", but every prompt-only experiment post-Phase-3.5 has missed naive predictions by 3-5×; calibrated estimate is much smaller. F1 moves within ±1σ of sphinx-prompt baseline (0.321-0.339).
 
 **H1 falsification path**: actionable_TP_rate ≤ 33 % (within ±1× the assumed actionability σ of baseline 30.6 %) OR F1 < 0.321 (>1σ regression vs sphinx-prompt baseline). Either result triggers CLOSE.
+
+**Asymmetric pre-registration acknowledgment**: with the calibrated +3-7pp prediction, the SHIP gate at +10pp (§ 4) sits **above** the prediction range — SHIP is the surprising outcome, HOLD = CLOSE is the modal outcome. This is intentional. The experiment is primarily a **doctrine-validation exercise**: confirm that prompt-only tuning past the local maximum produces the predicted CLOSE, OR surface a genuine surprise that breaks the pattern. Authorizing \$151 to validate the doctrine (and rule out concreteness as a cheap-fix lever) is itself useful — it informs the pivot to architectural work (Strategic Option A I19 sandbox).
 
 ### 1.1 Why this is NOT a Phase 3.6 replay
 
@@ -32,6 +34,12 @@ This design is **structurally different** from Phase 3.6:
 The Sphinx LOW finding (PR #133) cites the *suggestion-field* failure pattern — judge reasons cluster on *"does not specify a concrete code change."* Phase 3.6 was about description compression, which is a different lever and a different failure mode. This design specifically does NOT compress description; it only tightens the suggestion-field placeholder.
 
 If the post-experiment outcome shows F1 regression similar to Phase 3.6's −0.021, that would be **new evidence** that suggestion-field tightening shares Phase 3.6's recall-suppression mechanism — a worthwhile finding even under CLOSE.
+
+**Honest acknowledgment of the shared mechanism**: this design's NEW suggestion-field text (§ 3.1) explicitly licenses agents to *drop* findings: *"If you cannot write the patch, do not emit this finding; downgrade to nitpick or omit."* That is structurally the same suppression license that Phase 3.6's description compression created (less context → fewer concretely-stated findings). So while the FIELD is different, the **suppression mechanism is shared in kind**. The argument for proceeding is not that suppression is absent, but that:
+
+1. The doctrine-relevant question is not "does suppression happen?" but "does net F1 regress?". Phase 3.6 regressed F1 by −0.021. This experiment's pre-registered F1 floor is 0.321 (sphinx-prompt baseline 0.330 − 1σ_F1) — a tighter gate than Phase 3.6 had to clear.
+2. The Sphinx evidence (PR #133) suggests a precision-side dial: many of Soliton's TPs are vague but correct. Suppression of vague-but-correct findings *might* improve precision faster than it depresses recall, producing a net F1 lift. Phase 3.6 had no equivalent precision-side hypothesis.
+3. The cost of confirming this experiment shares Phase 3.6's failure mode is bounded at \$151 — far below the cost of *not* knowing whether suggestion-field concretization is a viable lever.
 
 ## 2. Audit of vague-license phrasing in current prompts
 
@@ -138,11 +146,28 @@ Per `bench/crb/IMPROVEMENTS.md` calibration (3-5× ΔF1 discount on naive estima
 
 **Comparison baseline is the sphinx-prompt run from PR #133 (F1 = 0.330, actionable_TP_rate = 30.6 %)**, NOT the standard-prompt published Phase 5.2 (F1 = 0.313). The post-experiment re-judge uses the same sphinx prompt; apples-to-apples requires the sphinx-prompt baseline.
 
-| Outcome | Δ actionable_TP_rate | F1 (sphinx prompt) | Per-language regression | Verdict |
-|---------|---------------------:|-------------------:|------------------------:|---------|
-| Best case | ≥ +15pp (≥ 45.6 % absolute) | ≥ 0.321 (≥ sphinx-baseline 0.330 − 1σ_F1) | none > 2σ_lang (= 0.036) | **SHIP** |
-| Mixed | +5pp to +15pp | within ±2σ_F1 of 0.330 (i.e. [0.313, 0.347]) | within 2σ_lang (= 0.036) | **HOLD = CLOSE** (single bounded run; no $280 re-run per doctrine) |
-| Falsified | < +5pp OR F1 < 0.321 OR any-lang regression > 2σ_lang (= 0.036) | — | — | **CLOSE** |
+**Decision rule** (verdict partitions cleanly on `Δ_actionable`; F1 + per-language are guards that downgrade any verdict to CLOSE):
+
+```
+Let Δ = actionable_TP_rate(experiment) - 30.6 %  (in pp).
+Let GUARDS_PASS := (F1 >= 0.321) AND (no_language regression > 0.036).
+
+if Δ >= +10pp AND GUARDS_PASS:
+    verdict = SHIP
+elif Δ >= +3pp AND GUARDS_PASS:
+    verdict = HOLD = CLOSE     # within calibrated prediction range; no second chance
+else:
+    verdict = CLOSE            # below calibrated prediction OR guards failed
+```
+
+| Outcome | `Δ_actionable` | `GUARDS_PASS` | Verdict | Notes |
+|---------|---------------:|:-------------:|---------|-------|
+| Surprise lift | ≥ +10pp | ✅ | **SHIP** | Above calibrated +3-7pp prediction. Beats the historical 3-5× discount. |
+| Calibrated lift | +3pp to +10pp | ✅ | **HOLD = CLOSE** | In the predicted range; behaves as expected. No second chance per doctrine. |
+| Below noise | < +3pp | (any) | **CLOSE** | Indistinguishable from baseline at the assumed ±5pp actionability σ. |
+| Guard failure | (any) | ❌ | **CLOSE** | F1 regressed below sphinx-baseline 1σ_F1, OR a per-language slice regressed > 2σ_lang. |
+
+**SHIP threshold rationale**: dropped from the original +15pp to +10pp because (a) the calibrated prediction is +3-7pp post-discount, so +10pp is a reasonable "above the prediction range" threshold; (b) +10pp is exactly 2× the assumed actionability σ of ±5pp, providing the same "above 2σ noise" guarantee as the original; (c) the experiment is more genuinely falsifiable in both directions at +10pp than at +15pp.
 
 **HOLD = CLOSE rationale**: per the doctrine in `bench/crb/IMPROVEMENTS.md` § Subtraction wins, addition fails — we do not buy second chances at $140 each. Replicate-and-re-decide only happens with experiment-design changes (different prompt revision, different agent target), not same-design re-runs.
 
@@ -153,8 +178,8 @@ Per `bench/crb/IMPROVEMENTS.md` calibration (3-5× ΔF1 discount on naive estima
 - 1σ_F1 floor (sphinx-prompt) = 0.330 − 0.0086 = **0.321** (rounded to 3 decimals)
 - 2σ_F1 envelope (sphinx-prompt) = [0.313, 0.347]
 - σ_lang = 0.018 (PR #48 / `bench/crb/judge-noise-envelope.md`; per-language max 0.0179 for TS at n=10). 2σ_lang = **0.036**.
-- Sphinx actionability single-run noise envelope: NOT YET measured (n=1 from PR #133). Conservative assumption: actionable_TP_rate σ ~= ±5pp (treat as ±2σ for SHIP gate)
-- SHIP requires **Δ ≥ +15pp on actionability AND F1 ≥ 0.321 AND no per-language regression > 0.036**
+- Sphinx actionability single-run noise envelope: NOT YET measured (n=1 from PR #133). Conservative assumption: actionable_TP_rate σ ~= ±5pp (treat as ±2σ for SHIP gate).
+- **SHIP requires Δ ≥ +10pp on actionability AND F1 ≥ 0.321 AND no per-language regression > 0.036.**
 
 ## 5. Risk register
 
@@ -207,24 +232,33 @@ Compares to Strategic Option A (I19 sandbox, $2-5k + 6-12 weeks eng) at 13-33× 
 
 ## 7. Reproduction recipe (post-authorization)
 
+The recipe below references **two harness scripts that do not yet exist**: `bench/crb/dispatch-phase-concreteness.sh` and `bench/crb/run-phase-concreteness-pipeline.sh`. They must be created as part of the prompt-edit PR — adapted from the existing `bench/crb/dispatch-phase6.sh` and `bench/crb/run-sphinx-actionability.sh` respectively. The bullet checklist marks the create-vs-run boundary.
+
+**Setup (must be done as part of the prompt-edit PR before any spend):**
+- [ ] Create `bench/crb/dispatch-phase-concreteness.sh` (~30 lines; mirror `dispatch-phase6.sh` but write reviews to `bench/crb/phase-concreteness-reviews/`; no Phase 6 feature flag overrides — this is a baseline-prompt run with the new suggestion-field text)
+- [ ] Create `bench/crb/run-phase-concreteness-pipeline.sh` (~40 lines; mirror `run-sphinx-actionability.sh` but read from `bench/crb/phase-concreteness-reviews/` and emit to `evaluations_concreteness_sphinx.json`)
+- [ ] Verify both scripts run cleanly via `bash -n` syntax check before the dispatch step
+
+**Run sequence (after authorization):**
 ```bash
 # Step 1 — apply prompt changes (separate PR, after this design lands)
 git checkout -b feat/concreteness-prompt-tuning
 # Edit agents/correctness.md per § 3.1 (suggestion field on line 114; delete line 131)
 # Edit agents/hallucination.md per § 3.2 (suggestion field on line 110)
+# Create bench/crb/dispatch-phase-concreteness.sh + run-phase-concreteness-pipeline.sh per setup checklist above
 git commit -m "feat(prompts): concreteness — concrete-patch-only suggestion fields"
 
-# Step 2 — dispatch (1-2h, ~$140)
-bash bench/crb/dispatch-phase-concreteness.sh   # NEW; mirrors dispatch-phase6.sh
+# Step 2 — dispatch (1-2h, ~$140; spend variance ±20% per § 6 caveat)
+bash bench/crb/dispatch-phase-concreteness.sh
 
-# Step 3 — judge with both standard + sphinx prompts in parallel
+# Step 3 — judge with sphinx prompt (re-using PR #133's pipeline)
 bash bench/crb/run-phase-concreteness-pipeline.sh
 
 # Step 4 — analyze
 python3 bench/crb/analyze-sphinx.py --evals \
   ../code-review-benchmark/offline/results/azure_gpt-5.2/evaluations_concreteness_sphinx.json
-# Compare actionable_TP_rate vs Phase 5.2 baseline (30.6 %)
-# Apply pre-registered SHIP/HOLD/CLOSE bands per § 4
+# Compare actionable_TP_rate vs sphinx-prompt baseline (30.6 %, PR #133)
+# Apply pre-registered decision rule per § 4
 
 # Step 5 — RESULTS.md writeup + decision
 # If SHIP: prompt changes ship to main, v2.1.3 release tag
@@ -257,7 +291,11 @@ Cross-check against PR #121 doctrine + IMPROVEMENTS.md calibration:
 | No new agents / hooks / wirings | ✅ § 8 |
 | Subtraction-style change framing | ✅ § 3.5 (net **−1 line** via REPLACEMENT) |
 | Cite + carve out prior falsified levers | ✅ § 1.1 (Phase 3.6 description-compression carve-out) |
-| Address each $\geq$80-confidence code-review finding | ✅ all 3 from PR #134 review (R3 baseline, Phase 3.6 replay, σ_lang pin) |
+| Address each $\geq$80-confidence code-review finding | ✅ all 3 from PR #134 first-pass review (R3 baseline, Phase 3.6 replay, σ_lang pin) + 4 from second-pass review (G1 prediction-vs-SHIP, G2 table ambiguity, G3 shared-suppression honesty, G4 missing scripts) |
+| Decision rule is unambiguous (no overlapping verdict rows) | ✅ § 4 (explicit pseudocode + table partitions cleanly on Δ_actionable) |
+| Calibrated prediction range published before run | ✅ § 1 (+3-7pp post-discount) |
+| Asymmetric pre-reg disclosed (SHIP > predicted upper) | ✅ § 1 (doctrine-validation framing) |
+| Known-limitations section for non-blocking residual gaps | ✅ § 11 (L1 F1 math, L2 per-agent slicing, L3 spend variance) |
 
 ## 10. Approval checkpoint
 
@@ -269,6 +307,16 @@ This design ships as a single PR with no Soliton runtime changes. The user's `sh
 
 The design pre-registers the gate. Outcome interpretation is locked-in by this commit; no retroactive band-adjustment is permitted per the σ-aware doctrine.
 
+## 11. Known limitations (carried into the run)
+
+The design is approved-as-shipped with these acknowledged-but-not-fixed limitations. Each is small enough not to block authorization but worth flagging for the post-run analysis.
+
+**L1 — Recall→F1 math in § 5 R1 holds precision constant.** R1's "recall floor at ~0.45 → F1 ≈ 0.27" assumes precision stays at the baseline 0.224. If concreteness genuinely tightens precision (one of H1's predicted effects), F1 could hold or even rise despite recall loss. Post-run analysis should report `(precision, recall, F1)` triples per slice rather than projecting from recall alone.
+
+**L2 — Per-agent actionability slicing is not pre-validated.** § 5 R5's mitigation ("per-agent attribution analysis post-run") assumes the Sphinx pipeline preserves per-agent provenance through step3. The `agent` field IS present in `FINDING_START` and propagates into evaluations.json's TPs (verified for PR #133), but the analyzer (`bench/crb/analyze-sphinx.py`) currently does not slice by agent. A small analyzer extension (~20 LOC) is needed to compute per-agent actionable_TP_rate for the post-run analysis.
+
+**L3 — Spend estimate is ±20 % uncertain.** The \$140 dispatch figure mirrors Phase 5.3's spend, but agent-side prompt changes will likely shift token volume — agents emitting fewer findings (per the omission license) reduce output tokens; agents writing literal patches may increase or decrease token spend per finding. Realistic envelope is **\$110-170** for the dispatch alone. The \$11 Sphinx re-judge is fixed (input is the new reviews; volume is comparable to PR #133). Total realistic envelope: **\$121-181**, vs the headline \$151.
+
 ---
 
 *Filed under: Soliton / bench / CRB / experiment-design. Companion to `bench/crb/sphinx-actionability-spec.md` (which surfaced the LOW verdict driving this experiment).*
@@ -276,4 +324,5 @@ The design pre-registers the gate. Outcome interpretation is locked-in by this c
 **Revision history**:
 
 - 2026-05-02 — initial draft (PR #134, commit 5afa33d). Code review surfaced 3 ≥80-confidence findings: (1) § 4 SHIP gate F1 floor inconsistent with § 5 R3, (2) § 3.1 description compression near-replays Phase 3.6 (PR #19) which CLOSEd at F1 −0.021 / recall −0.111, (3) § 4 σ_lang not pinned numerically.
-- 2026-05-03 — revision (this commit). Addresses all 3 findings: (1) F1 floor moved to 0.321 against the corrected sphinx-prompt baseline of 0.330; § 5 R3 reframed as σ-transferability concern; (2) description-field modifications dropped per § 1.1 Phase 3.6 carve-out; § 3.2 Severity Guide change also dropped as additive-not-replacement; experiment now scoped to suggestion-field-only (net diff −1 line); (3) σ_lang = 0.018, 2σ_lang = 0.036 pinned in § 4 table per PR #48 / `bench/crb/judge-noise-envelope.md`.
+- 2026-05-03 — revision 1 (commit 8ad3d8d). Addresses all 3 findings: (1) F1 floor moved to 0.321 against the corrected sphinx-prompt baseline of 0.330; § 5 R3 reframed as σ-transferability concern; (2) description-field modifications dropped per § 1.1 Phase 3.6 carve-out; § 3.2 Severity Guide change also dropped as additive-not-replacement; experiment now scoped to suggestion-field-only (net diff −1 line); (3) σ_lang = 0.018, 2σ_lang = 0.036 pinned in § 4 table per PR #48 / `bench/crb/judge-noise-envelope.md`.
+- 2026-05-03 — revision 2 (this commit). Addresses 4 second-pass review gaps: (G1) prediction-vs-SHIP self-contradiction — calibrated prediction tightened to +3-7pp; SHIP threshold dropped from +15pp to +10pp; asymmetric pre-reg explicitly acknowledged as doctrine-validation-grade. (G2) § 4 table verdict ambiguity — replaced with explicit decision-rule pseudocode + tightened table; SHIP/HOLD/CLOSE partitions cleanly on Δ_actionable; F1 + per-language are explicit guards. (G3) shared suppression mechanism with Phase 3.6 — § 1.1 honestly acknowledged; argument for proceeding is precision-side hypothesis + tighter F1 floor + bounded-cost falsification, not absence of suppression. (G4) reproduction recipe references nonexistent scripts — § 7 reframed with explicit "must be created" setup checklist. NEW § 11 captures three known limitations carried into the run (L1 recall→F1 math, L2 per-agent slicing analyzer extension, L3 spend ±20 % envelope).
