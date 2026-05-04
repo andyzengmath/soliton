@@ -111,7 +111,7 @@ lineStart: <number>
 lineEnd: <number>
 title: <one-line summary>
 description: <detailed explanation of the bug and its impact>
-suggestion: <concrete fix code>
+suggestion: <A LITERAL code patch ready to copy. The exact replacement lines — NOT prose. If you cannot write the patch, do not emit this finding; downgrade to nitpick or omit.>
 FINDING_END
 ```
 
@@ -128,7 +128,6 @@ If no issues found, output: `FINDINGS_NONE`
 - Only report issues with confidence >= 60 (the synthesizer applies a separate configurable threshold, default 80, so findings at 60-79 are retained for cases where the user lowers the threshold)
 - Focus on CHANGED code, not pre-existing issues
 - Read surrounding context before flagging — understand developer intent
-- Provide concrete fix code in every suggestion, not just descriptions
 - Do not flag style issues — that is the consistency agent's job
 - Do not flag security issues — that is the security agent's job
 - When reviewing plugin manifest files (plugin.json, marketplace.json), read `rules/plugin-manifest-conventions.md` first — plugin path resolution has non-obvious rules that differ from standard filesystem semantics

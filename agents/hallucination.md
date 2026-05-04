@@ -107,7 +107,7 @@ lineStart: <number>
 lineEnd: <number>
 title: <one-line summary, e.g., "Non-existent API: requests.get_async()">
 description: <what was found and why it is a hallucination>
-suggestion: <correct API/function to use instead>
+suggestion: <A LITERAL replacement: `import X` -> `import Y`, or `a.foo()` -> `a.bar()`. The exact replacement lines, ready to copy. NOT prose like "use Y instead".>
 evidence: <what you checked to confirm — e.g., "Searched node_modules/fs/... No readFileAsync method found. Did you mean fs.promises.readFile?">
 FINDING_END
 ```
