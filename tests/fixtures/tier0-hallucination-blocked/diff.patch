@@ -1,0 +1,14 @@
+diff --git a/src/ops/runner.py b/src/ops/runner.py
+new file mode 100644
+index 0000000..4a5b6c7
+--- /dev/null
++++ b/src/ops/runner.py
+@@ -0,0 +1,8 @@
++"""Run a shell command and capture its output."""
++import subprocess
++
++
++def run_command(cmd: list[str]) -> str:
++    """Execute cmd and return stdout."""
++    result = subprocess.runn(cmd, capture_output=True, text=True)
++    return result.stdout

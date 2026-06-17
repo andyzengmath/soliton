@@ -1,0 +1,10 @@
+{
+  "riskRange": [20, 70],
+  "expectedFindings": 1,
+  "expectedCategories": ["clone"],
+  "expectedSeverity": "critical",
+  "tier0Verdict": "blocked",
+  "blockReason": "new_clone_block",
+  "llmSwarmSkipped": true,
+  "description": "PR adds two NEW files sharing an identical ~50-token retry_with_backoff function (copy-paste drift). jscpd --min-tokens 50 detects a clone introduced by this PR (both copies are added by the diff, neither pre-exists on base). v2 anti-slop gate -> verdict=blocked reason=new_clone_block, LLM swarm skipped. new_clone_block is tunable in block_on; demote to advisory if CRB F1 regresses."
+}

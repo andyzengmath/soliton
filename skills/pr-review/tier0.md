@@ -42,7 +42,9 @@ shortlist (shipped with Soliton v2):
 | Secret scan | `gitleaks detect --source . --log-opts="..."` | all | **Yes on match** |
 | SCA (deps) | `osv-scanner` (or `pip-audit`, `npm audit`, `cargo-audit`) | per-manifest | **Yes on critical CVE** |
 | AST structural diff | `difftastic` | supported langs | No (annotative) |
-| Clone detection | `jscpd --min-tokens 50` | per-lang | No |
+| Clone detection | `jscpd --min-tokens 50` | per-lang | **Yes — new clone introduced by the PR** |
+| Complexity / size budget | `lizard` / `radon cc` / `gocyclo` | per-lang | **Yes on delta over budget** |
+| Hallucinated symbol/dep (AST) | `hallucination-ast` | python only | **Yes on critical (exit 1)** |
 | Test-impact selection | `pytest-testmon`, `jest --findRelatedTests` | per-lang | No |
 
 You MUST determine which subset to run based on changed-file languages — don't run `tsc` on a
@@ -119,6 +121,14 @@ difftastic --display json $BASE_FILE $HEAD_FILE > .soliton/tier0/difftastic-$i.j
 
 # Clone detection
 jscpd --min-tokens 50 --reporters json --output .soliton/tier0/clones.json $CHANGED_FILES
+
+# Complexity / size budget (delta vs base — only NEW breaches block)
+lizard --CCN 10 --length 80 -w $CHANGED_FILES > .soliton/tier0/lizard.txt
+radon cc -j $CHANGED_PY_FILES > .soliton/tier0/radon.json     # python (alt)
+
+# Hallucinated symbol / dependency (Python only; deterministic AST, 0 LLM tokens)
+git diff "$BASE..HEAD" -- '*.py' | python -m hallucination_ast --diff - --repo-root .
+# exit 0 = clean | 1 = >=1 critical finding (block) | 2 = input error
 ```
 
 **Timeouts**: set 60 s per tool. If a tool exceeds, record `status=timeout` and continue.
@@ -141,7 +151,7 @@ DeterministicFinding {
   lineEnd: number
   message: string             # human-readable summary
   suggestedFix: string | null # if the tool proposes an auto-fix
-  category: "lint" | "type" | "security" | "secret" | "dep" | "clone" | "structural" | "coverage"
+  category: "lint" | "type" | "security" | "secret" | "dep" | "clone" | "complexity" | "hallucination" | "structural" | "coverage"
   cwe?: string                # e.g. "CWE-89" for SAST findings
   sarifRaw?: object           # original SARIF result for forensics
 }
@@ -159,7 +169,14 @@ Soliton run on a new repo from drowning the reviewer in backlog.
 `tierZeroVerdict` is one of:
 
 - **`blocked`** — any finding with `category in {secret, dep}` and `severity == critical`, OR
-  `category == type` and a fatal type error, OR `category == security` and `severity == critical`.
+  `category == type` and a fatal type error, OR `category == security` and `severity == critical`,
+  OR `category == hallucination` (deterministic AST resolution, confidence 100; reason
+  `hallucinated_symbol`), OR `category == clone` for a clone **introduced by this PR** (its
+  counterpart is absent from the base branch, or both copies are added by the diff; reason
+  `new_clone_block`), OR `category == complexity` when the diff pushes a file **past** the
+  configured size/complexity budget (delta vs base — never the absolute; reason
+  `complexity_budget_exceeded`). The clone and complexity reasons are anti-slop gates listed in
+  `block_on` (`rules/tier0-tools.md`) — set them advisory there if CRB golden-set F1 regresses.
   LLM swarm will be **skipped**; output is the Tier-0 findings only; CI fails.
 
 - **`clean`** — zero findings across all tools AND `diff` has ≤ 50 meaningful lines (excluding
