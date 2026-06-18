@@ -1,0 +1,7 @@
+{
+  "riskRange": [10, 60],
+  "expectedFindings": 1,
+  "expectedCategories": ["structural"],
+  "expectedSeverity": "improvement",
+  "description": "New function compute_unused_metric has zero callers across the codebase (born dead). graph-signals Step-10 introducedDeadCode flags it; if the symbol's edges resolve EXTRACTED/INFERRED it feeds the slopDelta dead-code floor (S5), if only AMBIGUOUS it is advisory-only and routed to cross-file-impact. Lint (ruff/eslint) cannot see this — it is unused ACROSS files, not within one. Full assertion needs the graph + API-gated /pr-review runner; structural-only here."
+}

@@ -179,6 +179,14 @@ Soliton run on a new repo from drowning the reviewer in backlog.
   `block_on` (`rules/tier0-tools.md`) — set them advisory there if CRB golden-set F1 regresses.
   LLM swarm will be **skipped**; output is the Tier-0 findings only; CI fails.
 
+> **slopDelta (S5)**: the `blocked` reasons above (`new_clone_block`, `complexity_budget_exceeded`,
+> `hallucinated_symbol`, plus EXTRACTED/INFERRED introduced-dead-code from graph-signals) ARE the
+> per-component hard floors of the `slopDelta` vector emitted in Step 6. slopDelta is a
+> pre-registered VECTOR with per-component floors, never a single weighted scalar (which would be
+> gameable); its signed `net` (negative = slop removed) is the cost/acceptance metric in the
+> Evidence Bundle and the acceptance gate for the design-recovery / clean-regen mode. Pre-register
+> the floors + any published weights in `rules/tier0-tools.md`.
+
 - **`clean`** — zero findings across all tools AND `diff` has ≤ 50 meaningful lines (excluding
   whitespace and comment-only changes) AND no file matches `config.sensitivePaths` AND
   `tools_ran.length >= 1` (i.e. at least one tool actually executed against the diff and
@@ -222,6 +230,12 @@ stats:
   totalFindings: <n>
   byCategory: {lint: n, type: n, security: n, secret: n, dep: n, ...}
   bySeverity: {critical: n, high: n, medium: n, low: n, info: n}
+  slopDelta:                          # S5 — pre-registered VECTOR (not a gameable scalar), per-1k-changed-LOC
+    duplicationDelta: <n>             # NEW clone blocks introduced (S1)
+    complexityBreaches: <n>           # files pushed past the size/complexity budget (S4)
+    hallucinatedSymbols: <n>          # confidence-100 AST hallucinations (S2)
+    introducedDeadCode: <n>           # EXTRACTED/INFERRED zero-inbound new symbols (S3, from graph-signals; 0 when no graph)
+    net: <signed>                     # SIGNED: negative = this PR net-REMOVED slop (rewarded); def in rules/tier0-tools.md
 TIER_ZERO_END
 ```
 

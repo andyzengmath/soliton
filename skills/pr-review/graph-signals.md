@@ -287,6 +287,25 @@ for partition in signals.affectedFeatures:
     })
 ```
 
+### Step 10 — introduced dead code (S3)
+
+For each FUNCTION/CLASS symbol ADDED in the diff, the graph sees what lint cannot: whether anything ACROSS the codebase calls it. Reverse-BFS (blast-radius) on the new symbol — zero callers AND not exported / registered / an entry-point = code born dead.
+
+```
+for symbol in added_symbols_in_diff:
+    result = graph_cli("query --blast-radius ${file}:${symbol} --depth 1")
+    if result.directCallers == 0 and result.transitiveCallers == 0
+       and not is_exported(symbol) and not is_entrypoint(symbol):
+        tier = edge_confidence(symbol)   # extracted | inferred | ambiguous
+        signals.introducedDeadCode.push({
+            symbol, file,
+            confidence: tier,
+            blocking: (tier != "ambiguous"),
+        })
+```
+
+CRITICAL honesty rule (matches the measured tier verdict): NEVER hard-block on an AMBIGUOUS-only "dead" verdict — a reflective / DI / config-routed caller the graph resolves only by name (~0.30 precision) makes live code look dead. AMBIGUOUS findings are advisory and routed to the `cross-file-impact` agent; only EXTRACTED/INFERRED zero-inbound counts toward the slopDelta dead-code floor (S5).
+
 ## Output
 
 Emit in this exact block format:
@@ -334,6 +353,10 @@ featureCoverage:
   - partitionId: <id>
     testFiles: [...]
     coverage: full|partial|none
+introducedDeadCode:
+  - symbol: <f:sym>
+    confidence: extracted|inferred|ambiguous
+    blocking: true|false
 GRAPH_SIGNALS_END
 ```
 
@@ -358,6 +381,7 @@ fallback: grep-based heuristics
 | `affectedFeatures` | Synthesizer evidence chain | Every finding gets partition context |
 | `criticalityScore` | `risk-scorer` new Factor 8 | Weight 10% feature_criticality |
 | `featureCoverage` | `test-quality` agent | Pre-flagged partitions with `coverage: none` |
+| `introducedDeadCode` | `tier0` slopDelta + `cross-file-impact` agent | EXTRACTED/INFERRED zero-inbound feeds the dead-code floor; AMBIGUOUS is advisory only (S3) |
 
 ## Graceful degradation
 
