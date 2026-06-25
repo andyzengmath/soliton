@@ -180,8 +180,10 @@ Soliton run on a new repo from drowning the reviewer in backlog.
   LLM swarm will be **skipped**; output is the Tier-0 findings only; CI fails.
 
 > **slopDelta (S5)**: the `blocked` reasons above (`new_clone_block`, `complexity_budget_exceeded`,
-> `hallucinated_symbol`, plus EXTRACTED/INFERRED introduced-dead-code from graph-signals) ARE the
-> per-component hard floors of the `slopDelta` vector emitted in Step 6. slopDelta is a
+> `hallucinated_symbol`) ARE the per-component hard floors of the `slopDelta` vector emitted in Step 6
+> (they appear in `block_on`, `rules/tier0-tools.md`). EXTRACTED/INFERRED introduced-dead-code from
+> graph-signals is an **additional advisory component — NOT a `block_on` floor until `graph-cli` ships**.
+> slopDelta is a
 > pre-registered VECTOR with per-component floors, never a single weighted scalar (which would be
 > gameable); its signed `net` (negative = slop removed) is the cost/acceptance metric in the
 > Evidence Bundle and the acceptance gate for the design-recovery / clean-regen mode. Pre-register

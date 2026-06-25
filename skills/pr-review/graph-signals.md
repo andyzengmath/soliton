@@ -304,6 +304,12 @@ for symbol in added_symbols_in_diff:
         })
 ```
 
+> **Pseudocode contract (implementation-defined, pending `graph-cli`):** `graph_cli(...)` shells out to the
+> graph-cli binary (not yet shipped); `is_exported`/`is_entrypoint` consult the module's export / entry-point
+> manifest; `edge_confidence(symbol)` returns the provenance tier (`extracted|inferred|ambiguous`) of the
+> symbol's resolved inbound edges. Until `graph-cli` ships, Step 10 is inert (emits nothing) and the signal
+> degrades to advisory.
+
 CRITICAL honesty rule (matches the measured tier verdict): NEVER hard-block on an AMBIGUOUS-only "dead" verdict — a reflective / DI / config-routed caller the graph resolves only by name (~0.30 precision) makes live code look dead. AMBIGUOUS findings are advisory and routed to the `cross-file-impact` agent; only EXTRACTED/INFERRED zero-inbound counts toward the slopDelta dead-code floor (S5).
 
 ## Output
