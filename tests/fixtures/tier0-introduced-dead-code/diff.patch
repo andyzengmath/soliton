@@ -1,0 +1,12 @@
+diff --git a/src/util/orphan.py b/src/util/orphan.py
+new file mode 100644
+index 0000000..5e6f7a8
+--- /dev/null
++++ b/src/util/orphan.py
+@@ -0,0 +1,6 @@
++"""A helper added but never wired in — born dead."""
++
++
++def compute_unused_metric(values):
++    """Sum the values. Nothing in the codebase calls this."""
++    return sum(values)

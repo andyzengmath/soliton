@@ -309,6 +309,29 @@ When Soliton is invoked via `anthropics/claude-code-action` in a gated workflow:
 The gated-workflow example (`examples/workflows/soliton-review-gated.yml`) parses `tierZeroVerdict`
 from the JSON output to decide exit code.
 
+## slopDelta vector (S5)
+
+The maintainability roll-up emitted in `tier0.md` Step 6. To avoid re-introducing LOC-gameability
+one level up, slopDelta is a **vector with per-component floors**, NOT a single weighted scalar.
+
+| Component | Source | Floor (hard gate) |
+|---|---|---|
+| `duplicationDelta` | jscpd new-clone blocks (S1) | 0 new clones |
+| `complexityBreaches` | size/complexity delta (S4) | 0 budget breaches |
+| `hallucinatedSymbols` | hallucination-ast (S2) | 0 |
+| `introducedDeadCode` | graph-signals EXTRACTED/INFERRED zero-inbound (S3) | 0 (AMBIGUOUS excluded — advisory) |
+
+Rules:
+- Each component is normalized **per-1k changed-LOC** (size-invariant — shrinking the codebase
+  cannot mechanically improve the rate).
+- Each component has its OWN pass/fail floor; a gain in one MUST NOT mask a regression in another
+  (a Pareto bar, not a weighted sum). These floors are exactly the `block_on` reasons above.
+- `net` is a SIGNED roll-up: a PR that DELETES slop scores **negative** (rewarded); one that only
+  adds scores positive. `net` is for the Evidence Bundle cost/acceptance audit and the
+  design-recovery / clean-regen acceptance gate — NOT a substitute for the per-component floors.
+- Any published weights used to compute `net` are **version-pinned** here so "slop reduced" is
+  reproducible and not tunable post-hoc.
+
 ## Provenance
 
 Every Tier-0 finding that makes it to PR comments must include a `tool: <name>` tag so developers
