@@ -1,0 +1,10 @@
+{
+  "riskRange": [20, 70],
+  "expectedFindings": 1,
+  "expectedCategories": ["complexity"],
+  "expectedSeverity": "critical",
+  "tier0Verdict": "blocked",
+  "blockReason": "complexity_budget_exceeded",
+  "llmSwarmSkipped": true,
+  "description": "PR adds a new function classify_transaction exceeding the size/complexity budget (>80 LOC, nesting depth >4, high cyclomatic complexity). lizard/radon flag it; the delta gate (post-diff vs base) blocks because the breach is INTRODUCED by this PR -> verdict=blocked reason=complexity_budget_exceeded. Gate is on the DELTA only — a pre-existing large file the PR merely edits is never blocked. Tunable in block_on; demote to advisory if CRB F1 regresses."
+}

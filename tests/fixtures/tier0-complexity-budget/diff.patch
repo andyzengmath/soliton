@@ -1,0 +1,84 @@
+diff --git a/src/billing/classify.py b/src/billing/classify.py
+new file mode 100644
+index 0000000..3c3c3c3
+--- /dev/null
++++ b/src/billing/classify.py
+@@ -0,0 +1,84 @@
++"""Transaction classifier — intentionally over the complexity budget."""
++
++
++def classify_transaction(txn, rules, context):
++    """Classify a transaction against a rule set (deeply nested on purpose)."""
++    result = {"label": "unknown", "score": 0, "flags": []}
++    if txn is not None:
++        if isinstance(txn, dict):
++            amount = txn.get("amount", 0)
++            if amount > 0:
++                for rule in rules:
++                    if rule.get("enabled", False):
++                        matched = True
++                        for cond in rule.get("conditions", []):
++                            field = cond.get("field")
++                            if field in txn:
++                                op = cond.get("op", "eq")
++                                target = cond.get("value")
++                                value = txn[field]
++                                if op == "eq":
++                                    if value != target:
++                                        matched = False
++                                elif op == "gt":
++                                    if not (value > target):
++                                        matched = False
++                                elif op == "lt":
++                                    if not (value < target):
++                                        matched = False
++                                elif op == "in":
++                                    if value not in target:
++                                        matched = False
++                                else:
++                                    matched = False
++                            else:
++                                if cond.get("required", True):
++                                    matched = False
++                        if matched:
++                            weight = rule.get("weight", 1)
++                            result["score"] += weight
++                            label = rule.get("label")
++                            if label:
++                                result["label"] = label
++                            for flag in rule.get("flags", []):
++                                if flag not in result["flags"]:
++                                    if context.get("strict", False):
++                                        if flag.startswith("hard_"):
++                                            result["flags"].append(flag)
++                                        else:
++                                            if context.get("include_soft", True):
++                                                result["flags"].append(flag)
++                                    else:
++                                        result["flags"].append(flag)
++            else:
++                if amount < 0:
++                    result["label"] = "refund"
++                    if context.get("track_refunds", False):
++                        result["flags"].append("refund_seen")
++                else:
++                    result["label"] = "zero"
++        else:
++            if isinstance(txn, (list, tuple)):
++                for sub in txn:
++                    inner = classify_transaction(sub, rules, context)
++                    result["score"] += inner["score"]
++                    for f in inner["flags"]:
++                        if f not in result["flags"]:
++                            result["flags"].append(f)
++            else:
++                result["label"] = "malformed"
++    else:
++        result["label"] = "empty"
++    threshold = context.get("threshold", 10)
++    if result["score"] >= threshold:
++        if "high_value" not in result["flags"]:
++            result["flags"].append("high_value")
++        if result["score"] >= threshold * 2:
++            result["label"] = "critical"
++    return result

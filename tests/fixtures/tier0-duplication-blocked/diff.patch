@@ -1,0 +1,42 @@
+diff --git a/src/util/retry_alpha.py b/src/util/retry_alpha.py
+new file mode 100644
+index 0000000..1a1a1a1
+--- /dev/null
++++ b/src/util/retry_alpha.py
+@@ -0,0 +1,15 @@
++"""Alpha module — exponential-backoff retry helper."""
++import time
++
++
++def retry_with_backoff(operation, max_attempts=5, base_delay=0.5):
++    attempt = 0
++    last_error = None
++    while attempt < max_attempts:
++        try:
++            return operation()
++        except Exception as error:
++            last_error = error
++            time.sleep(base_delay * (2 ** attempt))
++            attempt += 1
++    raise last_error
+diff --git a/src/util/retry_beta.py b/src/util/retry_beta.py
+new file mode 100644
+index 0000000..2b2b2b2
+--- /dev/null
++++ b/src/util/retry_beta.py
+@@ -0,0 +1,15 @@
++"""Beta module — copy-pasted retry helper (duplicate of alpha)."""
++import time
++
++
++def retry_with_backoff(operation, max_attempts=5, base_delay=0.5):
++    attempt = 0
++    last_error = None
++    while attempt < max_attempts:
++        try:
++            return operation()
++        except Exception as error:
++            last_error = error
++            time.sleep(base_delay * (2 ** attempt))
++            attempt += 1
++    raise last_error

@@ -1,0 +1,17 @@
+{
+  "riskRange": [20, 70],
+  "expectedFindings": 1,
+  "expectedCategories": ["hallucination"],
+  "expectedSeverity": "critical",
+  "tier0Verdict": "blocked",
+  "blockReason": "hallucinated_symbol",
+  "llmSwarmSkipped": true,
+  "description": "Python file calls subprocess.runn() which does not exist (typo for run). hallucination-ast resolves it deterministically (identifier_not_found, confidence 100, suggestedFix=run). v2 promotes this from a Tier-2 LLM pre-check to a blocking Tier-0 gate -> verdict=blocked reason=hallucinated_symbol, LLM swarm skipped. Python-only (v0.1).",
+  "phase4bExpected": {
+    "rule": "identifier_not_found",
+    "symbol": "subprocess.runn",
+    "suggestedFix": "run",
+    "confidence": 100,
+    "emittedByPreCheck": true
+  }
+}

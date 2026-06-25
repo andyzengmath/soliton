@@ -101,6 +101,45 @@ These are hints, not findings. They're attached to the risk-scorer's focus areas
 
 Only report clones created *by* this PR — filter out pre-existing clones the PR touches.
 
+**Blocking rule (v2 anti-slop)**: a clone block ≥ `--min-tokens` that is *introduced by this PR*
+(its counterpart is absent from the base branch, or both copies are added by the diff) →
+`verdict = blocked`, reason `new_clone_block`. Pre-existing clones the PR merely touches are never
+blocking. Listed in the default `block_on` but tunable — remove it to make duplication advisory if
+CRB golden-set F1 regresses.
+
+## Complexity / size budget
+
+| Tool | Lang | Invocation | Output |
+|---|---|---|---|
+| `lizard` | multi (py/c/cpp/js/ts/java/go/…) | `lizard --CCN 10 --length 80 -w {files}` | warnings for functions over CCN / length |
+| `radon` | python (alt) | `radon cc -j {files} > {out}` | per-function cyclomatic complexity JSON |
+| `gocyclo` | go (alt) | `gocyclo -over 10 {files}` | functions over a cyclomatic threshold |
+
+**Budgets** (configurable via `.claude/soliton.local.md` `tier0.budgets`; defaults mirror the house
+coding style): file > 800 LOC, function > 80 LOC, nesting depth > 4, cyclomatic complexity > 10.
+
+**Delta rule**: compute budgets on the post-diff files and compare to base. Block only when the diff
+*introduces* a breach — pushes a file past a budget, or worsens a metric on a file already over
+budget. A pre-existing large/complex file the PR merely edits is **never** blocked (this is what
+makes the gate safe to run during a legacy-reclamation pass). Breach → `verdict = blocked`, reason
+`complexity_budget_exceeded`. Tunable in `block_on`; demote to advisory if CRB F1 regresses.
+
+## Hallucination (deterministic AST)
+
+| Tool | Lang | Invocation | Exit-code contract |
+|---|---|---|---|
+| `hallucination-ast` | **python only (v0.1)** | `git diff {base}..HEAD -- '*.py' \| python -m hallucination_ast --diff - --repo-root .` | 0 = clean; 1 = ≥1 critical finding; 2 = input error |
+
+`hallucination-ast` (ships in `lib/hallucination-ast/`; Khati-2026 corpus P 0.993 / R 0.944) resolves
+every added symbol against a live introspection KB and emits confidence-100 findings with no LLM
+tokens. It previously ran only as a Tier-2 pre-check inside `agents/hallucination.md §2.5`; v2
+promotes it to a **Tier-0 blocking gate**. A critical finding (`identifier_not_found`,
+`signature_mismatch_arity`) → `verdict = blocked`, reason `hallucinated_symbol`. Non-critical
+(`signature_mismatch_keyword`, `deprecated_identifier`) and `unresolved` refs forward to the LLM.
+
+**Language scope**: Python only until the 4b.x TS/JS/Go/Java parsers land. On a non-Python diff the
+check reports `not_applicable` and contributes nothing — it never mis-promises coverage.
+
 ## Test-impact selection (advisory only)
 
 | Tool | Lang | Purpose |
@@ -117,7 +156,10 @@ Output is appended to the `testCoverage` signal, not a blocking finding.
 tier0:
   enabled: true
   skip_llm_on_clean: true          # Phase-2 default
-  block_on: ["secret_leak", "cve_critical", "type_error_fatal", "security_critical"]
+  # secret/cve/type/security = unambiguous deterministic blocks (v1).
+  # hallucinated_symbol / new_clone_block / complexity_budget_exceeded = v2 anti-slop gates;
+  # validate against the CRB golden set — remove any that regress F1 (which demotes it to advisory).
+  block_on: ["secret_leak", "cve_critical", "type_error_fatal", "security_critical", "hallucinated_symbol", "new_clone_block", "complexity_budget_exceeded"]
 
   tools:
     lint:
@@ -248,7 +290,7 @@ Soliton's behavior degrades gracefully — tools absent from PATH are silently s
 - **`clean`** — at least one tool ran, zero findings, diff ≤ 50 LOC. Fast-path approve when `tier0.skip_llm_on_clean=true`.
 - **`advisory_only`** — only nitpick / low-severity findings, OR zero tools ran (no language coverage).
 - **`needs_llm`** — default when at least one tool ran and surfaced something non-trivial; LLM swarm proceeds.
-- **`blocked`** — secret_leak / cve_critical / type_error_fatal / security_critical surfaced; LLM skipped, CI fails.
+- **`blocked`** — secret_leak / cve_critical / type_error_fatal / security_critical / hallucinated_symbol / new_clone_block / complexity_budget_exceeded surfaced; LLM skipped, CI fails.
 
 Integrators with only the cross-language tools (gitleaks + osv-scanner + semgrep) still get supply-chain integrity + secret + CVE coverage on every PR. Java/TS/Go/Ruby/Rust diffs without their language-specific tools land in `advisory_only` (graceful) rather than `clean` (which would mis-promise coverage).
 
