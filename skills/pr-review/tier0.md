@@ -224,7 +224,7 @@ findings:
     lineStart: <n>
     lineEnd: <n>
     message: "<summary>"
-    category: <lint|type|security|secret|dep|clone|structural|coverage>
+    category: <lint|type|security|secret|dep|clone|complexity|hallucination|structural|coverage>
     cwe: <CWE-id or null>
     suggestedFix: "<fix or null>"
   - ...
